@@ -18,7 +18,7 @@ export default async function roleRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.CREATE_ROLES)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_ROLES)],
     },
     roleController.createRole
   )
@@ -36,7 +36,7 @@ export default async function roleRoutes(fastify: FastifyInstance) {
   fastify.put(
     '/:id',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.UPDATE_ROLES)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_ROLES)],
     },
     roleController.updateRole
   )
@@ -45,7 +45,7 @@ export default async function roleRoutes(fastify: FastifyInstance) {
   fastify.delete(
     '/:id',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.DELETE_ROLES)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_ROLES)],
     },
     roleController.deleteRole
   )
@@ -54,7 +54,7 @@ export default async function roleRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/users/:id/assign',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.ASSIGN_ROLES)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_ROLES)],
     },
     roleController.assignRole
   )
@@ -63,7 +63,7 @@ export default async function roleRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/users/:id/revoke',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.ASSIGN_ROLES)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_ROLES)],
     },
     roleController.revokeRole
   )

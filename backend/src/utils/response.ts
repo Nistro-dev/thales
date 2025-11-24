@@ -119,6 +119,14 @@ export const SuccessMessages = {
   // Permissions
   PERMISSIONS_RETRIEVED: 'Permissions récupérées avec succès',
 
+  // Reservations
+  RESERVATION_CREATED: 'Réservation créée avec succès',
+  RESERVATION_CANCELLED: 'Réservation annulée avec succès',
+  RESERVATION_UPDATED: 'Réservation mise à jour avec succès',
+  RESERVATION_REFUNDED: 'Réservation remboursée avec succès',
+  PRODUCT_CHECKED_OUT: 'Produit sorti avec succès',
+  PRODUCT_RETURNED: 'Produit retourné avec succès',
+
   // Generic
   RETRIEVED: 'Données récupérées avec succès',
   CREATED: 'Créé avec succès',
@@ -166,6 +174,16 @@ export const ErrorMessages = {
   RESET_TOKEN_INVALID: 'Token de réinitialisation invalide ou expiré',
   RESET_TOKEN_USED: 'Ce lien de réinitialisation a déjà été utilisé',
   RESET_TOKEN_EXPIRED: 'Ce lien de réinitialisation a expiré',
+
+  // Reservations
+  RESERVATION_NOT_FOUND: 'Réservation non trouvée',
+  PRODUCT_NOT_AVAILABLE: 'Produit non disponible à la réservation',
+  INSUFFICIENT_CREDITS: 'Crédits insuffisants',
+  INVALID_DATES: 'Dates invalides',
+  RESERVATION_CONFLICT: 'Le produit est déjà réservé pour cette période',
+  CAUTION_REQUIRED: 'Caution requise pour effectuer une réservation',
+  CANNOT_CANCEL: 'Impossible d\'annuler cette réservation',
+  ALREADY_REFUNDED: 'Cette réservation a déjà été remboursée',
 
   // Server
   INTERNAL_ERROR: 'Erreur interne du serveur',

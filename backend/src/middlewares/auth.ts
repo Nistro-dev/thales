@@ -32,14 +32,23 @@ export const authMiddleware = async (
     })
 
     if (!user) {
+      // Clear invalid cookies
+      reply.clearCookie('accessToken')
+      reply.clearCookie('refreshToken')
       return reply.status(401).send({ error: 'User not found' })
     }
 
     if (user.status === 'DISABLED') {
+      // Clear cookies for disabled accounts
+      reply.clearCookie('accessToken')
+      reply.clearCookie('refreshToken')
       return reply.status(403).send({ error: 'Account has been disabled' })
     }
 
     if (user.status === 'SUSPENDED') {
+      // Clear cookies for suspended accounts
+      reply.clearCookie('accessToken')
+      reply.clearCookie('refreshToken')
       return reply.status(403).send({ error: 'Account has been suspended' })
     }
 
@@ -49,6 +58,9 @@ export const authMiddleware = async (
     }
   } catch (error) {
     logger.warn({ error }, 'Invalid access token')
+    // Clear invalid cookies
+    reply.clearCookie('accessToken')
+    reply.clearCookie('refreshToken')
     return reply.status(401).send({ error: 'Invalid or expired token' })
   }
 }

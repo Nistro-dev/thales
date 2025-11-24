@@ -55,3 +55,8 @@ export const getSignedDownloadUrl = async (
 
   return getSignedUrl(s3Client, command, { expiresIn });
 };
+
+// Alias pour compatibilité
+export const uploadToS3 = uploadFile
+export const deleteFromS3 = deleteFile
+export { getSignedUrl } from '@aws-sdk/s3-request-presigner'

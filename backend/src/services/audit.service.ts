@@ -138,3 +138,6 @@ export const getAuditLogById = async (id: string) => {
     },
   })
 }
+
+// Alias pour compatibilité
+export const logAudit = createAuditLog

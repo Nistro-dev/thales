@@ -9,6 +9,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// ENUMS
+// ============================================
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -26,6 +30,18 @@ enum CreditTransactionType {
   RESERVATION
   REFUND
   SYSTEM
+}
+
+enum ProductStatus {
+  AVAILABLE
+  UNAVAILABLE
+  MAINTENANCE
+  ARCHIVED
+}
+
+enum FileVisibility {
+  PUBLIC
+  ADMIN
 }
 
 enum AuditAction {
@@ -62,6 +78,24 @@ enum AuditAction {
   ROLE_DELETE
   ROLE_ASSIGN
   ROLE_REVOKE
+
+  // Sections
+  SECTION_CREATE
+  SECTION_UPDATE
+  SECTION_DELETE
+
+  // SubSections
+  SUBSECTION_CREATE
+  SUBSECTION_UPDATE
+  SUBSECTION_DELETE
+
+  // Products
+  PRODUCT_CREATE
+  PRODUCT_UPDATE
+  PRODUCT_DELETE
+  PRODUCT_STATUS_CHANGE
+  PRODUCT_FILE_UPLOAD
+  PRODUCT_FILE_DELETE
 }
 
 // ============================================
@@ -166,15 +200,15 @@ model Role {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  key         String   @unique
+  id          String       @id @default(uuid())
+  key         String       @unique
   name        String
   description String?
   category    String
   parentId    String?
   parent      Permission?  @relation("PermissionHierarchy", fields: [parentId], references: [id])
   children    Permission[] @relation("PermissionHierarchy")
-  createdAt   DateTime @default(now())
+  createdAt   DateTime     @default(now())
 
   roles RolePermission[]
 
@@ -198,7 +232,7 @@ model UserRole {
   sectionId String?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  section   Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section   Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 
   @@id([userId, roleId])
@@ -206,19 +240,98 @@ model UserRole {
 }
 
 // ============================================
-// SECTIONS (pour scope permissions)
+// SECTIONS & SUBSECTIONS
 // ============================================
 
 model Section {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  allowedDaysIn  Int[]     @default([1, 2, 3, 4, 5])
+  allowedDaysOut Int[]     @default([1, 2, 3, 4, 5])
+  sortOrder      Int       @default(0)
+  isSystem       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  subSections SubSection[]
+  products    Product[]
+  userRoles   UserRole[]
+
+  @@index([isSystem])
+}
+
+model SubSection {
   id          String   @id @default(uuid())
   name        String
   description String?
-  color       String?
+  sectionId   String?
+  section     Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  userRoles UserRole[]
+  products Product[]
+
+  @@index([sectionId])
+}
+
+// ============================================
+// PRODUCTS
+// ============================================
+
+model Product {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  reference    String?
+  priceCredits Int
+  minDuration  Int           @default(1)
+  maxDuration  Int           @default(14)
+  status       ProductStatus @default(AVAILABLE)
+  sectionId    String
+  section      Section       @relation(fields: [sectionId], references: [id])
+  subSectionId String?
+  subSection   SubSection?   @relation(fields: [subSectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  attributes ProductAttribute[]
+  files      ProductFile[]
+
+  @@index([sectionId])
+  @@index([subSectionId])
+  @@index([status])
+  @@index([name])
+}
+
+model ProductAttribute {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, key])
+  @@index([productId])
+}
+
+model ProductFile {
+  id         String         @id @default(uuid())
+  productId  String
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String
+  size       Int
+  s3Key      String         @unique
+  visibility FileVisibility @default(PUBLIC)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@index([productId])
+  @@index([sortOrder])
 }
 
 // ============================================

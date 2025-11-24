@@ -13,6 +13,7 @@ import type {
   AvailabilityInput,
   RefundReservationInput,
 } from '../schemas/reservation.js'
+import type { CheckoutInput, ReturnInput } from '../schemas/movement.js'
 
 // ============================================
 // USER ROUTES
@@ -172,29 +173,33 @@ export const refund = async (
 }
 
 export const checkout = async (
-  request: FastifyRequest<{ Params: { id: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body?: CheckoutInput }>,
   reply: FastifyReply
 ) => {
-  const reservation = await reservationService.checkoutReservation(
-    request.params.id,
-    request.user.userId,
-    request
-  )
+  const reservation = await reservationService.checkoutReservation({
+    reservationId: request.params.id,
+    adminId: request.user.userId,
+    notes: request.body?.notes,
+    request,
+  })
 
-  return reply.send(createSuccessResponse('Product checked out', reservation))
+  return reply.send(createSuccessResponse(SuccessMessages.PRODUCT_CHECKED_OUT, reservation))
 }
 
 export const returnProduct = async (
-  request: FastifyRequest<{ Params: { id: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body?: ReturnInput }>,
   reply: FastifyReply
 ) => {
-  const reservation = await reservationService.returnReservation(
-    request.params.id,
-    request.user.userId,
-    request
-  )
+  const reservation = await reservationService.returnReservation({
+    reservationId: request.params.id,
+    adminId: request.user.userId,
+    condition: request.body?.condition,
+    notes: request.body?.notes,
+    photoKey: request.body?.photoKey,
+    request,
+  })
 
-  return reply.send(createSuccessResponse('Product returned', reservation))
+  return reply.send(createSuccessResponse(SuccessMessages.PRODUCT_RETURNED, reservation))
 }
 
 // ============================================

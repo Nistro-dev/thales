@@ -1,33 +1,49 @@
-import api from './api'
+import { api } from './api'
 import type { User, LoginCredentials, RegisterCredentials } from '@/types'
 
 interface AuthResponse {
   user: User
-  accessToken: string
+}
+
+interface MessageResponse {
+  message: string
+}
+
+interface ValidateTokenResponse {
+  valid: boolean
+  email?: string
 }
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/login', credentials)
-    return response.data
+    return api.post<AuthResponse>('/auth/login', credentials, { skipAuth: true })
   },
 
-  async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/register', credentials)
-    return response.data
+  async register(credentials: RegisterCredentials): Promise<MessageResponse & { user: User }> {
+    return api.post('/auth/register', credentials, { skipAuth: true })
   },
 
   async logout(): Promise<void> {
     await api.post('/auth/logout')
   },
 
-  async refresh(): Promise<{ accessToken: string }> {
-    const response = await api.post<{ accessToken: string }>('/auth/refresh')
-    return response.data
+  async logoutAll(): Promise<void> {
+    await api.post('/auth/logout-all')
   },
 
-  async me(): Promise<User> {
-    const response = await api.get<User>('/auth/me')
-    return response.data
+  async getMe(): Promise<AuthResponse> {
+    return api.get<AuthResponse>('/auth/me')
+  },
+
+  async forgotPassword(email: string): Promise<MessageResponse> {
+    return api.post('/auth/forgot-password', { email }, { skipAuth: true })
+  },
+
+  async validateResetToken(token: string): Promise<ValidateTokenResponse> {
+    return api.get(`/auth/validate-reset-token?token=${token}`, { skipAuth: true })
+  },
+
+  async resetPassword(token: string, password: string): Promise<MessageResponse> {
+    return api.post('/auth/reset-password', { token, password }, { skipAuth: true })
   },
 }

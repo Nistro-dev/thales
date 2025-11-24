@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(npm test:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npm run db:seed:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

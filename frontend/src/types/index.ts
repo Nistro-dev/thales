@@ -1,14 +1,12 @@
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'DISABLED'
+
 export interface User {
   id: string
   email: string
   firstName: string
   lastName: string
+  status: UserStatus
   createdAt?: string
-}
-
-export interface AuthTokens {
-  accessToken: string
-  refreshToken?: string
 }
 
 export interface LoginCredentials {
@@ -16,11 +14,19 @@ export interface LoginCredentials {
   password: string
 }
 
-export interface RegisterCredentials {
-  email: string
-  password: string
+export interface CompleteRegistrationData {
+  token: string
   firstName: string
   lastName: string
+  password: string
+  gdprConsent: boolean
+}
+
+export interface Invitation {
+  id: string
+  email: string
+  createdAt: string
+  expiresAt: string
 }
 
 export interface FileItem {
@@ -34,6 +40,7 @@ export interface FileItem {
 
 export interface ApiError {
   error: string
+  code?: string
   details?: Array<{
     field: string
     message: string

@@ -18,7 +18,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.CREATE_USERS)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_USERS)],
     },
     userController.createUser
   )
@@ -36,7 +36,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.put(
     '/:id',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.UPDATE_USERS)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_USERS)],
     },
     userController.updateUser
   )
@@ -45,7 +45,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.delete(
     '/:id',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.DELETE_USERS)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_USERS)],
     },
     userController.deleteUser
   )
@@ -54,7 +54,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.patch(
     '/:id/status',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.SUSPEND_USERS)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_USERS)],
     },
     userController.changeUserStatus
   )
@@ -63,7 +63,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/:id/caution/validate',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.VALIDATE_CAUTION)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_CAUTIONS)],
     },
     userController.validateCaution
   )
@@ -72,7 +72,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/:id/caution/exempt',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.EXEMPT_CAUTION)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_CAUTIONS)],
     },
     userController.exemptCaution
   )
@@ -81,7 +81,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/:id/caution/reset',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_CAUTION)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_CAUTIONS)],
     },
     userController.resetCaution
   )
@@ -90,7 +90,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/:id/credits/adjust',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.ADJUST_CREDITS)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_CREDITS)],
     },
     userController.adjustCredits
   )
@@ -99,7 +99,7 @@ export default async function userRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/:id/credits/transactions',
     {
-      onRequest: [authMiddleware, requirePermission(PERMISSIONS.VIEW_CREDIT_HISTORY)],
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.VIEW_CREDITS)],
     },
     userController.getCreditTransactions
   )

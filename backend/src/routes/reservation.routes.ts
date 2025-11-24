@@ -68,13 +68,13 @@ export const reservationAdminRoutes = async (fastify: FastifyInstance) => {
     handler: reservationController.refund,
   })
 
-  // Checkout
+  // Checkout (with optional notes)
   fastify.post('/:id/checkout', {
     preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),
     handler: reservationController.checkout,
   })
 
-  // Return
+  // Return (with condition)
   fastify.post('/:id/return', {
     preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),
     handler: reservationController.returnProduct,

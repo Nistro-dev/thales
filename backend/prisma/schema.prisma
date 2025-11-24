@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,17 +9,126 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum CautionStatus {
+  PENDING
+  VALIDATED
+  EXEMPTED
+}
+
+enum CreditTransactionType {
+  ADJUSTMENT
+  RESERVATION
+  REFUND
+  SYSTEM
+}
+
+enum ProductStatus {
+  AVAILABLE
+  UNAVAILABLE
+  MAINTENANCE
+  ARCHIVED
+}
+
+enum FileVisibility {
+  PUBLIC
+  ADMIN
+}
+
+enum AuditAction {
+  // Auth
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_COMPLETE
+  TOKEN_REFRESH
+
+  // Users
+  USER_CREATE
+  USER_UPDATE
+  USER_DELETE
+  USER_STATUS_CHANGE
+
+  // Invitations
+  INVITATION_CREATE
+  INVITATION_CANCEL
+  INVITATION_COMPLETE
+
+  // Credits
+  CREDIT_ADJUST
+
+  // Caution
+  CAUTION_VALIDATE
+  CAUTION_EXEMPT
+  CAUTION_RESET
+
+  // Roles & Permissions
+  ROLE_CREATE
+  ROLE_UPDATE
+  ROLE_DELETE
+  ROLE_ASSIGN
+  ROLE_REVOKE
+
+  // Sections
+  SECTION_CREATE
+  SECTION_UPDATE
+  SECTION_DELETE
+
+  // SubSections
+  SUBSECTION_CREATE
+  SUBSECTION_UPDATE
+  SUBSECTION_DELETE
+
+  // Products
+  PRODUCT_CREATE
+  PRODUCT_UPDATE
+  PRODUCT_DELETE
+  PRODUCT_STATUS_CHANGE
+  PRODUCT_FILE_UPLOAD
+  PRODUCT_FILE_DELETE
+}
+
+// ============================================
+// USER
+// ============================================
+
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  firstName     String
-  lastName      String
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
-  files         File[]
+  id             String        @id @default(uuid())
+  email          String        @unique
+  password       String
+  firstName      String
+  lastName       String
+  phone          String?
+  status         UserStatus    @default(ACTIVE)
+  creditBalance  Int           @default(0)
+  cautionStatus  CautionStatus @default(PENDING)
+  gdprConsentAt  DateTime?
+  gdprVersion    String?
+  lastLoginAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  refreshTokens      RefreshToken[]
+  passwordResets     PasswordReset[]
+  invitationsSent    Invitation[]         @relation("InvitationsSent")
+  files              File[]
+  roles              UserRole[]
+  creditTransactions CreditTransaction[]
+  auditLogs          AuditLog[]           @relation("AuditUser")
+  auditLogsPerformed AuditLog[]           @relation("AuditPerformer")
+
+  @@index([email])
+  @@index([status])
 }
 
 model RefreshToken {
@@ -32,6 +143,33 @@ model RefreshToken {
   @@index([token])
 }
 
+model PasswordReset {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Invitation {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  token     String    @unique
+  invitedBy String
+  inviter   User      @relation("InvitationsSent", fields: [invitedBy], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
 model File {
   id        String   @id @default(uuid())
   filename  String
@@ -43,4 +181,201 @@ model File {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ============================================
+// ROLES & PERMISSIONS
+// ============================================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id          String       @id @default(uuid())
+  key         String       @unique
+  name        String
+  description String?
+  category    String
+  parentId    String?
+  parent      Permission?  @relation("PermissionHierarchy", fields: [parentId], references: [id])
+  children    Permission[] @relation("PermissionHierarchy")
+  createdAt   DateTime     @default(now())
+
+  roles RolePermission[]
+
+  @@index([category])
+  @@index([parentId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  sectionId String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section   Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([sectionId])
+}
+
+// ============================================
+// SECTIONS & SUBSECTIONS
+// ============================================
+
+model Section {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  allowedDaysIn  Int[]     @default([1, 2, 3, 4, 5])
+  allowedDaysOut Int[]     @default([1, 2, 3, 4, 5])
+  sortOrder      Int       @default(0)
+  isSystem       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  subSections SubSection[]
+  products    Product[]
+  userRoles   UserRole[]
+
+  @@index([isSystem])
+}
+
+model SubSection {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  sectionId   String?
+  section     Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([sectionId])
+}
+
+// ============================================
+// PRODUCTS
+// ============================================
+
+model Product {
+  id           String        @id @default(uuid())
+  name         String
+  description  String?
+  reference    String?
+  priceCredits Int
+  minDuration  Int           @default(1)
+  maxDuration  Int           @default(14)
+  status       ProductStatus @default(AVAILABLE)
+  sectionId    String
+  section      Section       @relation(fields: [sectionId], references: [id])
+  subSectionId String?
+  subSection   SubSection?   @relation(fields: [subSectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  attributes ProductAttribute[]
+  files      ProductFile[]
+
+  @@index([sectionId])
+  @@index([subSectionId])
+  @@index([status])
+  @@index([name])
+}
+
+model ProductAttribute {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, key])
+  @@index([productId])
+}
+
+model ProductFile {
+  id         String         @id @default(uuid())
+  productId  String
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String
+  size       Int
+  s3Key      String         @unique
+  visibility FileVisibility @default(PUBLIC)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@index([productId])
+  @@index([sortOrder])
+}
+
+// ============================================
+// CREDITS
+// ============================================
+
+model CreditTransaction {
+  id           String                @id @default(uuid())
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int
+  balanceAfter Int
+  type         CreditTransactionType
+  reason       String?
+  performedBy  String?
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  userId      String?
+  user        User?       @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  performedBy String?
+  performer   User?       @relation("AuditPerformer", fields: [performedBy], references: [id], onDelete: SetNull)
+  action      AuditAction
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([performedBy])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

@@ -91,6 +91,34 @@ export const SuccessMessages = {
   FILE_DELETED: 'Fichier supprimé avec succès',
   FILES_RETRIEVED: 'Fichiers récupérés avec succès',
 
+  // Users
+  USER_CREATED: 'Utilisateur créé avec succès',
+  USER_UPDATED: 'Utilisateur mis à jour avec succès',
+  USER_DELETED: 'Utilisateur supprimé avec succès',
+  USERS_RETRIEVED: 'Utilisateurs récupérés avec succès',
+  USER_STATUS_CHANGED: 'Statut utilisateur modifié avec succès',
+
+  // Credits
+  CREDITS_ADJUSTED: 'Crédits ajustés avec succès',
+  CREDIT_TRANSACTIONS_RETRIEVED: 'Historique des transactions récupéré avec succès',
+
+  // Caution
+  CAUTION_VALIDATED: 'Caution validée avec succès',
+  CAUTION_EXEMPTED: 'Caution exemptée avec succès',
+  CAUTION_RESET: 'Caution réinitialisée avec succès',
+
+  // Roles
+  ROLE_CREATED: 'Rôle créé avec succès',
+  ROLE_UPDATED: 'Rôle mis à jour avec succès',
+  ROLE_DELETED: 'Rôle supprimé avec succès',
+  ROLES_RETRIEVED: 'Rôles récupérés avec succès',
+  ROLE_ASSIGNED: 'Rôle assigné avec succès',
+  ROLE_REVOKED: 'Rôle révoqué avec succès',
+  USER_ROLES_RETRIEVED: 'Rôles utilisateur récupérés avec succès',
+
+  // Permissions
+  PERMISSIONS_RETRIEVED: 'Permissions récupérées avec succès',
+
   // Generic
   RETRIEVED: 'Données récupérées avec succès',
   CREATED: 'Créé avec succès',

@@ -32,7 +32,21 @@ async function main(): Promise<void> {
   }
   console.log(`✅ Created ${permissionRecords.length} permissions\n`)
 
-  // 2. Create Super Admin Role
+  // 2. Create Default Section
+  console.log('📂 Creating default section "Autres"...')
+  await prisma.section.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Autres',
+      description: 'Produits sans catégorie',
+      isSystem: true,
+      sortOrder: 9999,
+    },
+  })
+
+  // 3. Create Super Admin Role
   console.log('👑 Creating Super Admin role...')
   const superAdminRole = await prisma.role.upsert({
     where: { name: 'Super Admin' },
@@ -50,7 +64,7 @@ async function main(): Promise<void> {
   })
   console.log('✅ Super Admin role created\n')
 
-  // 3. Create Basic User Role
+  // 4. Create Basic User Role
   console.log('👤 Creating Basic User role...')
   const basicUserPermissions = permissionRecords.filter(p =>
     [

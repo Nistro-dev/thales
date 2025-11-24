@@ -10,7 +10,11 @@
       "Bash(npm run build:*)",
       "Bash(npm run db:reset:*)",
       "Bash(npm run lint)",
-      "Bash(timeout 5 npm run dev:*)"
+      "Bash(timeout 5 npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(test:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(\"c:\\Users\\mael.michaud\\dev\\thales\\backend\\src\\services\\audit.service.ts\")"
     ],
     "deny": [],
     "ask": []

@@ -1,23 +1,28 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '../src/utils/password.js'
 
 const prisma = new PrismaClient()
 
 async function main(): Promise<void> {
-  const hashedPassword = await bcrypt.hash('password123', 12)
+  const hashedPassword = await hashPassword('Admin123!')
 
-  await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@thales.local' },
     update: {},
     create: {
-      email: 'admin@example.com',
+      email: 'admin@thales.local',
       password: hashedPassword,
       firstName: 'Admin',
-      lastName: 'User',
+      lastName: 'System',
+      status: 'ACTIVE',
+      gdprConsentAt: new Date(),
+      gdprVersion: '1.0',
     },
   })
 
   console.log('Seed completed')
+  console.log('Admin created:', admin.email)
+  console.log('Password: Admin123!')
 }
 
 main()

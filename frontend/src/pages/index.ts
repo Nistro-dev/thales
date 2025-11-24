@@ -1,6 +1,0 @@
-export { Login } from './Login'
-export { ForgotPassword } from './ForgotPassword'
-export { ResetPassword } from './ResetPassword'
-export { PendingApproval } from './PendingApproval'
-export { Dashboard } from './Dashboard'
-export { CompleteRegistration } from './CompleteRegistration'

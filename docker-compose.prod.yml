@@ -1,0 +1,70 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME}_backend_prod
+    restart: always
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${PROJECT_NAME}-api.rule=Host(`${API_DOMAIN}`)"
+      - "traefik.http.routers.${PROJECT_NAME}-api.entrypoints=websecure"
+      - "traefik.http.routers.${PROJECT_NAME}-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${PROJECT_NAME}-api.loadbalancer.server.port=3000"
+    networks:
+      - web
+      - internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://${API_DOMAIN}/api
+    container_name: ${PROJECT_NAME}_frontend_prod
+    restart: always
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${PROJECT_NAME}.rule=Host(`${FRONTEND_DOMAIN}`)"
+      - "traefik.http.routers.${PROJECT_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.${PROJECT_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${PROJECT_NAME}-www.rule=Host(`www.${FRONTEND_DOMAIN}`)"
+      - "traefik.http.routers.${PROJECT_NAME}-www.entrypoints=websecure"
+      - "traefik.http.routers.${PROJECT_NAME}-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${PROJECT_NAME}-www.middlewares=${PROJECT_NAME}-redirect"
+      - "traefik.http.middlewares.${PROJECT_NAME}-redirect.redirectregex.regex=^https://www.${FRONTEND_DOMAIN}/(.*)"
+      - "traefik.http.middlewares.${PROJECT_NAME}-redirect.redirectregex.replacement=https://${FRONTEND_DOMAIN}/$${1}"
+      - "traefik.http.middlewares.${PROJECT_NAME}-redirect.redirectregex.permanent=true"
+    networks:
+      - web
+
+  db:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME}_db_prod
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+networks:
+  web:
+    external: true
+  internal:
+    driver: bridge

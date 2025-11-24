@@ -14,7 +14,8 @@
       "Bash(npm install:*)",
       "Bash(test:*)",
       "Bash(timeout 10 npm run dev:*)",
-      "Bash(\"c:\\Users\\mael.michaud\\dev\\thales\\backend\\src\\services\\audit.service.ts\")"
+      "Bash(\"c:\\Users\\mael.michaud\\dev\\thales\\backend\\src\\services\\audit.service.ts\")",
+      "Bash(npx prisma generate:*)"
     ],
     "deny": [],
     "ask": []

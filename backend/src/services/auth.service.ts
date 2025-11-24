@@ -120,6 +120,8 @@ export const getMe = async (userId: string): Promise<UserResponse> => {
       firstName: true,
       lastName: true,
       status: true,
+      creditBalance: true,
+      cautionStatus: true,
     },
   })
 

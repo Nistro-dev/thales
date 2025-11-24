@@ -1,0 +1,67 @@
+import { z } from 'zod'
+
+export const createReservationSchema = z.object({
+  productId: z.string().uuid(),
+  startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Invalid date format',
+  }),
+  endDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
+    message: 'Invalid date format',
+  }),
+  notes: z.string().max(500).optional(),
+})
+
+export const createReservationAdminSchema = createReservationSchema.extend({
+  userId: z.string().uuid(),
+  adminNotes: z.string().max(1000).optional(),
+})
+
+export const updateReservationSchema = z.object({
+  startDate: z
+    .string()
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid date format',
+    })
+    .optional(),
+  endDate: z
+    .string()
+    .refine((date) => !isNaN(Date.parse(date)), {
+      message: 'Invalid date format',
+    })
+    .optional(),
+  notes: z.string().max(500).optional(),
+  adminNotes: z.string().max(1000).optional(),
+})
+
+export const cancelReservationSchema = z.object({
+  reason: z.string().max(500).optional(),
+})
+
+export const listReservationsSchema = z.object({
+  page: z.string().transform(Number).default('1'),
+  limit: z.string().transform(Number).default('20'),
+  status: z.enum(['CONFIRMED', 'CHECKED_OUT', 'RETURNED', 'CANCELLED', 'REFUNDED']).optional(),
+  userId: z.string().uuid().optional(),
+  productId: z.string().uuid().optional(),
+  startDateFrom: z.string().optional(),
+  startDateTo: z.string().optional(),
+  sortBy: z.enum(['createdAt', 'startDate', 'endDate']).default('startDate'),
+  sortOrder: z.enum(['asc', 'desc']).default('asc'),
+})
+
+export const availabilitySchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/, 'Format must be YYYY-MM'),
+})
+
+export const refundReservationSchema = z.object({
+  amount: z.number().int().min(1).optional(),
+  reason: z.string().max(500).optional(),
+})
+
+export type CreateReservationInput = z.infer<typeof createReservationSchema>
+export type CreateReservationAdminInput = z.infer<typeof createReservationAdminSchema>
+export type UpdateReservationInput = z.infer<typeof updateReservationSchema>
+export type CancelReservationInput = z.infer<typeof cancelReservationSchema>
+export type ListReservationsInput = z.infer<typeof listReservationsSchema>
+export type AvailabilityInput = z.infer<typeof availabilitySchema>
+export type RefundReservationInput = z.infer<typeof refundReservationSchema>

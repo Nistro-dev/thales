@@ -44,6 +44,14 @@ enum FileVisibility {
   ADMIN
 }
 
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_OUT
+  RETURNED
+  CANCELLED
+  REFUNDED
+}
+
 enum AuditAction {
   // Auth
   LOGIN
@@ -96,6 +104,14 @@ enum AuditAction {
   PRODUCT_STATUS_CHANGE
   PRODUCT_FILE_UPLOAD
   PRODUCT_FILE_DELETE
+
+  // Reservations
+  RESERVATION_CREATE
+  RESERVATION_CANCEL
+  RESERVATION_CHECKOUT
+  RESERVATION_RETURN
+  RESERVATION_REFUND
+  RESERVATION_UPDATE
 }
 
 // ============================================
@@ -126,6 +142,7 @@ model User {
   creditTransactions CreditTransaction[]
   auditLogs          AuditLog[]           @relation("AuditUser")
   auditLogsPerformed AuditLog[]           @relation("AuditPerformer")
+  reservations       Reservation[]
 
   @@index([email])
   @@index([status])
@@ -296,8 +313,9 @@ model Product {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  attributes ProductAttribute[]
-  files      ProductFile[]
+  attributes   ProductAttribute[]
+  files        ProductFile[]
+  reservations Reservation[]
 
   @@index([sectionId])
   @@index([subSectionId])
@@ -335,23 +353,70 @@ model ProductFile {
 }
 
 // ============================================
+// RESERVATIONS
+// ============================================
+
+model Reservation {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  productId      String
+  product        Product           @relation(fields: [productId], references: [id])
+
+  startDate      DateTime          @db.Date
+  endDate        DateTime          @db.Date
+
+  status         ReservationStatus @default(CONFIRMED)
+  creditsCharged Int
+
+  checkedOutAt   DateTime?
+  checkedOutBy   String?
+  returnedAt     DateTime?
+  returnedBy     String?
+
+  notes          String?
+  adminNotes     String?
+
+  cancelledAt    DateTime?
+  cancelReason   String?
+  cancelledBy    String?
+
+  refundedAt     DateTime?
+  refundedBy     String?
+  refundAmount   Int?
+
+  createdBy      String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([startDate, endDate])
+}
+
+// ============================================
 // CREDITS
 // ============================================
 
 model CreditTransaction {
-  id           String                @id @default(uuid())
-  userId       String
-  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount       Int
-  balanceAfter Int
-  type         CreditTransactionType
-  reason       String?
-  performedBy  String?
-  metadata     Json?
-  createdAt    DateTime              @default(now())
+  id            String                @id @default(uuid())
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int
+  balanceAfter  Int
+  type          CreditTransactionType
+  reason        String?
+  performedBy   String?
+  reservationId String?
+  metadata      Json?
+  createdAt     DateTime              @default(now())
 
   @@index([userId])
   @@index([type])
+  @@index([reservationId])
   @@index([createdAt])
 }
 

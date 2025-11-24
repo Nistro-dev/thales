@@ -8,7 +8,9 @@
       "Bash(npm run db:seed:*)",
       "Bash(npx prisma migrate:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run db:reset:*)"
+      "Bash(npm run db:reset:*)",
+      "Bash(npm run lint)",
+      "Bash(timeout 5 npm run dev:*)"
     ],
     "deny": [],
     "ask": []

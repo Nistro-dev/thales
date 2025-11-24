@@ -5,7 +5,10 @@
       "Bash(npm test:*)",
       "Bash(docker-compose up:*)",
       "Bash(npm run db:generate:*)",
-      "Bash(npm run db:seed:*)"
+      "Bash(npm run db:seed:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run db:reset:*)"
     ],
     "deny": [],
     "ask": []

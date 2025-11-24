@@ -15,24 +15,83 @@ enum UserStatus {
   DISABLED
 }
 
+enum CautionStatus {
+  PENDING
+  VALIDATED
+  EXEMPTED
+}
+
+enum CreditTransactionType {
+  ADJUSTMENT
+  RESERVATION
+  REFUND
+  SYSTEM
+}
+
+enum AuditAction {
+  // Auth
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_COMPLETE
+  TOKEN_REFRESH
+
+  // Users
+  USER_CREATE
+  USER_UPDATE
+  USER_DELETE
+  USER_STATUS_CHANGE
+
+  // Invitations
+  INVITATION_CREATE
+  INVITATION_CANCEL
+  INVITATION_COMPLETE
+
+  // Credits
+  CREDIT_ADJUST
+
+  // Caution
+  CAUTION_VALIDATE
+  CAUTION_EXEMPT
+  CAUTION_RESET
+
+  // Roles & Permissions
+  ROLE_CREATE
+  ROLE_UPDATE
+  ROLE_DELETE
+  ROLE_ASSIGN
+  ROLE_REVOKE
+}
+
+// ============================================
+// USER
+// ============================================
+
 model User {
-  id             String       @id @default(uuid())
-  email          String       @unique
+  id             String        @id @default(uuid())
+  email          String        @unique
   password       String
   firstName      String
   lastName       String
   phone          String?
-  status         UserStatus   @default(ACTIVE)
+  status         UserStatus    @default(ACTIVE)
+  creditBalance  Int           @default(0)
+  cautionStatus  CautionStatus @default(PENDING)
   gdprConsentAt  DateTime?
   gdprVersion    String?
   lastLoginAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  refreshTokens    RefreshToken[]
-  passwordResets   PasswordReset[]
-  invitationsSent  Invitation[]     @relation("InvitationsSent")
-  files            File[]
+  refreshTokens      RefreshToken[]
+  passwordResets     PasswordReset[]
+  invitationsSent    Invitation[]         @relation("InvitationsSent")
+  files              File[]
+  roles              UserRole[]
+  creditTransactions CreditTransaction[]
+  auditLogs          AuditLog[]           @relation("AuditUser")
+  auditLogsPerformed AuditLog[]           @relation("AuditPerformer")
 
   @@index([email])
   @@index([status])
@@ -88,4 +147,122 @@ model File {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ============================================
+// ROLES & PERMISSIONS
+// ============================================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String?
+  category    String
+  parentId    String?
+  parent      Permission?  @relation("PermissionHierarchy", fields: [parentId], references: [id])
+  children    Permission[] @relation("PermissionHierarchy")
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@index([category])
+  @@index([parentId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  sectionId String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section   Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([sectionId])
+}
+
+// ============================================
+// SECTIONS (pour scope permissions)
+// ============================================
+
+model Section {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  color       String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+}
+
+// ============================================
+// CREDITS
+// ============================================
+
+model CreditTransaction {
+  id           String                @id @default(uuid())
+  userId       String
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int
+  balanceAfter Int
+  type         CreditTransactionType
+  reason       String?
+  performedBy  String?
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  userId      String?
+  user        User?       @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  performedBy String?
+  performer   User?       @relation("AuditPerformer", fields: [performedBy], references: [id], onDelete: SetNull)
+  action      AuditAction
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([performedBy])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

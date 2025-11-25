@@ -380,7 +380,6 @@ model ProductMovement {
   type          MovementType
   condition     ProductCondition @default(OK)
   notes         String?
-  photoKey      String?
   performedBy   String
   performedAt   DateTime         @default(now())
   createdAt     DateTime         @default(now())

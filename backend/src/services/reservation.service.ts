@@ -844,13 +844,12 @@ interface ReturnParams {
   adminId: string
   condition?: ProductCondition
   notes?: string
-  photoKey?: string
   photos?: MovementPhotoData[]
   request?: FastifyRequest
 }
 
 export const returnReservation = async (params: ReturnParams) => {
-  const { reservationId, adminId, condition = 'OK', notes, photoKey, photos } = params
+  const { reservationId, adminId, condition = 'OK', notes, photos } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -888,7 +887,6 @@ export const returnReservation = async (params: ReturnParams) => {
     type: 'RETURN',
     condition,
     notes,
-    photoKey,
     photos,
     performedBy: adminId,
   })

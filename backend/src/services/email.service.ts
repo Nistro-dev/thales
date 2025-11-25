@@ -93,7 +93,7 @@ export const sendEmail = async ({ to, subject, html }: SendEmailOptions): Promis
     logger.info({ to, subject }, 'Email sent')
   } catch (error) {
     logger.error({ error, to, subject }, 'Failed to send email')
-    throw error
+    // Don't throw - email failures should not block operations
   }
 }
 

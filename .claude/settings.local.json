@@ -1,23 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rm:*)",
-      "Bash(npm test:*)",
-      "Bash(docker-compose up:*)",
-      "Bash(npm run db:generate:*)",
-      "Bash(npm run db:seed:*)",
-      "Bash(npx prisma migrate:*)",
-      "Bash(npm run build:*)",
-      "Bash(npm run db:reset:*)",
-      "Bash(npm run lint)",
-      "Bash(timeout 5 npm run dev:*)",
-      "Bash(npm install:*)",
-      "Bash(test:*)",
-      "Bash(timeout 10 npm run dev:*)",
-      "Bash(\"c:\\Users\\mael.michaud\\dev\\thales\\backend\\src\\services\\audit.service.ts\")",
-      "Bash(npx prisma generate:*)",
-      "Bash(npx prisma db push:*)",
-      "Bash(npm run lint:*)"
+      "Bash(*)"
     ],
     "deny": [],
     "ask": []

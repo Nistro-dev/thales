@@ -323,7 +323,6 @@ model Product {
   section        Section          @relation(fields: [sectionId], references: [id])
   subSectionId   String?
   subSection     SubSection?      @relation(fields: [subSectionId], references: [id], onDelete: SetNull)
-  qrCode         String?          @unique @default(uuid())
   lastCondition  ProductCondition @default(OK)
   lastMovementAt DateTime?
   createdAt      DateTime         @default(now())
@@ -404,6 +403,7 @@ model Reservation {
 
   status         ReservationStatus @default(CONFIRMED)
   creditsCharged Int
+  qrCode         String?           @unique
 
   checkedOutAt   DateTime?
   checkedOutBy   String?
@@ -431,6 +431,7 @@ model Reservation {
   @@index([startDate])
   @@index([endDate])
   @@index([startDate, endDate])
+  @@index([qrCode])
 }
 
 // ============================================

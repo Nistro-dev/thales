@@ -16,13 +16,12 @@ interface CreateMovementParams {
   type: MovementType
   condition?: ProductCondition
   notes?: string
-  photoKey?: string
   photos?: MovementPhotoData[]
   performedBy: string
 }
 
 export const createMovement = async (params: CreateMovementParams) => {
-  const { productId, reservationId, type, condition = 'OK', notes, photoKey, photos, performedBy } = params
+  const { productId, reservationId, type, condition = 'OK', notes, photos, performedBy } = params
 
   const [movement] = await prisma.$transaction([
     prisma.productMovement.create({
@@ -32,7 +31,6 @@ export const createMovement = async (params: CreateMovementParams) => {
         type,
         condition,
         notes,
-        photoKey,
         performedBy,
         performedAt: new Date(),
         photos: photos
@@ -88,6 +86,9 @@ export const listMovements = async (params: ListMovementsParams) => {
       where,
       include: {
         product: { select: { id: true, name: true, reference: true } },
+        photos: {
+          orderBy: { sortOrder: 'asc' },
+        },
       },
       orderBy: { performedAt: sortOrder },
       skip: (page - 1) * limit,
@@ -108,6 +109,11 @@ export const getProductMovements = async (productId: string) => {
 
   return prisma.productMovement.findMany({
     where: { productId },
+    include: {
+      photos: {
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
     orderBy: { performedAt: 'desc' },
     take: 50,
   })

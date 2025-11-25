@@ -24,7 +24,6 @@ export const movementPhotoSchema = z.object({
 export const returnSchema = z.object({
   condition: productConditionEnum.default('OK'),
   notes: z.string().max(500).optional(),
-  photoKey: z.string().optional(), // Deprecated - kept for backward compatibility
   photos: z.array(movementPhotoSchema).max(3).optional(),
 })
 

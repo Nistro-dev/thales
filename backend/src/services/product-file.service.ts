@@ -103,7 +103,7 @@ export const deleteProductFile = async (
   productId: string,
   fileId: string,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const file = await prisma.productFile.findFirst({
     where: { id: fileId, productId },
@@ -130,7 +130,7 @@ export const reorderProductFiles = async (
   productId: string,
   fileIds: string[],
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const files = await prisma.productFile.findMany({
     where: { productId },
@@ -167,7 +167,7 @@ export const setFileVisibility = async (
   fileId: string,
   visibility: FileVisibility,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const file = await prisma.productFile.findFirst({
     where: { id: fileId, productId },

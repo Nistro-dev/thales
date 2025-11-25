@@ -3,6 +3,13 @@
 import { prisma } from '../utils/prisma.js'
 import type { ProductCondition, MovementType } from '@prisma/client'
 
+interface MovementPhotoData {
+  s3Key: string
+  filename: string
+  mimeType: string
+  size: number
+}
+
 interface CreateMovementParams {
   productId: string
   reservationId: string
@@ -10,11 +17,12 @@ interface CreateMovementParams {
   condition?: ProductCondition
   notes?: string
   photoKey?: string
+  photos?: MovementPhotoData[]
   performedBy: string
 }
 
 export const createMovement = async (params: CreateMovementParams) => {
-  const { productId, reservationId, type, condition = 'OK', notes, photoKey, performedBy } = params
+  const { productId, reservationId, type, condition = 'OK', notes, photoKey, photos, performedBy } = params
 
   const [movement] = await prisma.$transaction([
     prisma.productMovement.create({
@@ -27,6 +35,22 @@ export const createMovement = async (params: CreateMovementParams) => {
         photoKey,
         performedBy,
         performedAt: new Date(),
+        photos: photos
+          ? {
+              create: photos.map((photo, index) => ({
+                s3Key: photo.s3Key,
+                filename: photo.filename,
+                mimeType: photo.mimeType,
+                size: photo.size,
+                sortOrder: index,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        photos: {
+          orderBy: { sortOrder: 'asc' },
+        },
       },
     }),
     prisma.product.update({

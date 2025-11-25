@@ -1,0 +1,20 @@
+<!-- invitation.hbs -->
+<p>Bonjour,</p>
+
+<div class="success-box">
+<p><strong>{{inviterName}}</strong> vous a invité(e) à créer votre compte sur notre plateforme.</p>
+</div>
+
+<div class="warning-box">
+  <strong>Important :</strong> Cette invitation expire le <strong>{{expiresAt}}</strong>.
+  Cliquez sur le bouton ci-dessous pour créer votre compte avant cette date.
+</div>
+
+<p style="margin-top: 30px; text-align: center;">
+  <a href="{{invitationUrl}}" class="button">Créer mon compte</a>
+</p>
+
+<p style="margin-top: 30px; color: #6c757d; font-size: 14px;">
+  Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br>
+  <a href="{{invitationUrl}}" style="color: #667eea; word-break: break-all;">{{invitationUrl}}</a>
+</p>

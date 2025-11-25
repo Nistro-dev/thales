@@ -14,10 +14,18 @@ export const checkoutSchema = z.object({
   notes: z.string().max(500).optional(),
 })
 
+export const movementPhotoSchema = z.object({
+  s3Key: z.string(),
+  filename: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+})
+
 export const returnSchema = z.object({
   condition: productConditionEnum.default('OK'),
   notes: z.string().max(500).optional(),
-  photoKey: z.string().optional(),
+  photoKey: z.string().optional(), // Deprecated - kept for backward compatibility
+  photos: z.array(movementPhotoSchema).max(3).optional(),
 })
 
 export const listMovementsSchema = z.object({

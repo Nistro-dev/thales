@@ -1,0 +1,24 @@
+<!-- credit-removed.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="warning-box">
+  <strong>Des crédits ont été retirés de votre compte</strong>
+</div>
+
+<p>Nous vous informons que votre solde de crédits a été mis à jour.</p>
+
+<div class="info-box">
+  <p><strong>Crédits retirés :</strong> {{amount}} crédits</p>
+  <p><strong>Nouveau solde :</strong> {{newBalance}} crédits</p>
+  {{#if reason}}
+  <p><strong>Motif :</strong> {{reason}}</p>
+  {{/if}}
+</div>
+
+<p>Si vous avez des questions concernant cette opération, n'hésitez pas à nous contacter.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/account/credits" class="button">Voir mon historique</a>
+</p>
+
+<p>Cordialement.</p>

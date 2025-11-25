@@ -125,6 +125,7 @@ enum AuditAction {
   RESERVATION_RETURN
   RESERVATION_REFUND
   RESERVATION_UPDATE
+  RESERVATION_EXTEND
 }
 
 // ============================================
@@ -132,20 +133,22 @@ enum AuditAction {
 // ============================================
 
 model User {
-  id             String        @id @default(uuid())
-  email          String        @unique
-  password       String
-  firstName      String
-  lastName       String
-  phone          String?
-  status         UserStatus    @default(ACTIVE)
-  creditBalance  Int           @default(0)
-  cautionStatus  CautionStatus @default(PENDING)
-  gdprConsentAt  DateTime?
-  gdprVersion    String?
-  lastLoginAt    DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                 String        @id @default(uuid())
+  email              String        @unique
+  password           String
+  firstName          String
+  lastName           String
+  phone              String?
+  status             UserStatus    @default(ACTIVE)
+  creditBalance      Int           @default(0)
+  cautionStatus      CautionStatus @default(PENDING)
+  emailNotifications Boolean       @default(true)
+  inAppNotifications Boolean       @default(true)
+  gdprConsentAt      DateTime?
+  gdprVersion        String?
+  lastLoginAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   refreshTokens      RefreshToken[]
   passwordResets     PasswordReset[]
@@ -156,6 +159,7 @@ model User {
   auditLogs          AuditLog[]           @relation("AuditUser")
   auditLogsPerformed AuditLog[]           @relation("AuditPerformer")
   reservations       Reservation[]
+  notifications      Notification[]
 
   @@index([email])
   @@index([status])
@@ -381,10 +385,27 @@ model ProductMovement {
   performedAt   DateTime         @default(now())
   createdAt     DateTime         @default(now())
 
+  photos MovementPhoto[]
+
   @@index([productId])
   @@index([reservationId])
   @@index([type])
   @@index([performedAt])
+}
+
+model MovementPhoto {
+  id         String          @id @default(uuid())
+  movementId String
+  movement   ProductMovement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  s3Key      String
+  filename   String
+  mimeType   String
+  size       Int
+  sortOrder  Int             @default(0)
+  createdAt  DateTime        @default(now())
+
+  @@index([movementId])
+  @@index([sortOrder])
 }
 
 // ============================================
@@ -420,6 +441,10 @@ model Reservation {
   refundedAt     DateTime?
   refundedBy     String?
   refundAmount   Int?
+
+  // Extension history (can be extended multiple times)
+  totalExtensionCost Int               @default(0)
+  extensionCount     Int               @default(0)
 
   createdBy      String
   createdAt      DateTime          @default(now())
@@ -479,5 +504,25 @@ model AuditLog {
   @@index([performedBy])
   @@index([action])
   @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
   @@index([createdAt])
 }

@@ -10,9 +10,11 @@ import {
   reservationAdminRoutes,
   availabilityRoutes,
 } from './reservation.routes.js'
+import { extensionRoutes } from './extension.routes.js'
 import { scanRoutes } from './qr.routes.js'
 import { movementRoutes } from './movement.routes.js'
 import { fileRoutes } from './file.routes.js'
+import notificationRoutes from './notification.routes.js'
 
 export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(authRoutes, { prefix: '/api/auth' })
@@ -25,7 +27,9 @@ export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(availabilityRoutes, { prefix: '/api/products' })
   await fastify.register(reservationRoutes, { prefix: '/api/reservations' })
   await fastify.register(reservationAdminRoutes, { prefix: '/api/admin/reservations' })
+  await fastify.register(extensionRoutes, { prefix: '/api/reservations' })
   await fastify.register(scanRoutes, { prefix: '/api' })
   await fastify.register(movementRoutes, { prefix: '/api' })
   await fastify.register(fileRoutes, { prefix: '/api/files' })
+  await fastify.register(notificationRoutes, { prefix: '/api/notifications' })
 }

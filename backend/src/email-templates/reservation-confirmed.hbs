@@ -1,0 +1,31 @@
+<!-- reservation-confirmed.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="success-box">
+  <strong>Votre réservation a été confirmée avec succès !</strong>
+</div>
+
+<p>Nous avons le plaisir de confirmer votre réservation pour le matériel suivant :</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  <p><strong>Date de début :</strong> {{startDate}}</p>
+  <p><strong>Date de fin :</strong> {{endDate}}</p>
+  <p><strong>Durée :</strong> {{duration}} jour(s)</p>
+  <p><strong>Crédits utilisés :</strong> {{creditsCharged}}</p>
+</div>
+
+<p>Votre QR code de réservation est disponible dans votre espace personnel. Présentez-le lors du retrait du matériel.</p>
+
+{{#if notes}}
+<div class="info-box">
+  <p><strong>Notes :</strong> {{notes}}</p>
+</div>
+{{/if}}
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/reservations/{{reservationId}}" class="button">Voir ma réservation</a>
+</p>
+
+<p>À bientôt !</p>

@@ -1,0 +1,22 @@
+<!-- extension-confirmed.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="success-box">
+  <strong>Votre réservation a été prolongée !</strong>
+</div>
+
+<p>Votre réservation a été automatiquement prolongée avec succès.</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Nouvelle date de fin :</strong> {{newEndDate}}</p>
+  <p><strong>Crédits débités :</strong> {{cost}} crédits</p>
+</div>
+
+<p>Vous pouvez continuer à utiliser le matériel jusqu'à la nouvelle date de fin.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/reservations/{{reservationId}}" class="button">Voir ma réservation</a>
+</p>
+
+<p>Bon usage !</p>

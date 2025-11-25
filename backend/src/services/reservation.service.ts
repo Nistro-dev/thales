@@ -3,6 +3,7 @@
 import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
 import { createMovement } from './movement.service.js'
+import { generateReservationQRCode } from '../utils/qrCode.js'
 import { FastifyRequest } from 'fastify'
 import type { ReservationStatus, ProductCondition } from '@prisma/client'
 
@@ -318,6 +319,17 @@ export const createReservation = async (params: CreateReservationParams) => {
     }),
   ])
 
+  // Generate and save QR code for the reservation
+  const qrCode = generateReservationQRCode(reservation.id, userId)
+  const reservationWithQR = await prisma.reservation.update({
+    where: { id: reservation.id },
+    data: { qrCode },
+    include: {
+      user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      product: { select: { id: true, name: true, reference: true } },
+    },
+  })
+
   await logAudit({
     userId,
     performedBy: createdBy,
@@ -333,7 +345,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     },
   })
 
-  return reservation
+  return reservationWithQR
 }
 
 // ============================================

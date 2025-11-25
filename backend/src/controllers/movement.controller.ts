@@ -9,12 +9,22 @@ export const listMovements = async (
   request: FastifyRequest<{ Querystring: ListMovementsInput }>,
   reply: FastifyReply
 ) => {
-  const { movements, total } = await movementService.listMovements(request.query)
+  const page = request.query.page || 1
+  const limit = request.query.limit || 20
+
+  const { movements, total } = await movementService.listMovements({
+    page,
+    limit,
+    productId: request.query.productId,
+    reservationId: request.query.reservationId,
+    type: request.query.type,
+    sortOrder: request.query.sortOrder || 'desc',
+  })
 
   return reply.send(
     createSuccessResponse(SuccessMessages.RETRIEVED, movements, {
-      page: request.query.page,
-      limit: request.query.limit,
+      page,
+      limit,
       total,
     })
   )

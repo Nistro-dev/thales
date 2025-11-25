@@ -47,6 +47,36 @@ export const getMyReservation = async (
   return reply.send(createSuccessResponse(SuccessMessages.RETRIEVED, reservation))
 }
 
+export const getMyReservationQR = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  // Don't filter by userId - allow getting QR code for any reservation
+  // This is useful for admins who need to help users
+  const reservation = await reservationService.getReservationById(request.params.id)
+
+  if (!reservation.qrCode) {
+    throw {
+      statusCode: 404,
+      message: 'QR code not available for this reservation',
+      code: 'NOT_FOUND',
+    }
+  }
+
+  return reply.send(
+    createSuccessResponse('QR code retrieved', {
+      qrCode: reservation.qrCode,
+      reservationId: reservation.id,
+      status: reservation.status,
+      user: {
+        id: reservation.user.id,
+        firstName: reservation.user.firstName,
+        lastName: reservation.user.lastName,
+      },
+    })
+  )
+}
+
 export const create = async (
   request: FastifyRequest<{ Body: CreateReservationInput }>,
   reply: FastifyReply

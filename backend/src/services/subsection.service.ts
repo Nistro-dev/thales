@@ -41,7 +41,7 @@ interface CreateSubSectionInput {
 export const createSubSection = async (
   data: CreateSubSectionInput,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const section = await prisma.section.findUnique({ where: { id: data.sectionId } })
 
@@ -80,7 +80,7 @@ export const updateSubSection = async (
   id: string,
   data: UpdateSubSectionInput,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const subSection = await prisma.subSection.findUnique({ where: { id } })
 
@@ -114,7 +114,7 @@ export const updateSubSection = async (
 export const deleteSubSection = async (
   id: string,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const subSection = await prisma.subSection.findUnique({
     where: { id },

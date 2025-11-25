@@ -19,6 +19,11 @@ export const reservationRoutes = async (fastify: FastifyInstance) => {
     handler: reservationController.getMyReservation,
   })
 
+  // Get QR code for my reservation
+  fastify.get('/:id/qr', {
+    handler: reservationController.getMyReservationQR,
+  })
+
   fastify.post('/', {
     handler: reservationController.create,
   })

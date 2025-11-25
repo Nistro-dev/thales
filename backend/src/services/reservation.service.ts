@@ -6,6 +6,7 @@ import { createMovement } from './movement.service.js'
 import { generateReservationQRCode } from '../utils/qrCode.js'
 import { FastifyRequest } from 'fastify'
 import type { ReservationStatus, ProductCondition } from '@prisma/client'
+import * as notificationHelper from './notification-helper.service.js'
 
 // ============================================
 // HELPERS
@@ -345,6 +346,15 @@ export const createReservation = async (params: CreateReservationParams) => {
     },
   })
 
+  // Send notifications
+  await notificationHelper.sendReservationConfirmedNotification(
+    userId,
+    reservation.id,
+    product.name,
+    start.toLocaleDateString('fr-FR'),
+    end.toLocaleDateString('fr-FR')
+  )
+
   return reservationWithQR
 }
 
@@ -560,6 +570,14 @@ export const cancelReservation = async (params: CancelReservationParams) => {
     },
   })
 
+  // Send notifications
+  await notificationHelper.sendReservationCancelledNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    reason
+  )
+
   return updatedReservation
 }
 
@@ -654,6 +672,15 @@ export const refundReservation = async (params: RefundReservationParams) => {
       reservationStatus: reservation.status,
     },
   })
+
+  // Send notifications
+  await notificationHelper.sendReservationRefundedNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    refundAmount,
+    newBalance
+  )
 
   return updatedReservation
 }
@@ -800,7 +827,21 @@ export const checkoutReservation = async (params: CheckoutParams) => {
     metadata: { checkedOutAt: updated.checkedOutAt, notes },
   })
 
+  // Send notifications
+  await notificationHelper.sendCheckoutNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name
+  )
+
   return updated
+}
+
+interface MovementPhotoData {
+  s3Key: string
+  filename: string
+  mimeType: string
+  size: number
 }
 
 interface ReturnParams {
@@ -809,11 +850,12 @@ interface ReturnParams {
   condition?: ProductCondition
   notes?: string
   photoKey?: string
+  photos?: MovementPhotoData[]
   request?: FastifyRequest
 }
 
 export const returnReservation = async (params: ReturnParams) => {
-  const { reservationId, adminId, condition = 'OK', notes, photoKey } = params
+  const { reservationId, adminId, condition = 'OK', notes, photoKey, photos } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -852,6 +894,7 @@ export const returnReservation = async (params: ReturnParams) => {
     condition,
     notes,
     photoKey,
+    photos,
     performedBy: adminId,
   })
 
@@ -863,6 +906,14 @@ export const returnReservation = async (params: ReturnParams) => {
     targetId: reservationId,
     metadata: { returnedAt: updated.returnedAt, condition, notes },
   })
+
+  // Send notifications
+  await notificationHelper.sendReturnNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    condition
+  )
 
   return updated
 }

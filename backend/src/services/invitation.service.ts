@@ -38,9 +38,18 @@ export const createInvitation = async (
       invitedBy: invitedById,
       expiresAt,
     },
+    include: {
+      inviter: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
   })
 
-  await sendInvitationEmail(email, token)
+  const inviterName = `${invitation.inviter.firstName} ${invitation.inviter.lastName}`
+  await sendInvitationEmail(email, token, inviterName)
 
   logger.info({ email, invitedById }, 'Invitation sent')
 

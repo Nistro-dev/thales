@@ -1,6 +1,13 @@
 import nodemailer from 'nodemailer'
+import Handlebars from 'handlebars'
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { env } from '../config/env.js'
 import { logger } from '../utils/logger.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
@@ -11,6 +18,63 @@ const transporter = nodemailer.createTransport({
     pass: env.SMTP_PASS,
   },
 })
+
+// Register Handlebars helpers
+Handlebars.registerHelper('eq', function (a, b) {
+  return a === b
+})
+
+Handlebars.registerHelper('ifCond', function (this: any, a, operator, b, options) {
+  switch (operator) {
+    case '==':
+      return a == b ? options.fn(this) : options.inverse(this)
+    case '!=':
+      return a != b ? options.fn(this) : options.inverse(this)
+    case '===':
+      return a === b ? options.fn(this) : options.inverse(this)
+    case '!==':
+      return a !== b ? options.fn(this) : options.inverse(this)
+    case '<':
+      return a < b ? options.fn(this) : options.inverse(this)
+    case '<=':
+      return a <= b ? options.fn(this) : options.inverse(this)
+    case '>':
+      return a > b ? options.fn(this) : options.inverse(this)
+    case '>=':
+      return a >= b ? options.fn(this) : options.inverse(this)
+    default:
+      return options.inverse(this)
+  }
+})
+
+// Template cache
+const templateCache = new Map<string, HandlebarsTemplateDelegate>()
+
+// Load and compile template
+const loadTemplate = (templateName: string): HandlebarsTemplateDelegate => {
+  if (templateCache.has(templateName)) {
+    return templateCache.get(templateName)!
+  }
+
+  const templatePath = join(__dirname, '..', 'email-templates', `${templateName}.hbs`)
+  const templateSource = readFileSync(templatePath, 'utf-8')
+  const template = Handlebars.compile(templateSource)
+
+  templateCache.set(templateName, template)
+  return template
+}
+
+// Render email with base template
+const renderEmail = (templateName: string, data: any, headerTitle: string): string => {
+  const contentTemplate = loadTemplate(templateName)
+  const content = contentTemplate(data)
+
+  const baseTemplate = loadTemplate('base')
+  return baseTemplate({
+    headerTitle,
+    content,
+  })
+}
 
 interface SendEmailOptions {
   to: string
@@ -39,78 +103,19 @@ export const sendPasswordResetEmail = async (
   firstName: string
 ): Promise<void> => {
   const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h2>Réinitialisation de mot de passe</h2>
-        <p>Bonjour ${firstName},</p>
-        <p>Vous avez demandé la réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour continuer :</p>
-        <a href="${resetUrl}" class="button">Réinitialiser mon mot de passe</a>
-        <p>Ce lien expire dans 1 heure.</p>
-        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
-        <div class="footer">
-          <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `
-  
+
+  const html = renderEmail(
+    'password-reset',
+    {
+      firstName,
+      resetUrl,
+    },
+    'Réinitialisation de mot de passe'
+  )
+
   await sendEmail({
     to: email,
     subject: 'Réinitialisation de votre mot de passe',
-    html,
-  })
-}
-
-export const sendWelcomeEmail = async (
-  email: string,
-  firstName: string
-): Promise<void> => {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .highlight { background-color: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h2>Bienvenue !</h2>
-        <p>Bonjour ${firstName},</p>
-        <p>Votre compte a été créé avec succès.</p>
-        <div class="highlight">
-          <strong>⏳ Validation en attente</strong>
-          <p>Votre compte doit être validé par un administrateur avant de pouvoir accéder à la plateforme. Vous recevrez un email de confirmation dès que votre compte sera activé.</p>
-        </div>
-        <div class="footer">
-          <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `
-  
-  await sendEmail({
-    to: email,
-    subject: 'Bienvenue - Compte en attente de validation',
     html,
   })
 }
@@ -121,31 +126,14 @@ export const sendAccountActivatedEmail = async (
 ): Promise<void> => {
   const loginUrl = `${env.FRONTEND_URL}/login`
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { display: inline-block; padding: 12px 24px; background-color: #16a34a; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h2>Compte activé ✓</h2>
-        <p>Bonjour ${firstName},</p>
-        <p>Votre compte a été validé par un administrateur. Vous pouvez maintenant vous connecter à la plateforme.</p>
-        <a href="${loginUrl}" class="button">Se connecter</a>
-        <div class="footer">
-          <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `
+  const html = renderEmail(
+    'account-activated',
+    {
+      firstName,
+      loginUrl,
+    },
+    'Compte activé'
+  )
 
   await sendEmail({
     to: email,
@@ -156,41 +144,318 @@ export const sendAccountActivatedEmail = async (
 
 export const sendInvitationEmail = async (
   email: string,
-  token: string
+  token: string,
+  inviterName: string
 ): Promise<void> => {
-  const registerUrl = `${env.FRONTEND_URL}/complete-registration?token=${token}`
+  const invitationUrl = `${env.FRONTEND_URL}/complete-registration?token=${token}`
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h2>Vous êtes invité !</h2>
-        <p>Bonjour,</p>
-        <p>Vous avez été invité à rejoindre la plateforme. Cliquez sur le bouton ci-dessous pour créer votre compte :</p>
-        <a href="${registerUrl}" class="button">Créer mon compte</a>
-        <p>Ce lien expire dans 7 jours.</p>
-        <p>Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet email.</p>
-        <div class="footer">
-          <p>Cet email a été envoyé automatiquement, merci de ne pas y répondre.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `
+  const html = renderEmail(
+    'invitation',
+    {
+      inviterName,
+      invitationUrl,
+      expiresAt,
+    },
+    'Vous êtes invité !'
+  )
 
   await sendEmail({
     to: email,
     subject: 'Vous êtes invité à rejoindre la plateforme',
+    html,
+  })
+}
+
+// Reservation emails
+interface ReservationEmailData {
+  firstName: string
+  lastName: string
+  productName: string
+  productReference?: string
+  startDate: string
+  endDate: string
+  duration: number
+  creditsCharged: number
+  reservationId: string
+  notes?: string
+}
+
+export const sendReservationConfirmedEmail = async (
+  email: string,
+  data: ReservationEmailData
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-confirmed',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Réservation confirmée'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Réservation confirmée - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendReservationCancelledEmail = async (
+  email: string,
+  data: ReservationEmailData & { cancelReason?: string }
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-cancelled',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Réservation annulée'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Réservation annulée - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendReservationRefundedEmail = async (
+  email: string,
+  data: ReservationEmailData & { refundAmount: number; newBalance: number; adminNotes?: string }
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-refunded',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Réservation remboursée'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Remboursement effectué - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendCheckoutCompletedEmail = async (
+  email: string,
+  data: ReservationEmailData & { checkedOutAt: string }
+): Promise<void> => {
+  const html = renderEmail(
+    'checkout-completed',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Retrait confirmé'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Matériel retiré - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendReturnCompletedEmail = async (
+  email: string,
+  data: ReservationEmailData & {
+    returnedAt: string
+    condition: string
+    hasPhotos?: boolean
+    photoCount?: number
+  }
+): Promise<void> => {
+  const html = renderEmail(
+    'return-completed',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Retour confirmé'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Retour confirmé - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendReservationReminderEmail = async (
+  email: string,
+  data: ReservationEmailData
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-reminder',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Rappel de réservation'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Rappel : Votre réservation commence demain - ${data.productName}`,
+    html,
+  })
+}
+
+// Credit emails
+interface CreditEmailData {
+  firstName: string
+  lastName: string
+  amount: number
+  newBalance: number
+  reason?: string
+}
+
+export const sendCreditAddedEmail = async (
+  email: string,
+  data: CreditEmailData
+): Promise<void> => {
+  const html = renderEmail(
+    'credit-added',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Crédits ajoutés'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Crédits ajoutés à votre compte (+${data.amount})`,
+    html,
+  })
+}
+
+export const sendCreditRemovedEmail = async (
+  email: string,
+  data: CreditEmailData
+): Promise<void> => {
+  const html = renderEmail(
+    'credit-removed',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Crédits retirés'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Crédits retirés de votre compte (${data.amount})`,
+    html,
+  })
+}
+
+// Extension emails
+interface ExtensionEmailData {
+  firstName: string
+  lastName: string
+  productName: string
+  reservationId: string
+}
+
+export const sendExtensionConfirmedEmail = async (
+  email: string,
+  data: ExtensionEmailData & { newEndDate: string; cost: number }
+): Promise<void> => {
+  const html = renderEmail(
+    'extension-confirmed',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Réservation prolongée'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Réservation prolongée - ${data.productName}`,
+    html,
+  })
+}
+
+// Overdue and expired emails
+export const sendReservationOverdueEmail = async (
+  email: string,
+  data: {
+    firstName: string
+    lastName: string
+    productName: string
+    endDate: string
+    daysOverdue: number
+    reservationId: string
+  }
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-overdue',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Retour en retard'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `⚠️ Retour en retard - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendReservationExpiredEmail = async (
+  email: string,
+  data: {
+    firstName: string
+    lastName: string
+    productName: string
+    startDate: string
+    endDate: string
+    reservationId: string
+  }
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-expired',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Réservation expirée'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Réservation expirée - ${data.productName}`,
+    html,
+  })
+}
+
+export const sendPasswordChangedEmail = async (
+  email: string,
+  data: {
+    firstName: string
+    lastName: string
+  }
+): Promise<void> => {
+  const html = renderEmail(
+    'password-changed',
+    {
+      ...data,
+    },
+    'Mot de passe modifié'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: 'Votre mot de passe a été modifié',
     html,
   })
 }

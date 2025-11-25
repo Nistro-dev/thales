@@ -1,0 +1,24 @@
+<!-- credit-added.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="success-box">
+  <strong>Des crédits ont été ajoutés à votre compte !</strong>
+</div>
+
+<p>Nous vous informons que votre solde de crédits a été mis à jour.</p>
+
+<div class="info-box">
+  <p><strong>Crédits ajoutés :</strong> +{{amount}} crédits</p>
+  <p><strong>Nouveau solde :</strong> {{newBalance}} crédits</p>
+  {{#if reason}}
+  <p><strong>Motif :</strong> {{reason}}</p>
+  {{/if}}
+</div>
+
+<p>Vous pouvez maintenant utiliser vos crédits pour réserver du matériel.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/products" class="button">Voir les produits disponibles</a>
+</p>
+
+<p>Bonne réservation !</p>

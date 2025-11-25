@@ -1,0 +1,24 @@
+<!-- reservation-overdue.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="warning-box">
+  <strong>⚠️ Retour en retard</strong>
+</div>
+
+<p>Le matériel suivant aurait dû être retourné et ne l'a pas encore été :</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Date de fin prévue :</strong> {{endDate}}</p>
+  <p><strong>Retard :</strong> {{daysOverdue}} jour(s)</p>
+</div>
+
+<p><strong>Merci de retourner le matériel dès que possible.</strong> Un retard prolongé peut entraîner des sanctions.</p>
+
+<p>Si vous rencontrez un problème, veuillez contacter un administrateur immédiatement.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/reservations/{{reservationId}}" class="button">Voir ma réservation</a>
+</p>
+
+<p>Cordialement.</p>

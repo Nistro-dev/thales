@@ -140,6 +140,7 @@ export const scanReturn = async (
     condition: request.body?.condition,
     notes: request.body?.notes,
     photoKey: request.body?.photoKey,
+    photos: request.body?.photos,
     request,
   })
 

@@ -7,7 +7,7 @@ import type { PermissionKey } from '../constants/permissions.js'
  * Middleware to check if user has a specific permission
  */
 export const requirePermission = (permission: PermissionKey, sectionId?: string) => {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest, _reply: FastifyReply) => {
     if (!request.user?.userId) {
       throw {
         statusCode: 401,
@@ -37,7 +37,7 @@ export const requirePermission = (permission: PermissionKey, sectionId?: string)
  * Middleware to check if user has ALL of the specified permissions
  */
 export const requireAllPermissions = (permissions: PermissionKey[], sectionId?: string) => {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest, _reply: FastifyReply) => {
     if (!request.user?.userId) {
       throw {
         statusCode: 401,
@@ -67,7 +67,7 @@ export const requireAllPermissions = (permissions: PermissionKey[], sectionId?: 
  * Middleware to check if user has ANY of the specified permissions
  */
 export const requireAnyPermission = (permissions: PermissionKey[], sectionId?: string) => {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest, _reply: FastifyReply) => {
     if (!request.user?.userId) {
       throw {
         statusCode: 401,

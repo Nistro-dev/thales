@@ -18,12 +18,6 @@ const startOfDay = (date: Date): Date => {
   return d
 }
 
-const endOfDay = (date: Date): Date => {
-  const d = new Date(date)
-  d.setHours(23, 59, 59, 999)
-  return d
-}
-
 const getDayOfWeek = (date: Date): number => {
   return date.getDay()
 }
@@ -240,6 +234,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     adminNotes,
     createdBy,
     isAdmin = false,
+    request: _request,
   } = params
 
   const start = startOfDay(new Date(startDate))
@@ -477,7 +472,7 @@ interface CancelReservationParams {
 }
 
 export const cancelReservation = async (params: CancelReservationParams) => {
-  const { reservationId, userId, isAdmin, reason, request } = params
+  const { reservationId, userId, isAdmin, reason, request: _request } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -594,7 +589,7 @@ interface RefundReservationParams {
 }
 
 export const refundReservation = async (params: RefundReservationParams) => {
-  const { reservationId, adminId, amount, reason, request } = params
+  const { reservationId, adminId, amount, reason, request: _request } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -700,7 +695,7 @@ interface UpdateReservationParams {
 }
 
 export const updateReservation = async (params: UpdateReservationParams) => {
-  const { reservationId, adminId, startDate, endDate, notes, adminNotes, request } = params
+  const { reservationId, adminId, startDate, endDate, notes, adminNotes, request: _request } = params
 
   const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } })
 

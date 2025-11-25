@@ -12,7 +12,7 @@ const COOKIE_OPTIONS = {
   path: '/',
 }
 
-const setAuthCookies = (reply: FastifyReply, accessToken: string, refreshToken: string) => {
+const setAuthCookies = (reply: FastifyReply, accessToken: string, refreshToken: string): void => {
   reply.setCookie('accessToken', accessToken, {
     ...COOKIE_OPTIONS,
     maxAge: 15 * 60,

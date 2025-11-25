@@ -73,6 +73,7 @@ export const createUser = async (params: CreateUserParams) => {
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = user
   return userWithoutPassword
 }
@@ -141,6 +142,7 @@ export const updateUser = async (params: UpdateUserParams) => {
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
 }
@@ -179,6 +181,7 @@ export const deleteUser = async (userId: string, performedBy: string) => {
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
 }
@@ -322,6 +325,7 @@ export const changeUserStatus = async (
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
 }
@@ -356,6 +360,7 @@ export const validateCaution = async (userId: string, performedBy: string) => {
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
 }
@@ -390,6 +395,7 @@ export const exemptCaution = async (userId: string, performedBy: string) => {
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
 }
@@ -424,6 +430,7 @@ export const resetCaution = async (userId: string, performedBy: string) => {
     },
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
 }

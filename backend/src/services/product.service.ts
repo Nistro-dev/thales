@@ -19,23 +19,6 @@ interface ListProductsParams {
   includeArchived?: boolean
 }
 
-interface ProductWithDynamicStatus {
-  id: string
-  name: string
-  description: string | null
-  reference: string | null
-  priceCredits: number | null
-  minDuration: number
-  maxDuration: number
-  status: ProductStatus
-  dynamicStatus: 'AVAILABLE' | 'RESERVED' | 'CHECKED_OUT' | null
-  section: { id: string; name: string }
-  subSection: { id: string; name: string } | null
-  files: Array<{ id: string; filename: string; mimeType: string; s3Key: string; sortOrder: number }>
-  attributes: Array<{ key: string; value: string }>
-  createdAt: Date
-}
-
 export const listProducts = async (params: ListProductsParams, userCautionStatus?: string) => {
   const {
     page,
@@ -191,7 +174,7 @@ interface CreateProductInput {
 export const createProduct = async (
   data: CreateProductInput,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const section = await prisma.section.findUnique({ where: { id: data.sectionId } })
 
@@ -251,7 +234,7 @@ export const updateProduct = async (
   id: string,
   data: UpdateProductInput,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const product = await prisma.product.findUnique({ where: { id } })
 
@@ -298,7 +281,7 @@ export const changeProductStatus = async (
   id: string,
   status: ProductStatus,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const product = await prisma.product.findUnique({ where: { id } })
 
@@ -322,7 +305,7 @@ export const changeProductStatus = async (
   return updated
 }
 
-export const deleteProduct = async (id: string, performedBy: string, request?: FastifyRequest) => {
+export const deleteProduct = async (id: string, performedBy: string, _request?: FastifyRequest) => {
   const product = await prisma.product.findUnique({ where: { id } })
 
   if (!product) {
@@ -350,7 +333,7 @@ export const addAttribute = async (
   key: string,
   value: string,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const product = await prisma.product.findUnique({ where: { id: productId } })
 
@@ -378,7 +361,7 @@ export const updateAttribute = async (
   key: string,
   value: string,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const attribute = await prisma.productAttribute.findUnique({
     where: { productId_key: { productId, key } },
@@ -408,7 +391,7 @@ export const deleteAttribute = async (
   productId: string,
   key: string,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const attribute = await prisma.productAttribute.findUnique({
     where: { productId_key: { productId, key } },

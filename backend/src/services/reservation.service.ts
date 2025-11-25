@@ -2,8 +2,10 @@
 
 import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
+import { createMovement } from './movement.service.js'
+import { generateReservationQRCode } from '../utils/qrCode.js'
 import { FastifyRequest } from 'fastify'
-import type { ReservationStatus } from '@prisma/client'
+import type { ReservationStatus, ProductCondition } from '@prisma/client'
 
 // ============================================
 // HELPERS
@@ -317,6 +319,17 @@ export const createReservation = async (params: CreateReservationParams) => {
     }),
   ])
 
+  // Generate and save QR code for the reservation
+  const qrCode = generateReservationQRCode(reservation.id, userId)
+  const reservationWithQR = await prisma.reservation.update({
+    where: { id: reservation.id },
+    data: { qrCode },
+    include: {
+      user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      product: { select: { id: true, name: true, reference: true } },
+    },
+  })
+
   await logAudit({
     userId,
     performedBy: createdBy,
@@ -332,7 +345,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     },
   })
 
-  return reservation
+  return reservationWithQR
 }
 
 // ============================================
@@ -729,12 +742,20 @@ export const updateReservation = async (params: UpdateReservationParams) => {
 // CHECKOUT / RETURN (Preview for Phase 5)
 // ============================================
 
-export const checkoutReservation = async (
-  reservationId: string,
-  adminId: string,
+interface CheckoutParams {
+  reservationId: string
+  adminId: string
+  notes?: string
   request?: FastifyRequest
-) => {
-  const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } })
+}
+
+export const checkoutReservation = async (params: CheckoutParams) => {
+  const { reservationId, adminId, notes } = params
+
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { product: { select: { id: true, name: true } } },
+  })
 
   if (!reservation) {
     throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
@@ -761,24 +782,43 @@ export const checkoutReservation = async (
     },
   })
 
+  await createMovement({
+    productId: reservation.productId,
+    reservationId,
+    type: 'CHECKOUT',
+    condition: 'OK',
+    notes,
+    performedBy: adminId,
+  })
+
   await logAudit({
     userId: reservation.userId,
     performedBy: adminId,
     action: 'RESERVATION_CHECKOUT',
     targetType: 'Reservation',
     targetId: reservationId,
-    metadata: { checkedOutAt: updated.checkedOutAt },
+    metadata: { checkedOutAt: updated.checkedOutAt, notes },
   })
 
   return updated
 }
 
-export const returnReservation = async (
-  reservationId: string,
-  adminId: string,
+interface ReturnParams {
+  reservationId: string
+  adminId: string
+  condition?: ProductCondition
+  notes?: string
+  photoKey?: string
   request?: FastifyRequest
-) => {
-  const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } })
+}
+
+export const returnReservation = async (params: ReturnParams) => {
+  const { reservationId, adminId, condition = 'OK', notes, photoKey } = params
+
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { product: { select: { id: true, name: true } } },
+  })
 
   if (!reservation) {
     throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
@@ -805,13 +845,23 @@ export const returnReservation = async (
     },
   })
 
+  await createMovement({
+    productId: reservation.productId,
+    reservationId,
+    type: 'RETURN',
+    condition,
+    notes,
+    photoKey,
+    performedBy: adminId,
+  })
+
   await logAudit({
     userId: reservation.userId,
     performedBy: adminId,
     action: 'RESERVATION_RETURN',
     targetType: 'Reservation',
     targetId: reservationId,
-    metadata: { returnedAt: updated.returnedAt },
+    metadata: { returnedAt: updated.returnedAt, condition, notes },
   })
 
   return updated

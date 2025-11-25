@@ -13,6 +13,7 @@ import type {
   AvailabilityInput,
   RefundReservationInput,
 } from '../schemas/reservation.js'
+import type { CheckoutInput, ReturnInput } from '../schemas/movement.js'
 
 // ============================================
 // USER ROUTES
@@ -44,6 +45,36 @@ export const getMyReservation = async (
   )
 
   return reply.send(createSuccessResponse(SuccessMessages.RETRIEVED, reservation))
+}
+
+export const getMyReservationQR = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  // Don't filter by userId - allow getting QR code for any reservation
+  // This is useful for admins who need to help users
+  const reservation = await reservationService.getReservationById(request.params.id)
+
+  if (!reservation.qrCode) {
+    throw {
+      statusCode: 404,
+      message: 'QR code not available for this reservation',
+      code: 'NOT_FOUND',
+    }
+  }
+
+  return reply.send(
+    createSuccessResponse('QR code retrieved', {
+      qrCode: reservation.qrCode,
+      reservationId: reservation.id,
+      status: reservation.status,
+      user: {
+        id: reservation.user.id,
+        firstName: reservation.user.firstName,
+        lastName: reservation.user.lastName,
+      },
+    })
+  )
 }
 
 export const create = async (
@@ -172,29 +203,33 @@ export const refund = async (
 }
 
 export const checkout = async (
-  request: FastifyRequest<{ Params: { id: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body?: CheckoutInput }>,
   reply: FastifyReply
 ) => {
-  const reservation = await reservationService.checkoutReservation(
-    request.params.id,
-    request.user.userId,
-    request
-  )
+  const reservation = await reservationService.checkoutReservation({
+    reservationId: request.params.id,
+    adminId: request.user.userId,
+    notes: request.body?.notes,
+    request,
+  })
 
-  return reply.send(createSuccessResponse('Product checked out', reservation))
+  return reply.send(createSuccessResponse(SuccessMessages.PRODUCT_CHECKED_OUT, reservation))
 }
 
 export const returnProduct = async (
-  request: FastifyRequest<{ Params: { id: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body?: ReturnInput }>,
   reply: FastifyReply
 ) => {
-  const reservation = await reservationService.returnReservation(
-    request.params.id,
-    request.user.userId,
-    request
-  )
+  const reservation = await reservationService.returnReservation({
+    reservationId: request.params.id,
+    adminId: request.user.userId,
+    condition: request.body?.condition,
+    notes: request.body?.notes,
+    photoKey: request.body?.photoKey,
+    request,
+  })
 
-  return reply.send(createSuccessResponse('Product returned', reservation))
+  return reply.send(createSuccessResponse(SuccessMessages.PRODUCT_RETURNED, reservation))
 }
 
 // ============================================

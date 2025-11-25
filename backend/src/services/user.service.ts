@@ -265,6 +265,7 @@ export const getUserById = async (userId: string) => {
       lastLoginAt: true,
       createdAt: true,
       updatedAt: true,
+      password: false, // Explicitly exclude password
       roles: {
         include: {
           role: true,

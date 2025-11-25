@@ -59,7 +59,7 @@ interface CreateSectionInput {
 export const createSection = async (
   data: CreateSectionInput,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const section = await prisma.section.create({
     data: {
@@ -86,7 +86,7 @@ export const updateSection = async (
   id: string,
   data: Partial<CreateSectionInput>,
   performedBy: string,
-  request?: FastifyRequest
+  _request?: FastifyRequest
 ) => {
   const section = await prisma.section.findUnique({ where: { id } })
 
@@ -114,7 +114,7 @@ export const updateSection = async (
   return updated
 }
 
-export const deleteSection = async (id: string, performedBy: string, request?: FastifyRequest) => {
+export const deleteSection = async (id: string, performedBy: string, _request?: FastifyRequest) => {
   const section = await prisma.section.findUnique({
     where: { id },
     include: {

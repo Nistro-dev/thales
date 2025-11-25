@@ -19,6 +19,11 @@ export const reservationRoutes = async (fastify: FastifyInstance) => {
     handler: reservationController.getMyReservation,
   })
 
+  // Get QR code for my reservation
+  fastify.get('/:id/qr', {
+    handler: reservationController.getMyReservationQR,
+  })
+
   fastify.post('/', {
     handler: reservationController.create,
   })
@@ -68,13 +73,13 @@ export const reservationAdminRoutes = async (fastify: FastifyInstance) => {
     handler: reservationController.refund,
   })
 
-  // Checkout
+  // Checkout (with optional notes)
   fastify.post('/:id/checkout', {
     preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),
     handler: reservationController.checkout,
   })
 
-  // Return
+  // Return (with condition)
   fastify.post('/:id/return', {
     preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),
     handler: reservationController.returnProduct,

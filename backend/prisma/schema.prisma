@@ -52,6 +52,19 @@ enum ReservationStatus {
   REFUNDED
 }
 
+enum MovementType {
+  CHECKOUT
+  RETURN
+}
+
+enum ProductCondition {
+  OK
+  MINOR_DAMAGE
+  MAJOR_DAMAGE
+  MISSING_PARTS
+  BROKEN
+}
+
 enum AuditAction {
   // Auth
   LOGIN
@@ -298,24 +311,27 @@ model SubSection {
 // ============================================
 
 model Product {
-  id           String        @id @default(uuid())
-  name         String
-  description  String?
-  reference    String?
-  priceCredits Int
-  minDuration  Int           @default(1)
-  maxDuration  Int           @default(14)
-  status       ProductStatus @default(AVAILABLE)
-  sectionId    String
-  section      Section       @relation(fields: [sectionId], references: [id])
-  subSectionId String?
-  subSection   SubSection?   @relation(fields: [subSectionId], references: [id], onDelete: SetNull)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             String           @id @default(uuid())
+  name           String
+  description    String?
+  reference      String?
+  priceCredits   Int
+  minDuration    Int              @default(1)
+  maxDuration    Int              @default(14)
+  status         ProductStatus    @default(AVAILABLE)
+  sectionId      String
+  section        Section          @relation(fields: [sectionId], references: [id])
+  subSectionId   String?
+  subSection     SubSection?      @relation(fields: [subSectionId], references: [id], onDelete: SetNull)
+  lastCondition  ProductCondition @default(OK)
+  lastMovementAt DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   attributes   ProductAttribute[]
   files        ProductFile[]
   reservations Reservation[]
+  movements    ProductMovement[]
 
   @@index([sectionId])
   @@index([subSectionId])
@@ -352,6 +368,25 @@ model ProductFile {
   @@index([sortOrder])
 }
 
+model ProductMovement {
+  id            String           @id @default(uuid())
+  productId     String
+  product       Product          @relation(fields: [productId], references: [id])
+  reservationId String?
+  type          MovementType
+  condition     ProductCondition @default(OK)
+  notes         String?
+  photoKey      String?
+  performedBy   String
+  performedAt   DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+
+  @@index([productId])
+  @@index([reservationId])
+  @@index([type])
+  @@index([performedAt])
+}
+
 // ============================================
 // RESERVATIONS
 // ============================================
@@ -368,6 +403,7 @@ model Reservation {
 
   status         ReservationStatus @default(CONFIRMED)
   creditsCharged Int
+  qrCode         String?           @unique
 
   checkedOutAt   DateTime?
   checkedOutBy   String?
@@ -395,6 +431,7 @@ model Reservation {
   @@index([startDate])
   @@index([endDate])
   @@index([startDate, endDate])
+  @@index([qrCode])
 }
 
 // ============================================

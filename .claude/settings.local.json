@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(*)"
+      "Bash(npx playwright:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

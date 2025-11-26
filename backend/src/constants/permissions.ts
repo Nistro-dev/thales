@@ -41,6 +41,9 @@ export const PERMISSIONS = {
   // Reservations
   VIEW_RESERVATIONS: 'VIEW_RESERVATIONS',
   MANAGE_RESERVATIONS: 'MANAGE_RESERVATIONS',
+
+  // Statistics
+  VIEW_STATISTICS: 'VIEW_STATISTICS',
 } as const
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS]
@@ -76,6 +79,8 @@ export const PERMISSION_HIERARCHY: Record<string, string> = {
 
   MANAGE_RESERVATIONS: 'VIEW_RESERVATIONS',
   VIEW_RESERVATIONS: 'VIEW_ADMIN_PANEL',
+
+  VIEW_STATISTICS: 'VIEW_ADMIN_PANEL',
 }
 
 export const PERMISSION_CATEGORIES = {
@@ -90,6 +95,7 @@ export const PERMISSION_CATEGORIES = {
   sections: 'sections',
   products: 'products',
   reservations: 'reservations',
+  statistics: 'statistics',
 } as const
 
 export type PermissionCategory = typeof PERMISSION_CATEGORIES[keyof typeof PERMISSION_CATEGORIES]
@@ -106,4 +112,5 @@ export const PERMISSIONS_BY_CATEGORY: Record<PermissionCategory, PermissionKey[]
   sections: ['VIEW_SECTIONS', 'MANAGE_SECTIONS'],
   products: ['VIEW_PRODUCTS', 'MANAGE_PRODUCTS'],
   reservations: ['VIEW_RESERVATIONS', 'MANAGE_RESERVATIONS'],
+  statistics: ['VIEW_STATISTICS'],
 }

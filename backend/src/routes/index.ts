@@ -15,6 +15,7 @@ import { scanRoutes } from './qr.routes.js'
 import { movementRoutes } from './movement.routes.js'
 import { fileRoutes } from './file.routes.js'
 import notificationRoutes from './notification.routes.js'
+import { statisticsRoutes } from './statistics.routes.js'
 
 export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(authRoutes, { prefix: '/api/auth' })
@@ -32,4 +33,5 @@ export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(movementRoutes, { prefix: '/api' })
   await fastify.register(fileRoutes, { prefix: '/api/files' })
   await fastify.register(notificationRoutes, { prefix: '/api/notifications' })
+  await fastify.register(statisticsRoutes, { prefix: '/api' })
 }

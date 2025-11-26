@@ -11,17 +11,32 @@ interface AuthTokens {
   refreshToken: string
 }
 
-interface UserResponse {
+interface RoleWithPermissions {
+  id: string
+  name: string
+  description: string | null
+  isSystem: boolean
+  permissions: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+interface GetMeResponse {
   id: string
   email: string
   firstName: string
   lastName: string
   status: UserStatus
+  credits: number
+  cautionPaid: boolean
+  roles: RoleWithPermissions[]
+  createdAt: Date
+  updatedAt: Date
 }
 
 export const login = async (
   data: LoginInput
-): Promise<{ user: UserResponse; tokens: AuthTokens }> => {
+): Promise<{ user: GetMeResponse; tokens: AuthTokens }> => {
   const user = await prisma.user.findUnique({
     where: { email: data.email },
   })
@@ -53,14 +68,11 @@ export const login = async (
 
   logger.info({ userId: user.id }, 'User logged in')
 
+  // Get complete user data with role and permissions
+  const userData = await getMe(user.id)
+
   return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      status: user.status,
-    },
+    user: userData,
     tokens,
   }
 }
@@ -111,17 +123,33 @@ export const logoutAll = async (userId: string): Promise<void> => {
   logger.info({ userId }, 'User logged out from all devices')
 }
 
-export const getMe = async (userId: string): Promise<UserResponse> => {
+export const getMe = async (userId: string): Promise<GetMeResponse> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      status: true,
-      creditBalance: true,
-      cautionStatus: true,
+    include: {
+      roles: {
+        include: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isSystem: true,
+              permissions: {
+                select: {
+                  permission: {
+                    select: {
+                      key: true,
+                    },
+                  },
+                },
+              },
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      },
     },
   })
 
@@ -129,7 +157,29 @@ export const getMe = async (userId: string): Promise<UserResponse> => {
     throw { statusCode: 404, message: ErrorMessages.USER_NOT_FOUND, code: 'NOT_FOUND' }
   }
 
-  return user
+  // Map all roles with their permissions as flat arrays
+  const mappedRoles: RoleWithPermissions[] = user.roles.map(userRole => ({
+    id: userRole.role.id,
+    name: userRole.role.name,
+    description: userRole.role.description,
+    isSystem: userRole.role.isSystem,
+    permissions: userRole.role.permissions.map((p: any) => p.permission.key),
+    createdAt: userRole.role.createdAt,
+    updatedAt: userRole.role.updatedAt,
+  }))
+
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    status: user.status,
+    credits: user.creditBalance,
+    cautionPaid: user.cautionStatus === 'VALIDATED',
+    roles: mappedRoles,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  }
 }
 
 const generateTokens = async (userId: string, email: string): Promise<AuthTokens> => {

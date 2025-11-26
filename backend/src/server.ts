@@ -16,7 +16,7 @@ const fastify = Fastify({
 const start = async (): Promise<void> => {
   try {
     await fastify.register(cors, {
-      origin: [env.FRONTEND_URL],
+      origin: [env.FRONTEND_URL, 'http://localhost:5173'],
       credentials: true,
     })
 

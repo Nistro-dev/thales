@@ -16,7 +16,7 @@ import type {
   AvailabilityInput,
   RefundReservationInput,
 } from '../schemas/reservation.js'
-import type { CheckoutInput, ReturnInput } from '../schemas/movement.js'
+import type { CheckoutInput } from '../schemas/movement.js'
 
 // ============================================
 // USER ROUTES

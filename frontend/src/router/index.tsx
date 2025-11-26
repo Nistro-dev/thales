@@ -10,15 +10,17 @@ import { ROUTES } from '@/constants/routes'
 import { PERMISSIONS } from '@/constants/permissions'
 import { ProductsPage } from '@/features/products/pages/ProductsPage'
 import { ProductDetailPage } from '@/features/products/pages/ProductDetailPage'
+import { MyReservationsPage } from '@/features/reservations/pages/MyReservationsPage'
+import { ReservationDetailPage } from '@/features/reservations/pages/ReservationDetailPage'
+import { AdminReservationsPage } from '@/features/reservations/pages/AdminReservationsPage'
+import { QRScannerPage } from '@/features/reservations/pages/QRScannerPage'
 import {
   HomePage,
-  MyReservationsPage,
   ProfilePage,
   AdminUsersPage,
   AdminRolesPage,
   AdminSectionsPage,
   AdminProductsPage,
-  AdminReservationsPage,
   AdminStatisticsPage,
 } from './placeholders'
 
@@ -65,6 +67,10 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.MY_RESERVATIONS,
             element: <MyReservationsPage />,
+          },
+          {
+            path: ROUTES.RESERVATION_DETAIL,
+            element: <ReservationDetailPage />,
           },
           {
             path: ROUTES.PROFILE,
@@ -123,6 +129,10 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.ADMIN_RESERVATIONS,
                 element: <AdminReservationsPage />,
+              },
+              {
+                path: ROUTES.ADMIN_QR_SCANNER,
+                element: <QRScannerPage />,
               },
             ],
           },

@@ -44,17 +44,17 @@ export const validateUserCanReserve = async (userId: string): Promise<Validation
   })
 
   if (!user) {
-    return { valid: false, error: 'User not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Utilisateur introuvable', code: 'NOT_FOUND' }
   }
 
   if (user.status !== 'ACTIVE') {
-    return { valid: false, error: 'Your account is not active', code: 'FORBIDDEN' }
+    return { valid: false, error: 'Votre compte n\'est pas actif', code: 'FORBIDDEN' }
   }
 
   if (user.cautionStatus !== 'VALIDATED' && user.cautionStatus !== 'EXEMPTED') {
     return {
       valid: false,
-      error: 'Your caution must be validated to make reservations',
+      error: 'Votre caution doit être validée pour effectuer des réservations',
       code: 'FORBIDDEN',
     }
   }
@@ -69,13 +69,13 @@ export const validateProductAvailable = async (productId: string): Promise<Valid
   })
 
   if (!product) {
-    return { valid: false, error: 'Product not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   if (product.status !== 'AVAILABLE') {
     return {
       valid: false,
-      error: `Product "${product.name}" is not available for reservation`,
+      error: `Le produit "${product.name}" n'est pas disponible pour la réservation`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -95,17 +95,17 @@ export const validateDates = async (
   })
 
   if (!product) {
-    return { valid: false, error: 'Product not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   const today = startOfDay(new Date())
 
   if (!isAdmin && startDate < today) {
-    return { valid: false, error: 'Start date cannot be in the past', code: 'VALIDATION_ERROR' }
+    return { valid: false, error: 'La date de sortie ne peut pas être dans le passé', code: 'VALIDATION_ERROR' }
   }
 
   if (endDate < startDate) {
-    return { valid: false, error: 'End date must be after start date', code: 'VALIDATION_ERROR' }
+    return { valid: false, error: 'La date de retour doit être après la date de sortie', code: 'VALIDATION_ERROR' }
   }
 
   const duration = daysBetween(startDate, endDate) + 1
@@ -113,7 +113,7 @@ export const validateDates = async (
   if (duration < product.minDuration) {
     return {
       valid: false,
-      error: `Minimum reservation duration is ${product.minDuration} day(s)`,
+      error: `La durée minimale de réservation est de ${product.minDuration} jour(s)`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -121,7 +121,7 @@ export const validateDates = async (
   if (duration > product.maxDuration) {
     return {
       valid: false,
-      error: `Maximum reservation duration is ${product.maxDuration} day(s)`,
+      error: `La durée maximale de réservation est de ${product.maxDuration} jour(s)`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -129,20 +129,20 @@ export const validateDates = async (
   const startDayOfWeek = getDayOfWeek(startDate)
   const endDayOfWeek = getDayOfWeek(endDate)
 
-  if (!product.section.allowedDaysIn.includes(startDayOfWeek)) {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  if (!product.section.allowedDaysOut.includes(startDayOfWeek)) {
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
     return {
       valid: false,
-      error: `Pickup is not allowed on ${dayNames[startDayOfWeek]} for this product`,
+      error: `Le retrait n'est pas autorisé le ${dayNames[startDayOfWeek]} pour ce produit`,
       code: 'VALIDATION_ERROR',
     }
   }
 
-  if (!product.section.allowedDaysOut.includes(endDayOfWeek)) {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  if (!product.section.allowedDaysIn.includes(endDayOfWeek)) {
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
     return {
       valid: false,
-      error: `Return is not allowed on ${dayNames[endDayOfWeek]} for this product`,
+      error: `Le retour n'est pas autorisé le ${dayNames[endDayOfWeek]} pour ce produit`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -176,7 +176,7 @@ export const validateNoConflict = async (
   if (conflict) {
     return {
       valid: false,
-      error: 'Product is already reserved for this period',
+      error: 'Le produit est déjà réservé pour cette période',
       code: 'CONFLICT',
     }
   }
@@ -194,13 +194,13 @@ export const validateUserCredits = async (
   })
 
   if (!user) {
-    return { valid: false, error: 'User not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Utilisateur introuvable', code: 'NOT_FOUND' }
   }
 
   if (user.creditBalance < amount) {
     return {
       valid: false,
-      error: `Insufficient credits. You have ${user.creditBalance} credits but need ${amount}`,
+      error: `Crédits insuffisants. Vous avez ${user.creditBalance} crédits mais ${amount} sont nécessaires`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -266,7 +266,7 @@ export const createReservation = async (params: CreateReservationParams) => {
   })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   const creditValidation = await validateUserCredits(userId, product.priceCredits)
@@ -453,7 +453,7 @@ export const getReservationById = async (id: string, userId?: string) => {
   })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   return reservation

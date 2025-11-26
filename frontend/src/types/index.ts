@@ -144,26 +144,61 @@ export interface ProductFilters {
 // Reservation Types
 export type ReservationStatus =
   | 'PENDING'
-  | 'ACTIVE'
+  | 'CONFIRMED'
+  | 'CHECKED_OUT'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'OVERDUE'
+  | 'REFUNDED'
 
 export interface Reservation {
   id: string
   userId: string
-  user: User
+  user?: {
+    id: string
+    email: string
+    firstName: string
+    lastName: string
+    credits: number
+  }
   productId: string
-  product: Product
-  quantity: number
+  product?: Product
   startDate: string
   endDate: string
   status: ReservationStatus
-  totalCost: number
-  totalExtensionCost: number
-  extensionCount: number
+  priceCredits: number
+  notes?: string | null
+  adminNotes?: string | null
+  qrCode?: string | null
+  checkoutAt?: string | null
+  checkoutBy?: string | null
+  returnAt?: string | null
+  returnBy?: string | null
+  cancelledAt?: string | null
+  cancelledBy?: string | null
+  cancelledReason?: string | null
+  refundedAt?: string | null
+  refundedBy?: string | null
+  refundedAmount?: number | null
+  refundedReason?: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface CreateReservationInput {
+  productId: string
+  startDate: string
+  endDate: string
+  notes?: string
+}
+
+export interface ReservationFilters {
+  status?: ReservationStatus
+  userId?: string
+  productId?: string
+  startDateFrom?: string
+  startDateTo?: string
+  sortBy?: 'createdAt' | 'startDate' | 'endDate'
+  sortOrder?: 'asc' | 'desc'
 }
 
 // Notification Types

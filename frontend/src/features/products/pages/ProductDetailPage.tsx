@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useProduct } from '../hooks/useProduct'
 import { ProductGallery } from '../components/ProductGallery'
 import { ProductDetailSkeleton } from '../components/ProductDetailSkeleton'
 import { AvailabilityBadge } from '../components/AvailabilityBadge'
+import { ReservationModal } from '@/features/reservations/components/ReservationModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Calendar, Clock, Tag } from 'lucide-react'
@@ -11,6 +13,7 @@ import { formatCurrency } from '@/lib/utils'
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: product, isLoading, isError } = useProduct(id!)
+  const [reservationModalOpen, setReservationModalOpen] = useState(false)
 
   if (isLoading) {
     return <ProductDetailSkeleton />
@@ -147,12 +150,26 @@ export function ProductDetailPage() {
           )}
 
           {/* Reserve Button */}
-          <Button size="lg" className="w-full" disabled={product.status !== 'AVAILABLE'}>
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={product.status !== 'AVAILABLE'}
+            onClick={() => setReservationModalOpen(true)}
+          >
             <Calendar className="mr-2 h-5 w-5" />
             {product.status === 'AVAILABLE' ? 'Réserver ce produit' : 'Indisponible'}
           </Button>
         </div>
       </div>
+
+      {/* Reservation Modal */}
+      {product && (
+        <ReservationModal
+          product={product}
+          open={reservationModalOpen}
+          onOpenChange={setReservationModalOpen}
+        />
+      )}
     </div>
   )
 }

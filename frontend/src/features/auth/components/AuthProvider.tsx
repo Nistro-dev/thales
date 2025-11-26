@@ -8,23 +8,27 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { setUser } = useAuthStore()
+  const { setUser, setLoading } = useAuthStore()
 
   useEffect(() => {
     const initAuth = async () => {
+      setLoading(true)
       try {
+        // This will automatically refresh the token if it's expired
+        // The interceptor handles the refresh logic
+        // Skip error toasts during initial auth check
         const { data } = await apiClient.get<ApiResponse<{ user: User }>>('/auth/me', {
-          skipErrorHandling: true,
+          skipErrorToast: true,
         })
         setUser(data.data?.user || null)
-      } catch {
-        // User not authenticated or backend not available
+      } catch (error) {
+        // If the token refresh fails, the user is truly not authenticated
         setUser(null)
       }
     }
 
     initAuth()
-  }, [setUser])
+  }, [setUser, setLoading])
 
   return <>{children}</>
 }

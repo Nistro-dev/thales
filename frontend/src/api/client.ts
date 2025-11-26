@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import toast from 'react-hot-toast'
 import type { ApiResponse } from '@/types'
 
@@ -6,6 +6,8 @@ import type { ApiResponse } from '@/types'
 declare module 'axios' {
   export interface AxiosRequestConfig {
     skipErrorHandling?: boolean
+    skipErrorToast?: boolean
+    _retry?: boolean
   }
 }
 
@@ -18,6 +20,25 @@ export const apiClient = axios.create({
   },
 })
 
+// Token refresh state
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value?: unknown) => void
+  reject: (reason?: unknown) => void
+}> = []
+
+const processQueue = (error: Error | null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve()
+    }
+  })
+
+  failedQueue = []
+}
+
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
@@ -28,14 +49,72 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor
+// Response interceptor with token refresh logic
 apiClient.interceptors.response.use(
   (response) => {
     return response
   },
-  (error: AxiosError<ApiResponse>) => {
-    // Skip error handling if flag is set
-    if (error.config?.skipErrorHandling) {
+  async (error: AxiosError<ApiResponse>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    // Handle 401 errors with token refresh (always attempt refresh, even if skipErrorHandling is set)
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      // Don't retry refresh endpoint or login page
+      if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+          toast.error('Session expirée. Veuillez vous reconnecter.')
+        }
+        return Promise.reject(error)
+      }
+
+      if (isRefreshing) {
+        // Queue this request while refresh is in progress
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then(() => {
+            return apiClient(originalRequest)
+          })
+          .catch((err) => {
+            return Promise.reject(err)
+          })
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        // Try to refresh the token
+        await apiClient.post('/auth/refresh', {}, { skipErrorHandling: true })
+
+        // Token refreshed successfully, process queued requests
+        processQueue(null)
+        isRefreshing = false
+
+        // Retry the original request
+        return apiClient(originalRequest)
+      } catch (refreshError) {
+        // Refresh failed, clear queue and redirect to login
+        processQueue(refreshError as Error)
+        isRefreshing = false
+
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+          toast.error('Session expirée. Veuillez vous reconnecter.')
+        }
+
+        return Promise.reject(refreshError)
+      }
+    }
+
+    // Skip all other error handling if flag is set
+    if (originalRequest?.skipErrorHandling) {
+      return Promise.reject(error)
+    }
+
+    // Skip error toasts if flag is set, but still reject the promise
+    if (originalRequest?.skipErrorToast) {
       return Promise.reject(error)
     }
 
@@ -45,14 +124,6 @@ apiClient.interceptors.response.use(
 
       // Handle specific status codes
       switch (status) {
-        case 401:
-          // Unauthorized - redirect to login if not already there
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login'
-            toast.error('Session expirée. Veuillez vous reconnecter.')
-          }
-          break
-
         case 403:
           toast.error("Vous n'avez pas la permission d'effectuer cette action.")
           break

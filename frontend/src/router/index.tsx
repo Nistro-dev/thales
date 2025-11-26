@@ -8,9 +8,10 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary'
 import { ROUTES } from '@/constants/routes'
 import { PERMISSIONS } from '@/constants/permissions'
+import { ProductsPage } from '@/features/products/pages/ProductsPage'
+import { ProductDetailPage } from '@/features/products/pages/ProductDetailPage'
 import {
   HomePage,
-  ProductsPage,
   MyReservationsPage,
   ProfilePage,
   AdminUsersPage,
@@ -56,6 +57,10 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.PRODUCTS,
             element: <ProductsPage />,
+          },
+          {
+            path: ROUTES.PRODUCT_DETAIL,
+            element: <ProductDetailPage />,
           },
           {
             path: ROUTES.MY_RESERVATIONS,

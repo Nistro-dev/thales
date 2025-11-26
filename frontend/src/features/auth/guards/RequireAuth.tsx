@@ -2,6 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
 import { ROUTES } from '@/constants/routes'
 import type { Permission } from '@/constants/permissions'
+import { AppLayoutSkeleton } from '@/components/common/AppLayoutSkeleton'
 
 interface RequireAuthProps {
   permissions?: Permission[]
@@ -13,11 +14,7 @@ export function RequireAuth({ permissions, requireAll = false }: RequireAuthProp
     useAuthStore()
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
+    return <AppLayoutSkeleton />
   }
 
   if (!isAuthenticated) {

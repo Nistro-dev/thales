@@ -47,6 +47,11 @@ export interface Section {
   id: string
   name: string
   description: string | null
+  allowedDaysIn: number[]
+  allowedDaysOut: number[]
+  sortOrder: number
+  isSystem: boolean
+  subSections?: SubSection[]
   createdAt: string
   updatedAt: string
 }
@@ -55,26 +60,85 @@ export interface SubSection {
   id: string
   name: string
   description: string | null
-  sectionId: string
-  section: Section
+  sectionId: string | null
+  sortOrder: number
   createdAt: string
   updatedAt: string
 }
 
 // Product Types
+export type ProductStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'MAINTENANCE' | 'ARCHIVED'
+export type ProductCondition = 'OK' | 'MINOR_DAMAGE' | 'MAJOR_DAMAGE' | 'MISSING_PARTS' | 'BROKEN'
+export type FileVisibility = 'PUBLIC' | 'ADMIN'
+
+export interface ProductAttribute {
+  id: string
+  productId: string
+  key: string
+  value: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProductFile {
+  id: string
+  productId: string
+  filename: string
+  mimeType: string
+  size: number
+  s3Key: string
+  visibility: FileVisibility
+  sortOrder: number
+  createdAt: string
+  url?: string // Signed S3 URL
+}
+
 export interface Product {
   id: string
   name: string
   description: string | null
-  quantity: number
-  availableQuantity: number
-  price: number
-  imageKey: string | null
-  imageUrl?: string
-  subSectionId: string
-  subSection: SubSection
+  reference: string | null
+  priceCredits: number | null // null if user caution not validated
+  minDuration: number
+  maxDuration: number
+  status: ProductStatus
+  lastCondition?: ProductCondition
+  lastMovementAt?: string | null
+  sectionId: string
+  section: {
+    id: string
+    name: string
+    allowedDaysIn?: number[]
+    allowedDaysOut?: number[]
+  }
+  subSectionId: string | null
+  subSection?: {
+    id: string
+    name: string
+  } | null
+  attributes?: ProductAttribute[]
+  files?: ProductFile[]
+  thumbnail?: {
+    id: string
+    s3Key: string
+    mimeType: string
+    url?: string
+  } | null
   createdAt: string
   updatedAt: string
+}
+
+// Product Query Filters
+export interface ProductFilters {
+  search?: string
+  sectionId?: string
+  subSectionId?: string
+  status?: ProductStatus
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: 'createdAt' | 'name' | 'priceCredits'
+  sortOrder?: 'asc' | 'desc'
+  includeArchived?: boolean
 }
 
 // Reservation Types

@@ -19,14 +19,14 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useThemeStore } from '@/stores/theme.store'
 import { Button } from '@/components/ui/button'
 import { ROUTES } from '@/constants/routes'
-import { PERMISSIONS } from '@/constants/permissions'
+import { PERMISSIONS, Permission } from '@/constants/permissions'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
   name: string
   path: string
   icon: React.ElementType
-  permission?: string
+  permission?: Permission
 }
 
 const navItems: NavItem[] = [
@@ -57,7 +57,7 @@ export function AppLayout() {
   const hasAdminAccess = hasPermission(PERMISSIONS.VIEW_ADMIN_PANEL)
 
   const filteredAdminItems = adminNavItems.filter((item) =>
-    item.permission ? hasPermission(item.permission as any) : true
+    item.permission ? hasPermission(item.permission) : true
   )
 
   return (

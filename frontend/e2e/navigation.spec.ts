@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { loginAsAdmin, loginAsUser } from './helpers/auth'
+import { loginAsAdmin } from './helpers/auth'
 
 test.describe('Navigation and Route Guards', () => {
   test.beforeEach(async ({ page }) => {

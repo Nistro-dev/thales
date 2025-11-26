@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authApi, type LoginCredentials, type RegisterData } from '@/api/auth.api'
 import { useAuthStore } from '@/stores/auth.store'
-import { queryClient } from '@/lib/react-query'
+import { queryClient } from '@/lib/query-client'
 import { ROUTES } from '@/constants/routes'
+
 
 export function useAuth() {
   const navigate = useNavigate()

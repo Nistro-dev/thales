@@ -1,18 +1,6 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode } from 'react'
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-    mutations: {
-      retry: 0,
-    },
-  },
-})
+import { queryClient } from './query-client'
 
 interface QueryProviderProps {
   children: ReactNode
@@ -21,3 +9,4 @@ interface QueryProviderProps {
 export function QueryProvider({ children }: QueryProviderProps) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }
+

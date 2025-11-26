@@ -8,22 +8,21 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { RouteErrorBoundary } from '@/components/common/RouteErrorBoundary'
 import { ROUTES } from '@/constants/routes'
 import { PERMISSIONS } from '@/constants/permissions'
-
-// Placeholder pages - will be implemented in next phases
-const HomePage = () => <div className="text-2xl font-bold">Page d'accueil</div>
-const ProductsPage = () => <div className="text-2xl font-bold">Produits</div>
-const MyReservationsPage = () => <div className="text-2xl font-bold">Mes Réservations</div>
-const ProfilePage = () => <div className="text-2xl font-bold">Profil</div>
-
-// Admin pages placeholders
-const AdminUsersPage = () => <div className="text-2xl font-bold">Administration - Utilisateurs</div>
-const AdminRolesPage = () => <div className="text-2xl font-bold">Administration - Rôles</div>
-const AdminSectionsPage = () => <div className="text-2xl font-bold">Administration - Sections</div>
-const AdminProductsPage = () => <div className="text-2xl font-bold">Administration - Produits</div>
-const AdminReservationsPage = () => <div className="text-2xl font-bold">Administration - Réservations</div>
-const AdminStatisticsPage = () => <div className="text-2xl font-bold">Administration - Statistiques</div>
+import {
+  HomePage,
+  ProductsPage,
+  MyReservationsPage,
+  ProfilePage,
+  AdminUsersPage,
+  AdminRolesPage,
+  AdminSectionsPage,
+  AdminProductsPage,
+  AdminReservationsPage,
+  AdminStatisticsPage,
+} from './placeholders'
 
 export const router = createBrowserRouter([
+
   {
     errorElement: <RouteErrorBoundary />,
     element: <RequireGuest />,

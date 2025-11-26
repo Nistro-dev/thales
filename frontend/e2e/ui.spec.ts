@@ -136,10 +136,6 @@ test.describe('UI Elements and Theme', () => {
     // For now, just verify error boundary exists in the app
     await page.goto('/this-will-probably-not-exist')
 
-    // If error boundary works, page should show error UI
-    const bodyText = await page.textContent('body')
-    const hasErrorUI = bodyText?.toLowerCase().includes('erreur') || bodyText?.toLowerCase().includes('error')
-
     // Should either show error boundary or handle gracefully
     expect(page.url()).toBeTruthy() // Page should still be functional
   })

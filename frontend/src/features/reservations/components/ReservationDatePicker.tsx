@@ -126,6 +126,7 @@ export function ReservationDatePicker({
     }
 
     return errors
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, product, reservedDates])
 
   // Calculate duration and cost

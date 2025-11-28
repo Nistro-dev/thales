@@ -17,6 +17,7 @@ export function useMyReservations(
     queryKey: ['my-reservations', filters, page, limit],
     queryFn: async () => {
       const response = await reservationsApi.listMy(filters, page, limit)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = response.data as any
       return {
         ...data,
@@ -74,7 +75,7 @@ export function useCreateReservation() {
       useAuthStore.getState().refreshUser()
       toast.success('Réservation créée avec succès')
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Erreur lors de la création de la réservation')
     },
   })
@@ -96,7 +97,7 @@ export function useCancelMyReservation() {
       queryClient.invalidateQueries({ queryKey: ['my-reservation'] })
       toast.success('Réservation annulée')
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Erreur lors de l\'annulation')
     },
   })
@@ -149,6 +150,7 @@ export function useAdminReservations(
     queryKey: ['admin-reservations', filters, page, limit],
     queryFn: async () => {
       const response = await reservationsAdminApi.listAll(filters, page, limit)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = response.data as any
       return {
         ...data,
@@ -190,7 +192,7 @@ export function useCheckoutReservation() {
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
       toast.success('Produit retiré avec succès')
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Erreur lors du retrait')
     },
   })
@@ -224,7 +226,7 @@ export function useReturnReservation() {
       queryClient.invalidateQueries({ queryKey: ['product-availability'] })
       toast.success('Produit retourné avec succès')
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Erreur lors du retour')
     },
   })
@@ -250,7 +252,7 @@ export function useCancelReservation() {
       useAuthStore.getState().refreshUser()
       toast.success('Réservation annulée')
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Erreur lors de l\'annulation')
     },
   })
@@ -283,7 +285,7 @@ export function useRefundReservation() {
       useAuthStore.getState().refreshUser()
       toast.success('Réservation remboursée')
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Erreur lors du remboursement')
     },
   })

@@ -59,7 +59,9 @@ export function ReservationModal({ product, open, onOpenChange }: ReservationMod
       setEndDate(undefined)
       setNotes('')
       onOpenChange(false)
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const handleClose = () => {

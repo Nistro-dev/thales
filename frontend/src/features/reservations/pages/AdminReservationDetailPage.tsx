@@ -44,7 +44,9 @@ export function AdminReservationDetailPage() {
     try {
       await checkoutMutation.mutateAsync({ id: id!, notes })
       setDialogType(null)
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const handleReturn = async (condition: ProductCondition, notes?: string) => {
@@ -54,21 +56,27 @@ export function AdminReservationDetailPage() {
         data: { condition, notes },
       })
       setDialogType(null)
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const handleCancel = async (reason?: string) => {
     try {
       await cancelMutation.mutateAsync({ id: id!, reason })
       setDialogType(null)
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const handleRefund = async (amount?: number, reason?: string) => {
     try {
       await refundMutation.mutateAsync({ id: id!, amount, reason })
       setDialogType(null)
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const formatDate = (dateString: string) => {

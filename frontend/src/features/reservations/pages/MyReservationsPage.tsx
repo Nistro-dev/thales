@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar, AlertCircle, Eye, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal } from 'lucide-react'
 import { ReservationCardSkeleton } from '../components/ReservationCardSkeleton'
 import { CancelReservationDialog } from '../components/CancelReservationDialog'
-import type { ReservationStatus } from '@/types'
+import type { ReservationStatus, Reservation } from '@/types'
 
 const statusLabels: Record<ReservationStatus, string> = {
   CONFIRMED: 'Confirmée',
@@ -262,7 +262,7 @@ export function MyReservationsPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {data.data.map((reservation) => (
+              {data.data.map((reservation: Reservation) => (
                 <Card key={reservation.id} className="p-6">
                   <div className="flex flex-col lg:flex-row gap-6">
                     <div className="flex-1 space-y-3">

@@ -56,8 +56,9 @@ export function QRScannerPage() {
       const response = await scanApi.scan(qrCode.trim())
       setScannedReservation(response.data.data?.reservation || null)
       setQrCode('') // Clear input after successful scan
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erreur lors du scan du QR code')
+    } catch (err: unknown) {
+      const error = err as Error & { response?: { data?: { message?: string } } }
+      setError(error.response?.data?.message || 'Erreur lors du scan du QR code')
       setScannedReservation(null)
     } finally {
       setIsScanning(false)
@@ -75,8 +76,9 @@ export function QRScannerPage() {
       setScannedReservation(null)
       setQrCode('')
       setDialogType(null)
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erreur lors du retrait')
+    } catch (err: unknown) {
+      const error = err as Error & { response?: { data?: { message?: string } } }
+      toast.error(error.response?.data?.message || 'Erreur lors du retrait')
     } finally {
       setIsProcessing(false)
     }
@@ -96,8 +98,9 @@ export function QRScannerPage() {
       setScannedReservation(null)
       setQrCode('')
       setDialogType(null)
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Erreur lors du retour')
+    } catch (err: unknown) {
+      const error = err as Error & { response?: { data?: { message?: string } } }
+      toast.error(error.response?.data?.message || 'Erreur lors du retour')
     } finally {
       setIsProcessing(false)
     }

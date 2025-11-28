@@ -105,3 +105,11 @@ export const deleteNotification = async (notificationId: string, userId: string)
 
   await prisma.notification.delete({ where: { id: notificationId } })
 }
+
+export const deleteAllNotifications = async (userId: string) => {
+  const result = await prisma.notification.deleteMany({
+    where: { userId },
+  })
+
+  return { count: result.count }
+}

@@ -15,9 +15,10 @@ import { ReservationDetailPage } from '@/features/reservations/pages/Reservation
 import { AdminReservationsPage } from '@/features/reservations/pages/AdminReservationsPage'
 import { AdminReservationDetailPage } from '@/features/reservations/pages/AdminReservationDetailPage'
 import { QRScannerPage } from '@/features/reservations/pages/QRScannerPage'
+import { ProfilePage } from '@/features/profile/pages/ProfilePage'
+import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
 import {
   HomePage,
-  ProfilePage,
   AdminUsersPage,
   AdminRolesPage,
   AdminSectionsPage,
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.PROFILE,
             element: <ProfilePage />,
+          },
+          {
+            path: ROUTES.NOTIFICATIONS,
+            element: <NotificationsPage />,
           },
         ],
       },

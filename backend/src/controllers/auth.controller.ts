@@ -4,7 +4,7 @@ import * as passwordResetService from '../services/password-reset.service.js'
 import { env } from '../config/env.js'
 import { createSuccessResponse, SuccessMessages, ErrorMessages } from '../utils/response.js'
 import { logger } from '../utils/logger.js'
-import type { LoginInput, ForgotPasswordInput, ResetPasswordInput } from '../schemas/auth.js'
+import type { LoginInput, ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from '../schemas/auth.js'
 
 const useTunnels = process.env.USE_TUNNELS === 'true'
 
@@ -142,5 +142,16 @@ export const resetPassword = async (
 
   return reply.send(
     createSuccessResponse(SuccessMessages.PASSWORD_RESET_SUCCESS, {})
+  )
+}
+
+export const changePassword = async (
+  request: FastifyRequest<{ Body: ChangePasswordInput }>,
+  reply: FastifyReply
+) => {
+  await authService.changePassword(request.user.userId, request.body)
+
+  return reply.send(
+    createSuccessResponse('Mot de passe modifié avec succès', {})
   )
 }

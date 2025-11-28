@@ -6,6 +6,7 @@ export const ROUTES = {
   // App
   HOME: '/',
   PROFILE: '/profile',
+  NOTIFICATIONS: '/notifications',
 
   // Products & Reservations
   PRODUCTS: '/products',

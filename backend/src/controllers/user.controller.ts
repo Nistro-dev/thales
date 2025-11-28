@@ -5,6 +5,7 @@ import { createSuccessResponse, SuccessMessages } from '../utils/response.js'
 import {
   createUserSchema,
   updateUserSchema,
+  updateMyProfileSchema,
   changeUserStatusSchema,
   getUsersQuerySchema,
   userIdParamSchema,
@@ -193,5 +194,47 @@ export const getCreditTransactions = async (
         total: result.pagination.total,
       }
     )
+  )
+}
+
+// Get current user's credit transactions (no special permission required)
+export const getMyCreditTransactions = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const query = getCreditTransactionsQuerySchema.parse(request.query)
+  const result = await creditService.getUserTransactions({
+    userId: request.user.userId,
+    page: query.page,
+    limit: query.limit,
+  })
+
+  return reply.send(
+    createSuccessResponse(
+      SuccessMessages.CREDIT_TRANSACTIONS_RETRIEVED,
+      { transactions: result.transactions },
+      {
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        total: result.pagination.total,
+      }
+    )
+  )
+}
+
+// Update current user's profile (no special permission required)
+export const updateMyProfile = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const body = updateMyProfileSchema.parse(request.body)
+  const user = await userService.updateUser({
+    userId: request.user.userId,
+    ...body,
+    performedBy: request.user.userId,
+  })
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.USER_UPDATED, { user })
   )
 }

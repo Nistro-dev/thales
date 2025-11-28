@@ -448,6 +448,13 @@ export function AdminReservationsPage() {
                               )}
                             </div>
                           )}
+
+                          {reservation.status === 'CANCELLED' && reservation.cancelReason && (
+                            <div className="text-sm">
+                              <p className="text-muted-foreground">Motif d'annulation:</p>
+                              <p>{reservation.cancelReason}</p>
+                            </div>
+                          )}
                         </div>
 
                         {/* Actions */}

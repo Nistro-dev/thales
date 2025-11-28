@@ -58,3 +58,12 @@ export const getUnreadCount = async (request: FastifyRequest, reply: FastifyRepl
 
   return reply.send(createSuccessResponse('Nombre de notifications non lues', { count }))
 }
+
+// DELETE /api/notifications
+export const deleteAllNotifications = async (request: FastifyRequest, reply: FastifyReply) => {
+  const result = await notificationService.deleteAllNotifications(request.user.userId)
+
+  return reply.send(
+    createSuccessResponse('Toutes les notifications ont été supprimées', { count: result.count })
+  )
+}

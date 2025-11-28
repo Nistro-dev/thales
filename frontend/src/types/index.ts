@@ -5,6 +5,17 @@ export interface ApiResponse<T = unknown> {
   success: boolean
   message: string
   data?: T
+  meta?: {
+    timestamp?: string
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      totalPages: number
+      hasNext: boolean
+      hasPrev: boolean
+    }
+  }
 }
 
 export interface PaginatedResponse<T> {
@@ -20,11 +31,15 @@ export interface PaginatedResponse<T> {
 }
 
 // User & Auth Types
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+
 export interface User {
   id: string
   email: string
   firstName: string
   lastName: string
+  phone?: string | null
+  status?: UserStatus
   credits: number
   cautionPaid: boolean
   roles: Role[]

@@ -74,4 +74,19 @@ export const authRoutes = async (fastify: FastifyInstance) => {
     },
     handler: authController.resetPassword,
   })
+
+  fastify.post('/change-password', {
+    preHandler: authMiddleware,
+    schema: {
+      body: {
+        type: 'object',
+        required: ['currentPassword', 'newPassword'],
+        properties: {
+          currentPassword: { type: 'string', minLength: 1 },
+          newPassword: { type: 'string', minLength: 8 },
+        },
+      },
+    },
+    handler: authController.changePassword,
+  })
 }

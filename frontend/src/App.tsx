@@ -1,15 +1,20 @@
+import { RouterProvider } from 'react-router-dom'
+import { QueryProvider } from './lib/react-query'
+import { AuthProvider } from './features/auth/components/AuthProvider'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { Toaster } from './components/ui/toaster'
+import { router } from './router'
+
 function App() {
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      fontSize: '2rem'
-    }}>
-      Hello
-    </div>
+    <ErrorBoundary>
+      <QueryProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </AuthProvider>
+      </QueryProvider>
+    </ErrorBoundary>
   )
 }
 

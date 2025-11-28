@@ -3,10 +3,10 @@ import { z } from 'zod'
 export const createReservationSchema = z.object({
   productId: z.string().uuid(),
   startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format',
+    message: 'Format de date invalide',
   }),
   endDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
-    message: 'Invalid date format',
+    message: 'Format de date invalide',
   }),
   notes: z.string().max(500).optional(),
 })
@@ -20,13 +20,13 @@ export const updateReservationSchema = z.object({
   startDate: z
     .string()
     .refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Invalid date format',
+      message: 'Format de date invalide',
     })
     .optional(),
   endDate: z
     .string()
     .refine((date) => !isNaN(Date.parse(date)), {
-      message: 'Invalid date format',
+      message: 'Format de date invalide',
     })
     .optional(),
   notes: z.string().max(500).optional(),

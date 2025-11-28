@@ -1,0 +1,30 @@
+<!-- reservation-cancelled.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="warning-box">
+  <strong>Votre réservation a été annulée</strong>
+</div>
+
+<p>Nous vous informons que votre réservation a été annulée.</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  <p><strong>Date de début prévue :</strong> {{startDate}}</p>
+  <p><strong>Date de fin prévue :</strong> {{endDate}}</p>
+  <p><strong>Crédits remboursés :</strong> {{creditsCharged}}</p>
+</div>
+
+{{#if cancelReason}}
+<div class="info-box">
+  <p><strong>Raison de l'annulation :</strong> {{cancelReason}}</p>
+</div>
+{{/if}}
+
+<p>Vos crédits ont été automatiquement remboursés sur votre compte.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/products" class="button">Voir les produits disponibles</a>
+</p>
+
+<p>Nous restons à votre disposition pour toute question.</p>

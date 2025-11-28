@@ -42,7 +42,7 @@ export const getSectionById = async (id: string) => {
   })
 
   if (!section) {
-    throw { statusCode: 404, message: 'Section not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Section introuvable', code: 'NOT_FOUND' }
   }
 
   return section
@@ -91,11 +91,11 @@ export const updateSection = async (
   const section = await prisma.section.findUnique({ where: { id } })
 
   if (!section) {
-    throw { statusCode: 404, message: 'Section not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Section introuvable', code: 'NOT_FOUND' }
   }
 
   if (section.isSystem) {
-    throw { statusCode: 403, message: 'Cannot modify system section', code: 'FORBIDDEN' }
+    throw { statusCode: 403, message: 'Impossible de modifier une section système', code: 'FORBIDDEN' }
   }
 
   const updated = await prisma.section.update({
@@ -124,17 +124,17 @@ export const deleteSection = async (id: string, performedBy: string, _request?: 
   })
 
   if (!section) {
-    throw { statusCode: 404, message: 'Section not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Section introuvable', code: 'NOT_FOUND' }
   }
 
   if (section.isSystem) {
-    throw { statusCode: 403, message: 'Cannot delete system section', code: 'FORBIDDEN' }
+    throw { statusCode: 403, message: 'Impossible de supprimer une section système', code: 'FORBIDDEN' }
   }
 
   // Get default "Autres" section
   const defaultSection = await getDefaultSection()
   if (!defaultSection) {
-    throw { statusCode: 500, message: 'Default section "Autres" not found', code: 'INTERNAL_ERROR' }
+    throw { statusCode: 500, message: 'Section par défaut "Autres" introuvable', code: 'INTERNAL_ERROR' }
   }
 
   // Move direct products to "Autres" section

@@ -2,6 +2,7 @@ import { CreditTransactionType } from '@prisma/client'
 import { prisma } from '../utils/prisma.js'
 import { ErrorMessages } from '../utils/response.js'
 import { createAuditLog } from './audit.service.js'
+import * as notificationHelper from './notification-helper.service.js'
 
 interface AdjustCreditsParams {
   userId: string
@@ -70,6 +71,14 @@ export const adjustCredits = async (params: AdjustCreditsParams) => {
       reason: params.reason,
     },
   })
+
+  // Send notifications
+  await notificationHelper.sendCreditAdjustmentNotification(
+    params.userId,
+    params.amount,
+    newBalance,
+    params.reason
+  )
 
   return { user: updatedUser, transaction }
 }

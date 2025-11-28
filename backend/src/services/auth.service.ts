@@ -1,9 +1,9 @@
 import { prisma } from '../utils/prisma.js'
-import { comparePassword } from '../utils/password.js'
+import { comparePassword, hashPassword } from '../utils/password.js'
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, getRefreshTokenExpiry } from '../utils/jwt.js'
 import { logger } from '../utils/logger.js'
 import { ErrorMessages } from '../utils/response.js'
-import type { LoginInput } from '../schemas/auth.js'
+import type { LoginInput, ChangePasswordInput } from '../schemas/auth.js'
 import type { UserStatus } from '@prisma/client'
 
 interface AuthTokens {
@@ -11,17 +11,32 @@ interface AuthTokens {
   refreshToken: string
 }
 
-interface UserResponse {
+interface RoleWithPermissions {
+  id: string
+  name: string
+  description: string | null
+  isSystem: boolean
+  permissions: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+interface GetMeResponse {
   id: string
   email: string
   firstName: string
   lastName: string
   status: UserStatus
+  credits: number
+  cautionPaid: boolean
+  roles: RoleWithPermissions[]
+  createdAt: Date
+  updatedAt: Date
 }
 
 export const login = async (
   data: LoginInput
-): Promise<{ user: UserResponse; tokens: AuthTokens }> => {
+): Promise<{ user: GetMeResponse; tokens: AuthTokens }> => {
   const user = await prisma.user.findUnique({
     where: { email: data.email },
   })
@@ -53,14 +68,11 @@ export const login = async (
 
   logger.info({ userId: user.id }, 'User logged in')
 
+  // Get complete user data with role and permissions
+  const userData = await getMe(user.id)
+
   return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      status: user.status,
-    },
+    user: userData,
     tokens,
   }
 }
@@ -111,17 +123,33 @@ export const logoutAll = async (userId: string): Promise<void> => {
   logger.info({ userId }, 'User logged out from all devices')
 }
 
-export const getMe = async (userId: string): Promise<UserResponse> => {
+export const getMe = async (userId: string): Promise<GetMeResponse> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      status: true,
-      creditBalance: true,
-      cautionStatus: true,
+    include: {
+      roles: {
+        include: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isSystem: true,
+              permissions: {
+                select: {
+                  permission: {
+                    select: {
+                      key: true,
+                    },
+                  },
+                },
+              },
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+        },
+      },
     },
   })
 
@@ -129,7 +157,29 @@ export const getMe = async (userId: string): Promise<UserResponse> => {
     throw { statusCode: 404, message: ErrorMessages.USER_NOT_FOUND, code: 'NOT_FOUND' }
   }
 
-  return user
+  // Map all roles with their permissions as flat arrays
+  const mappedRoles: RoleWithPermissions[] = user.roles.map(userRole => ({
+    id: userRole.role.id,
+    name: userRole.role.name,
+    description: userRole.role.description,
+    isSystem: userRole.role.isSystem,
+    permissions: userRole.role.permissions.map((p: any) => p.permission.key),
+    createdAt: userRole.role.createdAt,
+    updatedAt: userRole.role.updatedAt,
+  }))
+
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    status: user.status,
+    credits: user.creditBalance,
+    cautionPaid: user.cautionStatus === 'VALIDATED',
+    roles: mappedRoles,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  }
 }
 
 const generateTokens = async (userId: string, email: string): Promise<AuthTokens> => {
@@ -145,4 +195,34 @@ const generateTokens = async (userId: string, email: string): Promise<AuthTokens
   })
 
   return { accessToken, refreshToken }
+}
+
+export const changePassword = async (userId: string, data: ChangePasswordInput): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  })
+
+  if (!user) {
+    throw { statusCode: 404, message: ErrorMessages.USER_NOT_FOUND, code: 'NOT_FOUND' }
+  }
+
+  const isValidPassword = await comparePassword(data.currentPassword, user.password)
+
+  if (!isValidPassword) {
+    throw { statusCode: 400, message: 'Mot de passe actuel incorrect', code: 'INVALID_PASSWORD' }
+  }
+
+  const hashedPassword = await hashPassword(data.newPassword)
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  })
+
+  // Invalidate all refresh tokens to force re-login on other devices
+  await prisma.refreshToken.deleteMany({
+    where: { userId },
+  })
+
+  logger.info({ userId }, 'Password changed')
 }

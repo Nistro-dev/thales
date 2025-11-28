@@ -25,7 +25,7 @@ export const getSubSectionById = async (id: string) => {
   })
 
   if (!subSection) {
-    throw { statusCode: 404, message: 'SubSection not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Sous-section introuvable', code: 'NOT_FOUND' }
   }
 
   return subSection
@@ -46,7 +46,7 @@ export const createSubSection = async (
   const section = await prisma.section.findUnique({ where: { id: data.sectionId } })
 
   if (!section) {
-    throw { statusCode: 404, message: 'Section not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Section introuvable', code: 'NOT_FOUND' }
   }
 
   const subSection = await prisma.subSection.create({
@@ -85,13 +85,13 @@ export const updateSubSection = async (
   const subSection = await prisma.subSection.findUnique({ where: { id } })
 
   if (!subSection) {
-    throw { statusCode: 404, message: 'SubSection not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Sous-section introuvable', code: 'NOT_FOUND' }
   }
 
   if (data.sectionId) {
     const section = await prisma.section.findUnique({ where: { id: data.sectionId } })
     if (!section) {
-      throw { statusCode: 404, message: 'Target section not found', code: 'NOT_FOUND' }
+      throw { statusCode: 404, message: 'Section cible introuvable', code: 'NOT_FOUND' }
     }
   }
 
@@ -122,13 +122,13 @@ export const deleteSubSection = async (
   })
 
   if (!subSection) {
-    throw { statusCode: 404, message: 'SubSection not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Sous-section introuvable', code: 'NOT_FOUND' }
   }
 
   const defaultSection = await getDefaultSection()
 
   if (!defaultSection) {
-    throw { statusCode: 500, message: 'Default section not found', code: 'INTERNAL_ERROR' }
+    throw { statusCode: 500, message: 'Section par défaut introuvable', code: 'INTERNAL_ERROR' }
   }
 
   await prisma.$transaction([

@@ -1,0 +1,23 @@
+<!-- reservation-expired.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="warning-box">
+  <strong>Réservation expirée</strong>
+</div>
+
+<p>Votre réservation suivante a expiré sans que le matériel ait été retiré :</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Période de réservation :</strong> {{startDate}} - {{endDate}}</p>
+</div>
+
+<p>La réservation a été automatiquement annulée et vos crédits ont été remboursés.</p>
+
+<p>Si vous souhaitez toujours réserver ce matériel, vous pouvez effectuer une nouvelle réservation.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/products" class="button">Voir les produits disponibles</a>
+</p>
+
+<p>Cordialement.</p>

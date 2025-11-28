@@ -4,6 +4,9 @@ import { FastifyRequest, FastifyReply } from 'fastify'
 import * as reservationService from '../services/reservation.service.js'
 import { createSuccessResponse, SuccessMessages } from '../utils/response.js'
 import { listReservationsSchema } from '../schemas/reservation.js'
+import { uploadToS3 } from '../utils/s3.js'
+import sharp from 'sharp'
+import type { ProductCondition } from '@prisma/client'
 import type {
   CreateReservationInput,
   CreateReservationAdminInput,
@@ -13,7 +16,7 @@ import type {
   AvailabilityInput,
   RefundReservationInput,
 } from '../schemas/reservation.js'
-import type { CheckoutInput, ReturnInput } from '../schemas/movement.js'
+import type { CheckoutInput } from '../schemas/movement.js'
 
 // ============================================
 // USER ROUTES
@@ -58,7 +61,7 @@ export const getMyReservationQR = async (
   if (!reservation.qrCode) {
     throw {
       statusCode: 404,
-      message: 'QR code not available for this reservation',
+      message: 'QR code non disponible pour cette réservation',
       code: 'NOT_FOUND',
     }
   }
@@ -217,15 +220,103 @@ export const checkout = async (
 }
 
 export const returnProduct = async (
-  request: FastifyRequest<{ Params: { id: string }; Body?: ReturnInput }>,
+  request: FastifyRequest<{ Params: { id: string }; Body?: { condition?: string; notes?: string } }>,
   reply: FastifyReply
 ) => {
+  let fields: Record<string, string> = {}
+  const photoFiles: Array<{ buffer: Buffer; filename: string; mimetype: string }> = []
+
+  // Check if request is multipart or JSON
+  const contentType = request.headers['content-type'] || ''
+  const isMultipart = contentType.includes('multipart/form-data')
+
+  if (isMultipart) {
+    // Process multipart data
+    const parts = request.parts()
+    for await (const part of parts) {
+      if (part.type === 'file' && part.fieldname === 'photos') {
+        const buffer = await part.toBuffer()
+        photoFiles.push({
+          buffer,
+          filename: part.filename,
+          mimetype: part.mimetype,
+        })
+      } else if (part.type === 'field') {
+        fields[part.fieldname] = part.value as string
+      }
+    }
+  } else {
+    // Process JSON body
+    const body = request.body as { condition?: string; notes?: string } | undefined
+    if (body) {
+      if (body.condition) fields.condition = body.condition
+      if (body.notes) fields.notes = body.notes
+    }
+  }
+
+  // Validate condition
+  const validConditions = ['OK', 'MINOR_DAMAGE', 'MAJOR_DAMAGE', 'MISSING_PARTS', 'BROKEN']
+  const condition = fields.condition || 'OK'
+
+  if (!validConditions.includes(condition)) {
+    throw {
+      statusCode: 400,
+      message: `Condition invalide. Doit être l'une des suivantes : ${validConditions.join(', ')}`,
+      code: 'INVALID_CONDITION',
+    }
+  }
+
+  // Validate max 3 photos
+  if (photoFiles.length > 3) {
+    throw {
+      statusCode: 400,
+      message: 'Maximum 3 photos autorisées',
+      code: 'TOO_MANY_PHOTOS',
+    }
+  }
+
+  // Compress and upload photos to S3
+  const uploadedPhotos = await Promise.all(
+    photoFiles.map(async (file, index) => {
+      let processedBuffer = file.buffer
+      let finalMimeType = file.mimetype
+      let fileExtension = file.filename.split('.').pop()
+
+      // Compress images (JPEG, PNG, WebP)
+      if (file.mimetype.startsWith('image/')) {
+        try {
+          processedBuffer = await sharp(file.buffer)
+            .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 85, mozjpeg: true })
+            .toBuffer()
+
+          finalMimeType = 'image/jpeg'
+          fileExtension = 'jpg'
+        } catch (error) {
+          // If compression fails, use original
+          console.error('Image compression failed:', error)
+        }
+      }
+
+      const key = `movements/${request.params.id}/return-${Date.now()}-${index}.${fileExtension}`
+      await uploadToS3(key, processedBuffer, finalMimeType)
+
+      return {
+        s3Key: key,
+        filename: file.filename,
+        mimeType: finalMimeType,
+        size: processedBuffer.length,
+        sortOrder: index,
+      }
+    })
+  )
+
   const reservation = await reservationService.returnReservation({
     reservationId: request.params.id,
     adminId: request.user.userId,
-    condition: request.body?.condition,
-    notes: request.body?.notes,
-    photoKey: request.body?.photoKey,
+    condition: condition as ProductCondition,
+    notes: fields.notes,
+    photos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
     request,
   })
 

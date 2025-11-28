@@ -1,0 +1,32 @@
+<!-- checkout-completed.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="success-box">
+  <strong>Votre matériel a été retiré avec succès</strong>
+</div>
+
+<p>Le retrait de votre matériel a été enregistré. Profitez-en bien !</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  <p><strong>Date de retrait :</strong> {{checkedOutAt}}</p>
+  <p><strong>Date de retour prévue :</strong> {{endDate}}</p>
+</div>
+
+{{#if notes}}
+<div class="info-box">
+  <p><strong>Notes de retrait :</strong> {{notes}}</p>
+</div>
+{{/if}}
+
+<div class="warning-box">
+  <strong>N'oubliez pas :</strong> Vous devez retourner le matériel avant le <strong>{{endDate}}</strong>.
+  Pensez à vérifier l'état du matériel avant de l'utiliser.
+</div>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/reservations/{{reservationId}}" class="button">Voir ma réservation</a>
+</p>
+
+<p>Bon usage !</p>

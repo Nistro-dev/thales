@@ -3,16 +3,19 @@ import * as authService from '../services/auth.service.js'
 import * as passwordResetService from '../services/password-reset.service.js'
 import { env } from '../config/env.js'
 import { createSuccessResponse, SuccessMessages, ErrorMessages } from '../utils/response.js'
-import type { LoginInput, ForgotPasswordInput, ResetPasswordInput } from '../schemas/auth.js'
+import { logger } from '../utils/logger.js'
+import type { LoginInput, ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from '../schemas/auth.js'
+
+const useTunnels = process.env.USE_TUNNELS === 'true'
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  secure: env.NODE_ENV === 'production' || useTunnels,
+  sameSite: useTunnels ? 'none' as const : 'strict' as const,
   path: '/',
 }
 
-const setAuthCookies = (reply: FastifyReply, accessToken: string, refreshToken: string) => {
+const setAuthCookies = (reply: FastifyReply, accessToken: string, refreshToken: string): void => {
   reply.setCookie('accessToken', accessToken, {
     ...COOKIE_OPTIONS,
     maxAge: 15 * 60,
@@ -139,5 +142,16 @@ export const resetPassword = async (
 
   return reply.send(
     createSuccessResponse(SuccessMessages.PASSWORD_RESET_SUCCESS, {})
+  )
+}
+
+export const changePassword = async (
+  request: FastifyRequest<{ Body: ChangePasswordInput }>,
+  reply: FastifyReply
+) => {
+  await authService.changePassword(request.user.userId, request.body)
+
+  return reply.send(
+    createSuccessResponse('Mot de passe modifié avec succès', {})
   )
 }

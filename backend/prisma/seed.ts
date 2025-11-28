@@ -46,6 +46,167 @@ async function main(): Promise<void> {
     },
   })
 
+  // 2.1 Create Multimedia Section
+  console.log('📂 Creating "Multimédia" section...')
+  const multimediaSection = await prisma.section.upsert({
+    where: { id: '10000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '10000000-0000-0000-0000-000000000001',
+      name: 'Multimédia',
+      description: 'Équipements audio, vidéo et accessoires électroniques',
+      sortOrder: 1,
+    },
+  })
+
+  // Subsections for Multimedia
+  const audioSub = await prisma.subSection.upsert({
+    where: { id: '11000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '11000000-0000-0000-0000-000000000001',
+      name: 'Audio',
+      sectionId: multimediaSection.id,
+      sortOrder: 1,
+    },
+  })
+
+  const videoSub = await prisma.subSection.upsert({
+    where: { id: '12000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '12000000-0000-0000-0000-000000000001',
+      name: 'Vidéo',
+      sectionId: multimediaSection.id,
+      sortOrder: 2,
+    },
+  })
+
+  // 2.2 Create Sport Section
+  console.log('📂 Creating "Sport" section...')
+  const sportSection = await prisma.section.upsert({
+    where: { id: '20000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '20000000-0000-0000-0000-000000000001',
+      name: 'Sport',
+      description: 'Équipements sportifs et de plein air',
+      sortOrder: 2,
+    },
+  })
+
+  // Subsections for Sport
+  const outdoorSub = await prisma.subSection.upsert({
+    where: { id: '21000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '21000000-0000-0000-0000-000000000001',
+      name: 'Plein air',
+      sectionId: sportSection.id,
+      sortOrder: 1,
+    },
+  })
+
+  // 2.3 Create DIY Section
+  console.log('📂 Creating "Bricolage" section...')
+  const diySection = await prisma.section.upsert({
+    where: { id: '30000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '30000000-0000-0000-0000-000000000001',
+      name: 'Bricolage',
+      description: 'Outils et équipements de bricolage',
+      sortOrder: 3,
+    },
+  })
+
+  // 2.4 Create Products
+  console.log('📦 Creating products...')
+  
+  // Multimedia > Audio Products
+  await prisma.product.upsert({
+    where: { id: '11100000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '11100000-0000-0000-0000-000000000001',
+      name: 'Enceinte Bluetooth JBL',
+      description: 'Enceinte portable étanche avec une autonomie de 20h.',
+      reference: 'JBL-FLIP-6',
+      priceCredits: 5,
+      sectionId: multimediaSection.id,
+      subSectionId: audioSub.id,
+      minDuration: 1,
+      maxDuration: 7,
+    },
+  })
+
+  await prisma.product.upsert({
+    where: { id: '11100000-0000-0000-0000-000000000002' },
+    update: {},
+    create: {
+      id: '11100000-0000-0000-0000-000000000002',
+      name: 'Casque Sony WH-1000XM4',
+      description: 'Casque à réduction de bruit active, idéal pour les voyages.',
+      reference: 'SONY-XM4',
+      priceCredits: 10,
+      sectionId: multimediaSection.id,
+      subSectionId: audioSub.id,
+      minDuration: 1,
+      maxDuration: 14,
+    },
+  })
+
+  // Multimedia > Video Products
+  await prisma.product.upsert({
+    where: { id: '12100000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '12100000-0000-0000-0000-000000000001',
+      name: 'Projecteur Portable',
+      description: 'Mini projecteur LED 1080p, compatible HDMI et USB.',
+      reference: 'PROJ-MINI',
+      priceCredits: 15,
+      sectionId: multimediaSection.id,
+      subSectionId: videoSub.id,
+      minDuration: 1,
+      maxDuration: 3,
+    },
+  })
+
+  // Sport > Outdoor Products
+  await prisma.product.upsert({
+    where: { id: '21100000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '21100000-0000-0000-0000-000000000001',
+      name: 'Tente 2 places',
+      description: 'Tente de camping légère et facile à monter.',
+      reference: 'CAMP-TENT-2',
+      priceCredits: 8,
+      sectionId: sportSection.id,
+      subSectionId: outdoorSub.id,
+      minDuration: 2,
+      maxDuration: 14,
+    },
+  })
+
+  // DIY Products
+  await prisma.product.upsert({
+    where: { id: '30100000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '30100000-0000-0000-0000-000000000001',
+      name: 'Perceuse Visseuse',
+      description: 'Perceuse sans fil 18V avec 2 batteries.',
+      reference: 'DRILL-18V',
+      priceCredits: 12,
+      sectionId: diySection.id,
+      minDuration: 1,
+      maxDuration: 5,
+    },
+  })
+
+
   // 3. Create Super Admin Role
   console.log('👑 Creating Super Admin role...')
   const superAdminRole = await prisma.role.upsert({

@@ -1,0 +1,46 @@
+<!-- return-completed.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="success-box">
+  <strong>Votre retour de matériel a été enregistré</strong>
+</div>
+
+<p>Nous confirmons avoir réceptionné le matériel suivant :</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  <p><strong>Date de retour :</strong> {{returnedAt}}</p>
+  <p><strong>État du matériel :</strong>
+    {{#eq condition "OK"}}Excellent état{{/eq}}
+    {{#eq condition "MINOR_DAMAGE"}}Légers dommages{{/eq}}
+    {{#eq condition "MAJOR_DAMAGE"}}Dommages importants{{/eq}}
+    {{#eq condition "MISSING_PARTS"}}Pièces manquantes{{/eq}}
+    {{#eq condition "BROKEN"}}Cassé{{/eq}}
+  </p>
+</div>
+
+{{#if notes}}
+<div class="info-box">
+  <p><strong>Notes de retour :</strong> {{notes}}</p>
+</div>
+{{/if}}
+
+{{#if hasPhotos}}
+<div class="info-box">
+  <p><strong>Photos :</strong> {{photoCount}} photo(s) ont été jointes au retour</p>
+</div>
+{{/if}}
+
+{{#ifCond condition "!=" "OK"}}
+<div class="warning-box">
+  <strong>Attention :</strong> Des dommages ont été constatés sur le matériel.
+  Notre équipe examinera la situation et vous contactera si nécessaire.
+</div>
+{{/ifCond}}
+
+<p>Merci d'avoir pris soin du matériel !</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/reservations/{{reservationId}}" class="button">Voir ma réservation</a>
+</p>

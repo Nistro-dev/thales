@@ -6,6 +6,7 @@ import { createMovement } from './movement.service.js'
 import { generateReservationQRCode } from '../utils/qrCode.js'
 import { FastifyRequest } from 'fastify'
 import type { ReservationStatus, ProductCondition } from '@prisma/client'
+import * as notificationHelper from './notification-helper.service.js'
 
 // ============================================
 // HELPERS
@@ -13,18 +14,17 @@ import type { ReservationStatus, ProductCondition } from '@prisma/client'
 
 const startOfDay = (date: Date): Date => {
   const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
+  d.setUTCHours(0, 0, 0, 0)
   return d
 }
 
-const endOfDay = (date: Date): Date => {
-  const d = new Date(date)
-  d.setHours(23, 59, 59, 999)
-  return d
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
 }
 
 const getDayOfWeek = (date: Date): number => {
-  return date.getDay()
+  return date.getUTCDay()
 }
 
 const daysBetween = (start: Date, end: Date): number => {
@@ -49,17 +49,17 @@ export const validateUserCanReserve = async (userId: string): Promise<Validation
   })
 
   if (!user) {
-    return { valid: false, error: 'User not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Utilisateur introuvable', code: 'NOT_FOUND' }
   }
 
   if (user.status !== 'ACTIVE') {
-    return { valid: false, error: 'Your account is not active', code: 'FORBIDDEN' }
+    return { valid: false, error: 'Votre compte n\'est pas actif', code: 'FORBIDDEN' }
   }
 
   if (user.cautionStatus !== 'VALIDATED' && user.cautionStatus !== 'EXEMPTED') {
     return {
       valid: false,
-      error: 'Your caution must be validated to make reservations',
+      error: 'Votre caution doit être validée pour effectuer des réservations',
       code: 'FORBIDDEN',
     }
   }
@@ -74,13 +74,13 @@ export const validateProductAvailable = async (productId: string): Promise<Valid
   })
 
   if (!product) {
-    return { valid: false, error: 'Product not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   if (product.status !== 'AVAILABLE') {
     return {
       valid: false,
-      error: `Product "${product.name}" is not available for reservation`,
+      error: `Le produit "${product.name}" n'est pas disponible pour la réservation`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -100,17 +100,18 @@ export const validateDates = async (
   })
 
   if (!product) {
-    return { valid: false, error: 'Product not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
-  const today = startOfDay(new Date())
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0))
 
   if (!isAdmin && startDate < today) {
-    return { valid: false, error: 'Start date cannot be in the past', code: 'VALIDATION_ERROR' }
+    return { valid: false, error: 'La date de sortie ne peut pas être dans le passé', code: 'VALIDATION_ERROR' }
   }
 
   if (endDate < startDate) {
-    return { valid: false, error: 'End date must be after start date', code: 'VALIDATION_ERROR' }
+    return { valid: false, error: 'La date de retour doit être après la date de sortie', code: 'VALIDATION_ERROR' }
   }
 
   const duration = daysBetween(startDate, endDate) + 1
@@ -118,7 +119,7 @@ export const validateDates = async (
   if (duration < product.minDuration) {
     return {
       valid: false,
-      error: `Minimum reservation duration is ${product.minDuration} day(s)`,
+      error: `La durée minimale de réservation est de ${product.minDuration} jour(s)`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -126,7 +127,7 @@ export const validateDates = async (
   if (duration > product.maxDuration) {
     return {
       valid: false,
-      error: `Maximum reservation duration is ${product.maxDuration} day(s)`,
+      error: `La durée maximale de réservation est de ${product.maxDuration} jour(s)`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -134,20 +135,20 @@ export const validateDates = async (
   const startDayOfWeek = getDayOfWeek(startDate)
   const endDayOfWeek = getDayOfWeek(endDate)
 
-  if (!product.section.allowedDaysIn.includes(startDayOfWeek)) {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  if (!product.section.allowedDaysOut.includes(startDayOfWeek)) {
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
     return {
       valid: false,
-      error: `Pickup is not allowed on ${dayNames[startDayOfWeek]} for this product`,
+      error: `Le retrait n'est pas autorisé le ${dayNames[startDayOfWeek]} pour ce produit`,
       code: 'VALIDATION_ERROR',
     }
   }
 
-  if (!product.section.allowedDaysOut.includes(endDayOfWeek)) {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  if (!product.section.allowedDaysIn.includes(endDayOfWeek)) {
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
     return {
       valid: false,
-      error: `Return is not allowed on ${dayNames[endDayOfWeek]} for this product`,
+      error: `Le retour n'est pas autorisé le ${dayNames[endDayOfWeek]} pour ce produit`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -181,7 +182,7 @@ export const validateNoConflict = async (
   if (conflict) {
     return {
       valid: false,
-      error: 'Product is already reserved for this period',
+      error: 'Le produit est déjà réservé pour cette période',
       code: 'CONFLICT',
     }
   }
@@ -199,13 +200,13 @@ export const validateUserCredits = async (
   })
 
   if (!user) {
-    return { valid: false, error: 'User not found', code: 'NOT_FOUND' }
+    return { valid: false, error: 'Utilisateur introuvable', code: 'NOT_FOUND' }
   }
 
   if (user.creditBalance < amount) {
     return {
       valid: false,
-      error: `Insufficient credits. You have ${user.creditBalance} credits but need ${amount}`,
+      error: `Crédits insuffisants. Vous avez ${user.creditBalance} crédits mais ${amount} sont nécessaires`,
       code: 'VALIDATION_ERROR',
     }
   }
@@ -239,10 +240,11 @@ export const createReservation = async (params: CreateReservationParams) => {
     adminNotes,
     createdBy,
     isAdmin = false,
+    request: _request,
   } = params
 
-  const start = startOfDay(new Date(startDate))
-  const end = startOfDay(new Date(endDate))
+  const start = parseLocalDate(startDate)
+  const end = parseLocalDate(endDate)
 
   const userValidation = await validateUserCanReserve(userId)
   if (!userValidation.valid) {
@@ -270,10 +272,14 @@ export const createReservation = async (params: CreateReservationParams) => {
   })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
-  const creditValidation = await validateUserCredits(userId, product.priceCredits)
+  // Calculate total credits: price per day × number of days
+  const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  const totalCredits = product.priceCredits * durationDays
+
+  const creditValidation = await validateUserCredits(userId, totalCredits)
   if (!creditValidation.valid) {
     throw { statusCode: 400, message: creditValidation.error, code: creditValidation.code }
   }
@@ -283,7 +289,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     select: { creditBalance: true },
   })
 
-  const newBalance = user!.creditBalance - product.priceCredits
+  const newBalance = user!.creditBalance - totalCredits
 
   const [reservation] = await prisma.$transaction([
     prisma.reservation.create({
@@ -293,7 +299,7 @@ export const createReservation = async (params: CreateReservationParams) => {
         startDate: start,
         endDate: end,
         status: 'CONFIRMED',
-        creditsCharged: product.priceCredits,
+        creditsCharged: totalCredits,
         notes,
         adminNotes,
         createdBy,
@@ -310,10 +316,10 @@ export const createReservation = async (params: CreateReservationParams) => {
     prisma.creditTransaction.create({
       data: {
         userId,
-        amount: -product.priceCredits,
+        amount: -totalCredits,
         balanceAfter: newBalance,
         type: 'RESERVATION',
-        reason: `Reservation: ${product.name}`,
+        reason: `Réservation : ${product.name}`,
         performedBy: createdBy,
       },
     }),
@@ -341,9 +347,20 @@ export const createReservation = async (params: CreateReservationParams) => {
       productName: product.name,
       startDate: start.toISOString(),
       endDate: end.toISOString(),
-      creditsCharged: product.priceCredits,
+      durationDays,
+      pricePerDay: product.priceCredits,
+      creditsCharged: totalCredits,
     },
   })
+
+  // Send notifications
+  await notificationHelper.sendReservationConfirmedNotification(
+    userId,
+    reservation.id,
+    product.name,
+    start.toLocaleDateString('fr-FR'),
+    end.toLocaleDateString('fr-FR')
+  )
 
   return reservationWithQR
 }
@@ -448,7 +465,7 @@ export const getReservationById = async (id: string, userId?: string) => {
   })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   return reservation
@@ -467,7 +484,7 @@ interface CancelReservationParams {
 }
 
 export const cancelReservation = async (params: CancelReservationParams) => {
-  const { reservationId, userId, isAdmin, reason, request } = params
+  const { reservationId, userId, isAdmin, reason, request: _request } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -475,25 +492,25 @@ export const cancelReservation = async (params: CancelReservationParams) => {
   })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   if (!isAdmin && reservation.userId !== userId) {
     throw {
       statusCode: 403,
-      message: 'You can only cancel your own reservations',
+      message: 'Vous ne pouvez annuler que vos propres réservations',
       code: 'FORBIDDEN',
     }
   }
 
   if (reservation.status === 'CANCELLED') {
-    throw { statusCode: 400, message: 'Reservation is already cancelled', code: 'VALIDATION_ERROR' }
+    throw { statusCode: 400, message: 'La réservation est déjà annulée', code: 'VALIDATION_ERROR' }
   }
 
   if (reservation.status === 'RETURNED') {
     throw {
       statusCode: 400,
-      message: 'Cannot cancel a completed reservation',
+      message: "Impossible d'annuler une réservation terminée",
       code: 'VALIDATION_ERROR',
     }
   }
@@ -501,7 +518,7 @@ export const cancelReservation = async (params: CancelReservationParams) => {
   if (!isAdmin && reservation.status === 'CHECKED_OUT') {
     throw {
       statusCode: 400,
-      message: 'Cannot cancel a reservation after checkout. Contact an administrator.',
+      message: "Impossible d'annuler une réservation après le retrait. Contactez un administrateur.",
       code: 'VALIDATION_ERROR',
     }
   }
@@ -540,7 +557,7 @@ export const cancelReservation = async (params: CancelReservationParams) => {
         amount: reservation.creditsCharged,
         balanceAfter: newBalance,
         type: 'REFUND',
-        reason: `Cancellation: ${reservation.product.name}`,
+        reason: `Annulation : ${reservation.product.name}`,
         performedBy: userId,
         reservationId,
       },
@@ -560,6 +577,14 @@ export const cancelReservation = async (params: CancelReservationParams) => {
     },
   })
 
+  // Send notifications
+  await notificationHelper.sendReservationCancelledNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    reason
+  )
+
   return updatedReservation
 }
 
@@ -576,7 +601,7 @@ interface RefundReservationParams {
 }
 
 export const refundReservation = async (params: RefundReservationParams) => {
-  const { reservationId, adminId, amount, reason, request } = params
+  const { reservationId, adminId, amount, reason, request: _request } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -584,13 +609,13 @@ export const refundReservation = async (params: RefundReservationParams) => {
   })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   if (reservation.refundedAt) {
     throw {
       statusCode: 400,
-      message: 'Reservation has already been refunded',
+      message: 'La réservation a déjà été remboursée',
       code: 'VALIDATION_ERROR',
     }
   }
@@ -600,7 +625,7 @@ export const refundReservation = async (params: RefundReservationParams) => {
   if (refundAmount > reservation.creditsCharged) {
     throw {
       statusCode: 400,
-      message: 'Refund amount cannot exceed charged amount',
+      message: 'Le montant du remboursement ne peut pas dépasser le montant facturé',
       code: 'VALIDATION_ERROR',
     }
   }
@@ -621,8 +646,8 @@ export const refundReservation = async (params: RefundReservationParams) => {
         refundedBy: adminId,
         refundAmount,
         adminNotes: reservation.adminNotes
-          ? `${reservation.adminNotes}\n[REFUND] ${reason || 'No reason provided'}`
-          : `[REFUND] ${reason || 'No reason provided'}`,
+          ? `${reservation.adminNotes}\n[REMBOURSEMENT] ${reason || 'Aucune raison fournie'}`
+          : `[REMBOURSEMENT] ${reason || 'Aucune raison fournie'}`,
       },
     }),
     prisma.user.update({
@@ -635,7 +660,7 @@ export const refundReservation = async (params: RefundReservationParams) => {
         amount: refundAmount,
         balanceAfter: newBalance,
         type: 'REFUND',
-        reason: reason || `Refund: ${reservation.product.name}`,
+        reason: reason || `Remboursement : ${reservation.product.name}`,
         performedBy: adminId,
         reservationId,
       },
@@ -655,6 +680,15 @@ export const refundReservation = async (params: RefundReservationParams) => {
     },
   })
 
+  // Send notifications
+  await notificationHelper.sendReservationRefundedNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    refundAmount,
+    newBalance
+  )
+
   return updatedReservation
 }
 
@@ -673,18 +707,18 @@ interface UpdateReservationParams {
 }
 
 export const updateReservation = async (params: UpdateReservationParams) => {
-  const { reservationId, adminId, startDate, endDate, notes, adminNotes, request } = params
+  const { reservationId, adminId, startDate, endDate, notes, adminNotes, request: _request } = params
 
   const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   if (reservation.status === 'CANCELLED' || reservation.status === 'RETURNED') {
     throw {
       statusCode: 400,
-      message: 'Cannot update a cancelled or completed reservation',
+      message: 'Impossible de modifier une réservation annulée ou terminée',
       code: 'VALIDATION_ERROR',
     }
   }
@@ -758,15 +792,22 @@ export const checkoutReservation = async (params: CheckoutParams) => {
   })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   if (reservation.status !== 'CONFIRMED') {
     throw {
       statusCode: 400,
-      message: 'Only confirmed reservations can be checked out',
+      message: 'Seules les réservations confirmées peuvent être retirées',
       code: 'VALIDATION_ERROR',
     }
+  }
+
+  // Build adminNotes with checkout notes if provided
+  let updatedAdminNotes = reservation.adminNotes || ''
+  if (notes) {
+    const checkoutNote = `[RETRAIT] ${notes}`
+    updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${checkoutNote}` : checkoutNote
   }
 
   const updated = await prisma.reservation.update({
@@ -775,6 +816,7 @@ export const checkoutReservation = async (params: CheckoutParams) => {
       status: 'CHECKED_OUT',
       checkedOutAt: new Date(),
       checkedOutBy: adminId,
+      ...(notes && { adminNotes: updatedAdminNotes }),
     },
     include: {
       user: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -800,7 +842,21 @@ export const checkoutReservation = async (params: CheckoutParams) => {
     metadata: { checkedOutAt: updated.checkedOutAt, notes },
   })
 
+  // Send notifications
+  await notificationHelper.sendCheckoutNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name
+  )
+
   return updated
+}
+
+interface MovementPhotoData {
+  s3Key: string
+  filename: string
+  mimeType: string
+  size: number
 }
 
 interface ReturnParams {
@@ -808,12 +864,12 @@ interface ReturnParams {
   adminId: string
   condition?: ProductCondition
   notes?: string
-  photoKey?: string
+  photos?: MovementPhotoData[]
   request?: FastifyRequest
 }
 
 export const returnReservation = async (params: ReturnParams) => {
-  const { reservationId, adminId, condition = 'OK', notes, photoKey } = params
+  const { reservationId, adminId, condition = 'OK', notes, photos } = params
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
@@ -821,15 +877,22 @@ export const returnReservation = async (params: ReturnParams) => {
   })
 
   if (!reservation) {
-    throw { statusCode: 404, message: 'Reservation not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
 
   if (reservation.status !== 'CHECKED_OUT') {
     throw {
       statusCode: 400,
-      message: 'Only checked out reservations can be returned',
+      message: 'Seules les réservations retirées peuvent être retournées',
       code: 'VALIDATION_ERROR',
     }
+  }
+
+  // Build adminNotes with return notes if provided
+  let updatedAdminNotes = reservation.adminNotes || ''
+  if (notes) {
+    const returnNote = `[RETOUR] ${notes}`
+    updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${returnNote}` : returnNote
   }
 
   const updated = await prisma.reservation.update({
@@ -838,6 +901,7 @@ export const returnReservation = async (params: ReturnParams) => {
       status: 'RETURNED',
       returnedAt: new Date(),
       returnedBy: adminId,
+      ...(notes && { adminNotes: updatedAdminNotes }),
     },
     include: {
       user: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -851,7 +915,7 @@ export const returnReservation = async (params: ReturnParams) => {
     type: 'RETURN',
     condition,
     notes,
-    photoKey,
+    photos,
     performedBy: adminId,
   })
 
@@ -863,6 +927,14 @@ export const returnReservation = async (params: ReturnParams) => {
     targetId: reservationId,
     metadata: { returnedAt: updated.returnedAt, condition, notes },
   })
+
+  // Send notifications
+  await notificationHelper.sendReturnNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    condition
+  )
 
   return updated
 }
@@ -878,7 +950,7 @@ export const getProductAvailability = async (productId: string, month: string) =
   })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   const [year, monthNum] = month.split('-').map(Number)

@@ -3,18 +3,25 @@
 import { prisma } from '../utils/prisma.js'
 import type { ProductCondition, MovementType } from '@prisma/client'
 
+interface MovementPhotoData {
+  s3Key: string
+  filename: string
+  mimeType: string
+  size: number
+}
+
 interface CreateMovementParams {
   productId: string
   reservationId: string
   type: MovementType
   condition?: ProductCondition
   notes?: string
-  photoKey?: string
+  photos?: MovementPhotoData[]
   performedBy: string
 }
 
 export const createMovement = async (params: CreateMovementParams) => {
-  const { productId, reservationId, type, condition = 'OK', notes, photoKey, performedBy } = params
+  const { productId, reservationId, type, condition = 'OK', notes, photos, performedBy } = params
 
   const [movement] = await prisma.$transaction([
     prisma.productMovement.create({
@@ -24,9 +31,24 @@ export const createMovement = async (params: CreateMovementParams) => {
         type,
         condition,
         notes,
-        photoKey,
         performedBy,
         performedAt: new Date(),
+        photos: photos
+          ? {
+              create: photos.map((photo, index) => ({
+                s3Key: photo.s3Key,
+                filename: photo.filename,
+                mimeType: photo.mimeType,
+                size: photo.size,
+                sortOrder: index,
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        photos: {
+          orderBy: { sortOrder: 'asc' },
+        },
       },
     }),
     prisma.product.update({
@@ -64,6 +86,9 @@ export const listMovements = async (params: ListMovementsParams) => {
       where,
       include: {
         product: { select: { id: true, name: true, reference: true } },
+        photos: {
+          orderBy: { sortOrder: 'asc' },
+        },
       },
       orderBy: { performedAt: sortOrder },
       skip: (page - 1) * limit,
@@ -79,11 +104,16 @@ export const getProductMovements = async (productId: string) => {
   const product = await prisma.product.findUnique({ where: { id: productId } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   return prisma.productMovement.findMany({
     where: { productId },
+    include: {
+      photos: {
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
     orderBy: { performedAt: 'desc' },
     take: 50,
   })

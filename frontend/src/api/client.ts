@@ -125,7 +125,8 @@ apiClient.interceptors.response.use(
     // Handle different error cases
     if (error.response) {
       const { status, data } = error.response
-      const errorCode = data?.error?.code
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorCode = (data as any)?.error?.code
 
       // Handle specific error codes first
       if (errorCode === 'ACCOUNT_SUSPENDED') {

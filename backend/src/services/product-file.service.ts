@@ -192,3 +192,37 @@ export const setFileVisibility = async (
 
   return updated
 }
+
+export const renameProductFile = async (
+  productId: string,
+  fileId: string,
+  newFilename: string,
+  performedBy: string,
+  _request?: FastifyRequest
+) => {
+  const file = await prisma.productFile.findFirst({
+    where: { id: fileId, productId },
+  })
+
+  if (!file) {
+    throw { statusCode: 404, message: 'Fichier introuvable', code: 'NOT_FOUND' }
+  }
+
+  const updated = await prisma.productFile.update({
+    where: { id: fileId },
+    data: { filename: newFilename },
+  })
+
+  await logAudit({
+    performedBy,
+    action: 'PRODUCT_UPDATE',
+    targetType: 'Product',
+    targetId: productId,
+    metadata: { fileId, oldFilename: file.filename, newFilename },
+  })
+
+  return {
+    ...updated,
+    url: await getSignedDownloadUrl(updated.s3Key),
+  }
+}

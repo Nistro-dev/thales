@@ -51,20 +51,24 @@ apiClient.interceptors.response.use(
   async (error: AxiosError<ApiResponse>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
+    // Public auth pages that don't require authentication
+    const publicAuthPaths = ['/login', '/forgot-password', '/reset-password', '/complete-registration', '/terms', '/privacy']
+    const isOnPublicAuthPage = publicAuthPaths.some(path => window.location.pathname.includes(path))
+
     // Handle 401 errors with token refresh (always attempt refresh, even if skipErrorHandling is set)
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       // Don't retry refresh endpoint or login page
       if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
-        if (!window.location.pathname.includes('/login')) {
+        if (!isOnPublicAuthPage) {
           window.location.href = '/login'
           toast.error('Session expirée. Veuillez vous reconnecter.')
         }
         return Promise.reject(error)
       }
 
-      // For /auth/me on initial load, don't try to refresh if we're on login page
+      // For /auth/me on initial load, don't try to refresh if we're on a public auth page
       // This avoids unnecessary refresh attempts when user is clearly not logged in
-      if (originalRequest.url?.includes('/auth/me') && window.location.pathname.includes('/login')) {
+      if (originalRequest.url?.includes('/auth/me') && isOnPublicAuthPage) {
         return Promise.reject(error)
       }
 
@@ -99,7 +103,7 @@ apiClient.interceptors.response.use(
         processQueue(refreshError as Error)
         isRefreshing = false
 
-        if (!window.location.pathname.includes('/login')) {
+        if (!isOnPublicAuthPage) {
           window.location.href = '/login'
           toast.error('Session expirée. Veuillez vous reconnecter.')
         }
@@ -121,6 +125,23 @@ apiClient.interceptors.response.use(
     // Handle different error cases
     if (error.response) {
       const { status, data } = error.response
+      const errorCode = data?.error?.code
+
+      // Handle specific error codes first
+      if (errorCode === 'ACCOUNT_SUSPENDED') {
+        toast.error('Votre compte a été suspendu. Veuillez contacter un administrateur.', {
+          duration: 5000,
+          icon: '🚫',
+        })
+        return Promise.reject(error)
+      }
+
+      if (errorCode === 'ACCOUNT_PENDING') {
+        toast.error('Votre compte est en attente de validation.', {
+          duration: 5000,
+        })
+        return Promise.reject(error)
+      }
 
       // Handle specific status codes
       switch (status) {

@@ -5,14 +5,17 @@ import { ProductGallery } from '../components/ProductGallery'
 import { ProductDetailSkeleton } from '../components/ProductDetailSkeleton'
 import { AvailabilityBadge } from '../components/AvailabilityBadge'
 import { ReservationModal } from '@/features/reservations/components/ReservationModal'
+import { useAuthStore } from '@/stores/auth.store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, Tag } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Tag, AlertTriangle } from 'lucide-react'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { data: product, isLoading, isError } = useProduct(id!)
   const [reservationModalOpen, setReservationModalOpen] = useState(false)
+  const user = useAuthStore((state) => state.user)
+  const isCautionValid = user?.cautionPaid ?? false
 
   if (isLoading) {
     return <ProductDetailSkeleton />
@@ -149,15 +152,30 @@ export function ProductDetailPage() {
           )}
 
           {/* Reserve Button */}
-          <Button
-            size="lg"
-            className="w-full"
-            disabled={product.status !== 'AVAILABLE'}
-            onClick={() => setReservationModalOpen(true)}
-          >
-            <Calendar className="mr-2 h-5 w-5" />
-            {product.status === 'AVAILABLE' ? 'Réserver ce produit' : 'Indisponible'}
-          </Button>
+          {!isCautionValid ? (
+            <div className="space-y-2">
+              <Button size="lg" className="w-full" disabled>
+                <Calendar className="mr-2 h-5 w-5" />
+                Réserver ce produit
+              </Button>
+              <div className="flex items-center gap-2 rounded-lg bg-yellow-50 p-3 dark:bg-yellow-900/20">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  Vous devez valider votre caution pour pouvoir réserver du matériel.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={product.status !== 'AVAILABLE'}
+              onClick={() => setReservationModalOpen(true)}
+            >
+              <Calendar className="mr-2 h-5 w-5" />
+              {product.status === 'AVAILABLE' ? 'Réserver ce produit' : 'Indisponible'}
+            </Button>
+          )}
         </div>
       </div>
 

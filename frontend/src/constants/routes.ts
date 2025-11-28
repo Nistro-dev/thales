@@ -1,7 +1,11 @@
 export const ROUTES = {
   // Public
   LOGIN: '/login',
-  REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  COMPLETE_REGISTRATION: '/complete-registration',
+  TERMS_OF_SERVICE: '/terms',
+  PRIVACY_POLICY: '/privacy',
 
   // App
   HOME: '/',
@@ -17,6 +21,7 @@ export const ROUTES = {
   // Admin
   ADMIN: '/admin',
   ADMIN_USERS: '/admin/users',
+  ADMIN_USER_DETAIL: '/admin/users/:id',
   ADMIN_ROLES: '/admin/roles',
   ADMIN_INVITATIONS: '/admin/invitations',
   ADMIN_SECTIONS: '/admin/sections',

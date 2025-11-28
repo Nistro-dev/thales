@@ -26,4 +26,13 @@ export const authApi = {
 
   // Logout
   logout: () => post<Record<string, never>>('/auth/logout'),
+
+  // Password reset flow
+  forgotPassword: (email: string) => post<Record<string, never>>('/auth/forgot-password', { email }),
+
+  validateResetToken: (token: string) =>
+    get<{ valid: boolean; email?: string }>('/auth/validate-reset-token', { token }),
+
+  resetPassword: (token: string, password: string) =>
+    post<Record<string, never>>('/auth/reset-password', { token, password }),
 }

@@ -143,10 +143,9 @@ export interface ProductFilters {
 
 // Reservation Types
 export type ReservationStatus =
-  | 'PENDING'
   | 'CONFIRMED'
   | 'CHECKED_OUT'
-  | 'COMPLETED'
+  | 'RETURNED'
   | 'CANCELLED'
   | 'REFUNDED'
 
@@ -158,14 +157,13 @@ export interface Reservation {
     email: string
     firstName: string
     lastName: string
-    credits: number
   }
   productId: string
   product?: Product
   startDate: string
   endDate: string
   status: ReservationStatus
-  priceCredits: number
+  creditsCharged: number
   notes?: string | null
   adminNotes?: string | null
   qrCode?: string | null

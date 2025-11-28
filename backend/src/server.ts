@@ -16,7 +16,35 @@ const fastify = Fastify({
 const start = async (): Promise<void> => {
   try {
     await fastify.register(cors, {
-      origin: [env.FRONTEND_URL, 'http://localhost:5173'],
+      origin: (origin, cb) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) {
+          cb(null, true)
+          return
+        }
+
+        const allowedOrigins = [
+          env.FRONTEND_URL,
+          'http://localhost:5173',
+          'http://localhost:3000',
+        ]
+
+        // In development, also allow devtunnels
+        if (env.NODE_ENV !== 'production') {
+          // Allow VS Code dev tunnels
+          if (origin.includes('.devtunnels.ms')) {
+            cb(null, true)
+            return
+          }
+        }
+
+        if (allowedOrigins.includes(origin)) {
+          cb(null, true)
+        } else {
+          logger.warn(`CORS blocked origin: ${origin}`)
+          cb(new Error('Not allowed by CORS'), false)
+        }
+      },
       credentials: true,
     })
 
@@ -29,8 +57,10 @@ const start = async (): Promise<void> => {
       hook: 'onRequest',
       parseOptions: {
         httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        // In dev with tunnels, we need secure=true and sameSite='none'
+        // In production, we use secure=true and sameSite='strict'
+        secure: env.NODE_ENV === 'production' || process.env.USE_TUNNELS === 'true',
+        sameSite: process.env.USE_TUNNELS === 'true' ? 'none' : 'strict',
       },
     })
 

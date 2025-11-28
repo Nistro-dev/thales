@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useMyReservation, useMyReservationQR, useCancelMyReservation } from '../hooks/useReservations'
-import { useQRCode } from '@/hooks/useQRCode'
+import { useAdminReservation, useCheckoutReservation, useReturnReservation, useCancelReservation, useRefundReservation } from '../hooks/useReservations'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { ArrowLeft, Calendar, Package, CreditCard, FileText, AlertCircle, X, Download, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Package, CreditCard, FileText, AlertCircle, UserCircle, CheckCircle, RotateCcw, X, RefreshCcw, Loader2 } from 'lucide-react'
 import { ReservationDetailSkeleton } from '../components/ReservationDetailSkeleton'
-import { CancelReservationDialog } from '../components/CancelReservationDialog'
-import type { ReservationStatus } from '@/types'
+import { CheckoutDialog } from '../components/CheckoutDialog'
+import { ReturnDialog } from '../components/ReturnDialog'
+import { AdminCancelDialog } from '../components/AdminCancelDialog'
+import { RefundDialog } from '../components/RefundDialog'
+import type { ReservationStatus, ProductCondition } from '@/types'
 
 const statusLabels: Record<ReservationStatus, string> = {
   CONFIRMED: 'Confirmée',
@@ -28,17 +29,46 @@ const statusColors: Record<ReservationStatus, 'default' | 'secondary' | 'destruc
   REFUNDED: 'outline',
 }
 
-export function ReservationDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const { data: reservation, isLoading, isError } = useMyReservation(id!)
-  const { data: qrData } = useMyReservationQR(id!, reservation?.status === 'CONFIRMED')
-  const { qrCodeUrl, isLoading: isQRLoading } = useQRCode(qrData?.qrCode, { width: 256 })
-  const cancelReservation = useCancelMyReservation()
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-  const [qrModalOpen, setQrModalOpen] = useState(false)
+type DialogType = 'checkout' | 'return' | 'cancel' | 'refund' | null
 
-  const handleConfirmCancel = async () => {
-    await cancelReservation.mutateAsync({ id: id! })
+export function AdminReservationDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const { data: reservation, isLoading, isError } = useAdminReservation(id!)
+  const checkoutMutation = useCheckoutReservation()
+  const returnMutation = useReturnReservation()
+  const cancelMutation = useCancelReservation()
+  const refundMutation = useRefundReservation()
+  const [dialogType, setDialogType] = useState<DialogType>(null)
+
+  const handleCheckout = async (notes?: string) => {
+    try {
+      await checkoutMutation.mutateAsync({ id: id!, notes })
+      setDialogType(null)
+    } catch {}
+  }
+
+  const handleReturn = async (condition: ProductCondition, notes?: string) => {
+    try {
+      await returnMutation.mutateAsync({
+        id: id!,
+        data: { condition, notes },
+      })
+      setDialogType(null)
+    } catch {}
+  }
+
+  const handleCancel = async (reason?: string) => {
+    try {
+      await cancelMutation.mutateAsync({ id: id!, reason })
+      setDialogType(null)
+    } catch {}
+  }
+
+  const handleRefund = async (amount?: number, reason?: string) => {
+    try {
+      await refundMutation.mutateAsync({ id: id!, amount, reason })
+      setDialogType(null)
+    } catch {}
   }
 
   const formatDate = (dateString: string) => {
@@ -67,16 +97,7 @@ export function ReservationDetailPage() {
     return diffDays
   }
 
-  const downloadQRCode = () => {
-    if (!qrCodeUrl) return
-
-    const link = document.createElement('a')
-    link.href = qrCodeUrl
-    link.download = `reservation-${id}-qr.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+  const isActionPending = checkoutMutation.isPending || returnMutation.isPending || cancelMutation.isPending || refundMutation.isPending
 
   if (isLoading) {
     return <ReservationDetailSkeleton />
@@ -95,7 +116,7 @@ export function ReservationDetailPage() {
               </p>
             </div>
             <Button asChild variant="outline">
-              <Link to="/my-reservations">Retour aux réservations</Link>
+              <Link to="/admin/reservations">Retour aux réservations</Link>
             </Button>
           </div>
         </Card>
@@ -103,15 +124,16 @@ export function ReservationDetailPage() {
     )
   }
 
+  const canCheckout = reservation.status === 'CONFIRMED'
+  const canReturn = reservation.status === 'CHECKED_OUT'
   const canCancel = reservation.status === 'CONFIRMED'
-  const showQRCode = reservation.status === 'CONFIRMED' && qrData?.qrCode
-  const hasQRImage = showQRCode && qrCodeUrl
+  const canRefund = reservation.status === 'CANCELLED' || reservation.status === 'RETURNED'
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Back Button */}
       <Button asChild variant="ghost">
-        <Link to="/my-reservations">
+        <Link to="/admin/reservations">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour aux réservations
         </Link>
@@ -131,6 +153,30 @@ export function ReservationDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Main Info */}
         <div className="lg:col-span-2 space-y-6">
+          {/* User Info */}
+          {reservation.user && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCircle className="h-5 w-5" />
+                  Utilisateur
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div>
+                  <p className="text-sm font-medium">Nom</p>
+                  <p className="text-muted-foreground">
+                    {reservation.user.firstName} {reservation.user.lastName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Email</p>
+                  <p className="text-muted-foreground">{reservation.user.email}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Product Info */}
           <Card>
             <CardHeader>
@@ -247,7 +293,7 @@ export function ReservationDetailPage() {
               <CardContent className="space-y-4">
                 {reservation.notes && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Vos notes</p>
+                    <p className="text-sm font-medium mb-1">Notes utilisateur</p>
                     <p className="text-sm text-muted-foreground italic">{reservation.notes}</p>
                   </div>
                 )}
@@ -276,46 +322,76 @@ export function ReservationDetailPage() {
           )}
         </div>
 
-        {/* Right Column - QR Code & Actions */}
+        {/* Right Column - Actions & Timeline */}
         <div className="space-y-6">
-          {/* QR Code */}
-          {showQRCode && (
+          {/* Actions */}
+          {(canCheckout || canReturn || canCancel || canRefund) && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">QR Code</CardTitle>
+                <CardTitle className="text-lg">Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <button
-                  type="button"
-                  onClick={() => hasQRImage && setQrModalOpen(true)}
-                  className="flex justify-center bg-white p-4 rounded-lg min-h-[232px] items-center w-full cursor-pointer hover:bg-gray-50 transition-colors"
-                  disabled={!hasQRImage}
-                >
-                  {isQRLoading ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  ) : hasQRImage ? (
-                    <img
-                      src={qrCodeUrl}
-                      alt="QR Code de réservation"
-                      className="w-full max-w-[200px] h-auto"
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">QR code non disponible</p>
-                  )}
-                </button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Présentez ce QR code lors du retrait du matériel
-                  {hasQRImage && <span className="block mt-1">Cliquez pour agrandir</span>}
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={downloadQRCode}
-                  disabled={!hasQRImage}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Télécharger
-                </Button>
+              <CardContent className="space-y-3">
+                {canCheckout && (
+                  <Button
+                    className="w-full"
+                    onClick={() => setDialogType('checkout')}
+                    disabled={isActionPending}
+                  >
+                    {checkoutMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                    )}
+                    Effectuer le retrait
+                  </Button>
+                )}
+
+                {canReturn && (
+                  <Button
+                    className="w-full"
+                    onClick={() => setDialogType('return')}
+                    disabled={isActionPending}
+                  >
+                    {returnMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                    )}
+                    Effectuer le retour
+                  </Button>
+                )}
+
+                {canRefund && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setDialogType('refund')}
+                    disabled={isActionPending}
+                  >
+                    {refundMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                    )}
+                    Rembourser
+                  </Button>
+                )}
+
+                {canCancel && (
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => setDialogType('cancel')}
+                    disabled={isActionPending}
+                  >
+                    {cancelMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="mr-2 h-4 w-4" />
+                    )}
+                    Annuler la réservation
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
@@ -374,64 +450,62 @@ export function ReservationDetailPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Actions */}
-          {canCancel && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="text-lg text-destructive">Zone de danger</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  L'annulation de cette réservation est irréversible.
-                </p>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => setCancelDialogOpen(true)}
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Annuler la réservation
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
-      {/* Cancel Reservation Dialog */}
-      <CancelReservationDialog
-        open={cancelDialogOpen}
-        onOpenChange={setCancelDialogOpen}
-        onConfirm={handleConfirmCancel}
+      {/* Dialogs */}
+      <CheckoutDialog
+        open={dialogType === 'checkout'}
+        onOpenChange={(open) => !open && setDialogType(null)}
+        onConfirm={handleCheckout}
         productName={reservation.product?.name}
-        isLoading={cancelReservation.isPending}
+        userName={
+          reservation.user
+            ? `${reservation.user.firstName} ${reservation.user.lastName}`
+            : undefined
+        }
+        isLoading={checkoutMutation.isPending}
       />
 
-      {/* QR Code Modal */}
-      <Dialog open={qrModalOpen} onOpenChange={setQrModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center gap-4 py-4">
-            <h2 className="text-lg font-semibold">QR Code de réservation</h2>
-            {qrCodeUrl && (
-              <div className="bg-white p-6 rounded-lg">
-                <img
-                  src={qrCodeUrl}
-                  alt="QR Code de réservation"
-                  className="w-[280px] h-[280px]"
-                />
-              </div>
-            )}
-            <p className="text-sm text-muted-foreground text-center">
-              Présentez ce QR code lors du retrait du matériel
-            </p>
-            <Button onClick={downloadQRCode} className="w-full">
-              <Download className="mr-2 h-4 w-4" />
-              Télécharger
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ReturnDialog
+        open={dialogType === 'return'}
+        onOpenChange={(open) => !open && setDialogType(null)}
+        onConfirm={handleReturn}
+        productName={reservation.product?.name}
+        userName={
+          reservation.user
+            ? `${reservation.user.firstName} ${reservation.user.lastName}`
+            : undefined
+        }
+        isLoading={returnMutation.isPending}
+      />
+
+      <AdminCancelDialog
+        open={dialogType === 'cancel'}
+        onOpenChange={(open) => !open && setDialogType(null)}
+        onConfirm={handleCancel}
+        productName={reservation.product?.name}
+        userName={
+          reservation.user
+            ? `${reservation.user.firstName} ${reservation.user.lastName}`
+            : undefined
+        }
+        isLoading={cancelMutation.isPending}
+      />
+
+      <RefundDialog
+        open={dialogType === 'refund'}
+        onOpenChange={(open) => !open && setDialogType(null)}
+        onConfirm={handleRefund}
+        productName={reservation.product?.name}
+        userName={
+          reservation.user
+            ? `${reservation.user.firstName} ${reservation.user.lastName}`
+            : undefined
+        }
+        maxAmount={reservation.creditsCharged}
+        isLoading={refundMutation.isPending}
+      />
     </div>
   )
 }

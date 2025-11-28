@@ -4,40 +4,58 @@ import { useAdminReservations, useCheckoutReservation, useReturnReservation, use
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Package, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle } from 'lucide-react'
-import type { ReservationStatus, ReservationFilters } from '@/types'
+import { Calendar, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal } from 'lucide-react'
+import { ReservationCardSkeleton } from '../components/ReservationCardSkeleton'
+import { ReservationFiltersSkeleton } from '../components/ReservationFiltersSkeleton'
+import { CheckoutDialog } from '../components/CheckoutDialog'
+import { ReturnDialog } from '../components/ReturnDialog'
+import { AdminCancelDialog } from '../components/AdminCancelDialog'
+import type { ReservationStatus, ReservationFilters, Reservation, ProductCondition } from '@/types'
 
 const statusLabels: Record<ReservationStatus, string> = {
-  PENDING: 'En attente',
   CONFIRMED: 'Confirmée',
   CHECKED_OUT: 'En cours',
-  COMPLETED: 'Terminée',
+  RETURNED: 'Terminée',
   CANCELLED: 'Annulée',
   REFUNDED: 'Remboursée',
 }
 
 const statusColors: Record<ReservationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  PENDING: 'secondary',
   CONFIRMED: 'default',
   CHECKED_OUT: 'default',
-  COMPLETED: 'outline',
+  RETURNED: 'outline',
   CANCELLED: 'destructive',
   REFUNDED: 'outline',
+}
+
+interface DialogState {
+  type: 'checkout' | 'return' | 'cancel' | null
+  reservation: Reservation | null
 }
 
 export function AdminReservationsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'checkouts' | 'returns'>('all')
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<'startDate' | 'createdAt' | 'endDate'>('startDate')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
-  const limit = 10
+  const [limit, setLimit] = useState(10)
+  const [showFilters, setShowFilters] = useState(false)
+  const [dialogState, setDialogState] = useState<DialogState>({ type: null, reservation: null })
 
   const today = new Date().toISOString().split('T')[0]
 
-  // Filters based on active tab
   const getFilters = (): ReservationFilters => {
-    const baseFilters: ReservationFilters = statusFilter !== 'all' ? { status: statusFilter } : {}
+    const baseFilters: ReservationFilters = {
+      ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      sortBy,
+      sortOrder,
+    }
 
     if (activeTab === 'checkouts') {
       return {
@@ -65,35 +83,39 @@ export function AdminReservationsPage() {
   const returnMutation = useReturnReservation()
   const cancelMutation = useCancelReservation()
 
-  const handleCheckout = async (id: string) => {
-    if (!confirm('Confirmer le retrait du matériel ?')) return
-    try {
-      await checkoutMutation.mutateAsync({ id })
-    } catch (error) {
-      // Error handled by hook
-    }
+  const openDialog = (type: 'checkout' | 'return' | 'cancel', reservation: Reservation) => {
+    setDialogState({ type, reservation })
   }
 
-  const handleReturn = async (id: string) => {
-    if (!confirm('Confirmer le retour du matériel ?')) return
+  const closeDialog = () => {
+    setDialogState({ type: null, reservation: null })
+  }
+
+  const handleCheckout = async (notes?: string) => {
+    if (!dialogState.reservation) return
+    try {
+      await checkoutMutation.mutateAsync({ id: dialogState.reservation.id, notes })
+      closeDialog()
+    } catch {}
+  }
+
+  const handleReturn = async (condition: ProductCondition, notes?: string) => {
+    if (!dialogState.reservation) return
     try {
       await returnMutation.mutateAsync({
-        id,
-        data: { condition: 'OK' },
+        id: dialogState.reservation.id,
+        data: { condition, notes },
       })
-    } catch (error) {
-      // Error handled by hook
-    }
+      closeDialog()
+    } catch {}
   }
 
-  const handleCancel = async (id: string) => {
-    const reason = prompt('Raison de l\'annulation (optionnel):')
-    if (reason === null) return // User clicked cancel
+  const handleCancel = async (reason?: string) => {
+    if (!dialogState.reservation) return
     try {
-      await cancelMutation.mutateAsync({ id, reason: reason || undefined })
-    } catch (error) {
-      // Error handled by hook
-    }
+      await cancelMutation.mutateAsync({ id: dialogState.reservation.id, reason })
+      closeDialog()
+    } catch {}
   }
 
   const formatDate = (dateString: string) => {
@@ -113,6 +135,34 @@ export function AdminReservationsPage() {
   }
 
   const isActionPending = checkoutMutation.isPending || returnMutation.isPending || cancelMutation.isPending
+
+  const resetFilters = () => {
+    setStatusFilter('all')
+    setSearchQuery('')
+    setSortBy('startDate')
+    setSortOrder('desc')
+    setPage(1)
+  }
+
+  const hasActiveFilters = statusFilter !== 'all' || searchQuery !== '' || sortBy !== 'startDate' || sortOrder !== 'desc'
+
+  const totalPages = data?.pagination?.totalPages || 1
+  const currentPage = data?.pagination?.page || page
+  const totalItems = data?.pagination?.total || 0
+
+  const goToPage = (newPage: number) => {
+    setPage(Math.max(1, Math.min(newPage, totalPages)))
+  }
+
+  const filteredReservations = data?.data.filter((reservation) => {
+    if (!searchQuery.trim()) return true
+    const query = searchQuery.toLowerCase()
+    const productName = reservation.product?.name?.toLowerCase() || ''
+    const productRef = reservation.product?.reference?.toLowerCase() || ''
+    const userName = `${reservation.user?.firstName || ''} ${reservation.user?.lastName || ''}`.toLowerCase()
+    const userEmail = reservation.user?.email?.toLowerCase() || ''
+    return productName.includes(query) || productRef.includes(query) || userName.includes(query) || userEmail.includes(query)
+  }) || []
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -135,38 +185,135 @@ export function AdminReservationsPage() {
         <TabsContent value={activeTab} className="space-y-6">
           {/* Filters */}
           {activeTab === 'all' && (
-            <Card className="p-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={(value) => {
-                      setStatusFilter(value as ReservationStatus | 'all')
-                      setPage(1)
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Filtrer par statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous les statuts</SelectItem>
-                      <SelectItem value="PENDING">En attente</SelectItem>
-                      <SelectItem value="CONFIRMED">Confirmée</SelectItem>
-                      <SelectItem value="CHECKED_OUT">En cours</SelectItem>
-                      <SelectItem value="COMPLETED">Terminée</SelectItem>
-                      <SelectItem value="CANCELLED">Annulée</SelectItem>
-                      <SelectItem value="REFUNDED">Remboursée</SelectItem>
-                    </SelectContent>
-                  </Select>
+            isLoading ? (
+              <ReservationFiltersSkeleton />
+            ) : (
+              <Card className="p-4">
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Rechercher par produit, utilisateur, email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+
+                    <div className="sm:w-48">
+                      <Select
+                        value={statusFilter}
+                        onValueChange={(value) => {
+                          setStatusFilter(value as ReservationStatus | 'all')
+                          setPage(1)
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filtrer par statut" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous les statuts</SelectItem>
+                          <SelectItem value="CONFIRMED">Confirmée</SelectItem>
+                          <SelectItem value="CHECKED_OUT">En cours</SelectItem>
+                          <SelectItem value="RETURNED">Terminée</SelectItem>
+                          <SelectItem value="CANCELLED">Annulée</SelectItem>
+                          <SelectItem value="REFUNDED">Remboursée</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowFilters(!showFilters)}
+                      className="sm:w-auto"
+                    >
+                      <SlidersHorizontal className="mr-2 h-4 w-4" />
+                      Plus de filtres
+                    </Button>
+
+                    {hasActiveFilters && (
+                      <Button variant="ghost" onClick={resetFilters} className="sm:w-auto">
+                        Réinitialiser
+                      </Button>
+                    )}
+                  </div>
+
+                  {showFilters && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
+                      <div className="space-y-2">
+                        <Label>Trier par</Label>
+                        <Select
+                          value={sortBy}
+                          onValueChange={(value) => {
+                            setSortBy(value as typeof sortBy)
+                            setPage(1)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="startDate">Date de sortie</SelectItem>
+                            <SelectItem value="endDate">Date de retour</SelectItem>
+                            <SelectItem value="createdAt">Date de création</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Ordre</Label>
+                        <Select
+                          value={sortOrder}
+                          onValueChange={(value) => {
+                            setSortOrder(value as typeof sortOrder)
+                            setPage(1)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="desc">Plus récent d'abord</SelectItem>
+                            <SelectItem value="asc">Plus ancien d'abord</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Résultats par page</Label>
+                        <Select
+                          value={limit.toString()}
+                          onValueChange={(value) => {
+                            setLimit(Number(value))
+                            setPage(1)
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </Card>
+              </Card>
+            )
           )}
 
           {/* Loading State */}
           {isLoading && (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <ReservationCardSkeleton key={i} />
+              ))}
             </div>
           )}
 
@@ -188,7 +335,14 @@ export function AdminReservationsPage() {
           {/* Reservations List */}
           {!isLoading && !isError && data && (
             <>
-              {data.data.length === 0 ? (
+              {data.pagination && activeTab === 'all' && (
+                <div className="text-sm text-muted-foreground">
+                  {totalItems} réservation{totalItems > 1 ? 's' : ''} trouvée{totalItems > 1 ? 's' : ''}
+                  {searchQuery && ` pour "${searchQuery}"`}
+                </div>
+              )}
+
+              {filteredReservations.length === 0 ? (
                 <Card className="p-12">
                   <div className="flex flex-col items-center gap-4 text-center">
                     <Calendar className="h-16 w-16 text-muted-foreground" />
@@ -197,14 +351,21 @@ export function AdminReservationsPage() {
                       <p className="text-sm text-muted-foreground">
                         {activeTab === 'checkouts' && "Aucune sortie prévue aujourd'hui"}
                         {activeTab === 'returns' && "Aucun retour prévu aujourd'hui"}
-                        {activeTab === 'all' && "Aucune réservation trouvée"}
+                        {activeTab === 'all' && hasActiveFilters
+                          ? "Aucune réservation ne correspond à vos filtres"
+                          : "Aucune réservation trouvée"}
                       </p>
                     </div>
+                    {hasActiveFilters && activeTab === 'all' && (
+                      <Button variant="outline" onClick={resetFilters}>
+                        Réinitialiser les filtres
+                      </Button>
+                    )}
                   </div>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {data.data.map((reservation) => (
+                  {filteredReservations.map((reservation) => (
                     <Card key={reservation.id} className="p-6">
                       <div className="flex flex-col lg:flex-row gap-6">
                         {/* Main Info */}
@@ -260,7 +421,7 @@ export function AdminReservationsPage() {
                             </div>
                             <div>
                               <span className="text-muted-foreground">Coût: </span>
-                              <span className="font-medium">{reservation.priceCredits} crédits</span>
+                              <span className="font-medium">{reservation.creditsCharged} crédits</span>
                             </div>
                           </div>
 
@@ -296,10 +457,10 @@ export function AdminReservationsPage() {
                             <Button
                               variant="default"
                               className="flex-1 lg:flex-none"
-                              onClick={() => handleCheckout(reservation.id)}
+                              onClick={() => openDialog('checkout', reservation)}
                               disabled={isActionPending}
                             >
-                              {checkoutMutation.isPending ? (
+                              {checkoutMutation.isPending && dialogState.reservation?.id === reservation.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : (
                                 <CheckCircle className="mr-2 h-4 w-4" />
@@ -312,10 +473,10 @@ export function AdminReservationsPage() {
                             <Button
                               variant="default"
                               className="flex-1 lg:flex-none"
-                              onClick={() => handleReturn(reservation.id)}
+                              onClick={() => openDialog('return', reservation)}
                               disabled={isActionPending}
                             >
-                              {returnMutation.isPending ? (
+                              {returnMutation.isPending && dialogState.reservation?.id === reservation.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : (
                                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -324,14 +485,14 @@ export function AdminReservationsPage() {
                             </Button>
                           )}
 
-                          {(reservation.status === 'PENDING' || reservation.status === 'CONFIRMED') && (
+                          {reservation.status === 'CONFIRMED' && (
                             <Button
                               variant="destructive"
                               className="flex-1 lg:flex-none"
-                              onClick={() => handleCancel(reservation.id)}
+                              onClick={() => openDialog('cancel', reservation)}
                               disabled={isActionPending}
                             >
-                              {cancelMutation.isPending ? (
+                              {cancelMutation.isPending && dialogState.reservation?.id === reservation.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : (
                                 <X className="mr-2 h-4 w-4" />
@@ -347,33 +508,120 @@ export function AdminReservationsPage() {
               )}
 
               {/* Pagination */}
-              {data.pagination && data.pagination.totalPages > 1 && (
-                <div className="flex justify-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    Précédent
-                  </Button>
-                  <div className="flex items-center gap-2 px-4">
-                    <span className="text-sm text-muted-foreground">
-                      Page {data.pagination.page} sur {data.pagination.totalPages}
-                    </span>
+              {data.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Page {currentPage} sur {totalPages} ({totalItems} résultat{totalItems > 1 ? 's' : ''})
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
-                    disabled={page === data.pagination.totalPages}
-                  >
-                    Suivant
-                  </Button>
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => goToPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+
+                      <div className="flex items-center gap-1 mx-2">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum: number
+                          if (totalPages <= 5) {
+                            pageNum = i + 1
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i
+                          } else {
+                            pageNum = currentPage - 2 + i
+                          }
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? 'default' : 'outline'}
+                              size="icon"
+                              onClick={() => goToPage(pageNum)}
+                              className="w-9 h-9"
+                            >
+                              {pageNum}
+                            </Button>
+                          )
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => goToPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </>
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Dialogs */}
+      <CheckoutDialog
+        open={dialogState.type === 'checkout'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onConfirm={handleCheckout}
+        productName={dialogState.reservation?.product?.name}
+        userName={
+          dialogState.reservation?.user
+            ? `${dialogState.reservation.user.firstName} ${dialogState.reservation.user.lastName}`
+            : undefined
+        }
+        isLoading={checkoutMutation.isPending}
+      />
+
+      <ReturnDialog
+        open={dialogState.type === 'return'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onConfirm={handleReturn}
+        productName={dialogState.reservation?.product?.name}
+        userName={
+          dialogState.reservation?.user
+            ? `${dialogState.reservation.user.firstName} ${dialogState.reservation.user.lastName}`
+            : undefined
+        }
+        isLoading={returnMutation.isPending}
+      />
+
+      <AdminCancelDialog
+        open={dialogState.type === 'cancel'}
+        onOpenChange={(open) => !open && closeDialog()}
+        onConfirm={handleCancel}
+        productName={dialogState.reservation?.product?.name}
+        userName={
+          dialogState.reservation?.user
+            ? `${dialogState.reservation.user.firstName} ${dialogState.reservation.user.lastName}`
+            : undefined
+        }
+        isLoading={cancelMutation.isPending}
+      />
     </div>
   )
 }

@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { AvailabilityBadge } from './AvailabilityBadge'
 import type { Product } from '@/types'
-import { formatCurrency } from '@/lib/utils'
 import { ImageIcon } from 'lucide-react'
 
 interface ProductCardProps {

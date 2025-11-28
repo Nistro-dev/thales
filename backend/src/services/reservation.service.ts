@@ -14,12 +14,17 @@ import * as notificationHelper from './notification-helper.service.js'
 
 const startOfDay = (date: Date): Date => {
   const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
+  d.setUTCHours(0, 0, 0, 0)
   return d
 }
 
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+}
+
 const getDayOfWeek = (date: Date): number => {
-  return date.getDay()
+  return date.getUTCDay()
 }
 
 const daysBetween = (start: Date, end: Date): number => {
@@ -98,7 +103,8 @@ export const validateDates = async (
     return { valid: false, error: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
-  const today = startOfDay(new Date())
+  const now = new Date()
+  const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0))
 
   if (!isAdmin && startDate < today) {
     return { valid: false, error: 'La date de sortie ne peut pas être dans le passé', code: 'VALIDATION_ERROR' }
@@ -237,8 +243,8 @@ export const createReservation = async (params: CreateReservationParams) => {
     request: _request,
   } = params
 
-  const start = startOfDay(new Date(startDate))
-  const end = startOfDay(new Date(endDate))
+  const start = parseLocalDate(startDate)
+  const end = parseLocalDate(endDate)
 
   const userValidation = await validateUserCanReserve(userId)
   if (!userValidation.valid) {

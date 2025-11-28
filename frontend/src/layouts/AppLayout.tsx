@@ -8,6 +8,7 @@ import {
   Shield,
   FileText,
   BarChart3,
+  LayoutDashboard,
   LogOut,
   Menu,
   X,
@@ -38,12 +39,13 @@ const navItems: NavItem[] = [
 ]
 
 const adminNavItems: NavItem[] = [
+  { name: 'Dashboard', path: ROUTES.ADMIN_DASHBOARD, icon: LayoutDashboard, permission: PERMISSIONS.VIEW_STATISTICS },
+  { name: 'Statistiques', path: ROUTES.ADMIN_STATISTICS, icon: BarChart3, permission: PERMISSIONS.VIEW_STATISTICS },
   { name: 'Utilisateurs', path: ROUTES.ADMIN_USERS, icon: Users, permission: PERMISSIONS.VIEW_USERS },
   { name: 'Rôles', path: ROUTES.ADMIN_ROLES, icon: Shield, permission: PERMISSIONS.VIEW_ROLES },
   { name: 'Sections', path: ROUTES.ADMIN_SECTIONS, icon: FileText, permission: PERMISSIONS.VIEW_SECTIONS },
   { name: 'Produits', path: ROUTES.ADMIN_PRODUCTS, icon: Package, permission: PERMISSIONS.MANAGE_PRODUCTS },
   { name: 'Réservations', path: ROUTES.ADMIN_RESERVATIONS, icon: Calendar, permission: PERMISSIONS.VIEW_RESERVATIONS },
-  { name: 'Statistiques', path: ROUTES.ADMIN_STATISTICS, icon: BarChart3, permission: PERMISSIONS.VIEW_STATISTICS },
 ]
 
 export function AppLayout() {

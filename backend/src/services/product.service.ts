@@ -2,6 +2,7 @@
 
 import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
+import { getSignedDownloadUrl } from '../utils/s3.js'
 import { FastifyRequest } from 'fastify'
 import type { ProductStatus } from '@prisma/client'
 
@@ -135,8 +136,17 @@ export const getProductById = async (id: string, userCautionStatus?: string) => 
 
   const canSeePrices = userCautionStatus === 'VALIDATED' || userCautionStatus === 'EXEMPTED'
 
+  // Generate signed URLs for files
+  const filesWithUrls = await Promise.all(
+    product.files.map(async (file) => ({
+      ...file,
+      url: await getSignedDownloadUrl(file.s3Key),
+    }))
+  )
+
   return {
     ...product,
+    files: filesWithUrls,
     priceCredits: canSeePrices ? product.priceCredits : null,
   }
 }
@@ -156,7 +166,18 @@ export const getProductByIdAdmin = async (id: string) => {
     throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
-  return product
+  // Generate signed URLs for files
+  const filesWithUrls = await Promise.all(
+    product.files.map(async (file) => ({
+      ...file,
+      url: await getSignedDownloadUrl(file.s3Key),
+    }))
+  )
+
+  return {
+    ...product,
+    files: filesWithUrls,
+  }
 }
 
 interface CreateProductInput {

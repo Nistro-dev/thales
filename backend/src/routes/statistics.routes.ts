@@ -45,9 +45,15 @@ export const statisticsRoutes = async (fastify: FastifyInstance) => {
     handler: statisticsController.getSectionsStats,
   })
 
-  // Export stats (cache: 10min)
+  // Export stats CSV (cache: 10min)
   fastify.get('/admin/stats/export', {
     preHandler: requirePermission(PERMISSIONS.VIEW_STATISTICS),
     handler: statisticsController.exportStats,
+  })
+
+  // Export all stats as XLSX
+  fastify.get('/admin/stats/export-xlsx', {
+    preHandler: requirePermission(PERMISSIONS.VIEW_STATISTICS),
+    handler: statisticsController.exportXlsx,
   })
 }

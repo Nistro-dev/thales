@@ -20,6 +20,9 @@ export const listSections = async (includeSystem: boolean = false) => {
     include: {
       subSections: {
         orderBy: { sortOrder: 'asc' },
+        include: {
+          _count: { select: { products: true } },
+        },
       },
       _count: { select: { products: true } },
     },

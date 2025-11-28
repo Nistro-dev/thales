@@ -1,7 +1,11 @@
 export const ROUTES = {
   // Public
   LOGIN: '/login',
-  REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  COMPLETE_REGISTRATION: '/complete-registration',
+  TERMS_OF_SERVICE: '/terms',
+  PRIVACY_POLICY: '/privacy',
 
   // App
   HOME: '/',
@@ -17,13 +21,17 @@ export const ROUTES = {
   // Admin
   ADMIN: '/admin',
   ADMIN_USERS: '/admin/users',
+  ADMIN_USER_DETAIL: '/admin/users/:id',
   ADMIN_ROLES: '/admin/roles',
   ADMIN_INVITATIONS: '/admin/invitations',
   ADMIN_SECTIONS: '/admin/sections',
   ADMIN_PRODUCTS: '/admin/products',
+  ADMIN_PRODUCT_NEW: '/admin/products/new',
+  ADMIN_PRODUCT_DETAIL: '/admin/products/:id',
   ADMIN_RESERVATIONS: '/admin/reservations',
   ADMIN_RESERVATION_DETAIL: '/admin/reservations/:id',
   ADMIN_QR_SCANNER: '/admin/qr-scanner',
+  ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_STATISTICS: '/admin/statistics',
   ADMIN_AUDIT: '/admin/audit',
   ADMIN_FILES: '/admin/files',

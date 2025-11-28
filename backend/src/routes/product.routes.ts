@@ -87,4 +87,9 @@ export const productRoutes = async (fastify: FastifyInstance) => {
     preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
     handler: productController.setFileVisibility,
   })
+
+  fastify.patch('/:id/files/:fileId/rename', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: productController.renameFile,
+  })
 }

@@ -14,6 +14,7 @@ import type {
   ProductAttributeInput,
   ReorderFilesInput,
   SetFileVisibilityInput,
+  RenameFileInput,
 } from '../schemas/product.js'
 
 const getUserCautionStatus = async (userId: string): Promise<string> => {
@@ -220,6 +221,20 @@ export const setFileVisibility = async (
     request.params.id,
     request.params.fileId,
     request.body.visibility,
+    request.user.userId,
+    request
+  )
+  return reply.send(createSuccessResponse(SuccessMessages.UPDATED, file))
+}
+
+export const renameFile = async (
+  request: FastifyRequest<{ Params: { id: string; fileId: string }; Body: RenameFileInput }>,
+  reply: FastifyReply
+) => {
+  const file = await productFileService.renameProductFile(
+    request.params.id,
+    request.params.fileId,
+    request.body.filename,
     request.user.userId,
     request
   )

@@ -234,10 +234,10 @@ async function main(): Promise<void> {
   )
 
   const basicUserRole = await prisma.role.upsert({
-    where: { name: 'User' },
+    where: { name: 'Utilisateur' },
     update: {},
     create: {
-      name: 'User',
+      name: 'Utilisateur',
       description: 'Utilisateur basique avec accès limité',
       isSystem: true,
       permissions: {

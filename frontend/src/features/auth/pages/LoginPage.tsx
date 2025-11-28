@@ -52,7 +52,15 @@ export function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Link
+                  to={ROUTES.FORGOT_PASSWORD}
+                  className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -64,17 +72,10 @@ export function LoginPage() {
             </div>
           </CardContent>
 
-          <CardFooter className="flex-col space-y-4">
+          <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoginLoading}>
               {isLoginLoading ? 'Connexion...' : 'Se connecter'}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Pas encore de compte ?{' '}
-              <Link to={ROUTES.REGISTER} className="text-primary hover:underline">
-                S'inscrire
-              </Link>
-            </p>
           </CardFooter>
         </form>
       </Card>

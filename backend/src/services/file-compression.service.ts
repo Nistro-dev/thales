@@ -14,7 +14,8 @@ const execAsync = promisify(exec)
 
 const IMAGE_MAX_WIDTH = 2000
 const IMAGE_MAX_HEIGHT = 2000
-const IMAGE_QUALITY = 80
+const IMAGE_QUALITY_JPEG = 90
+const IMAGE_QUALITY_WEBP = 85
 const VIDEO_CRF = 28
 const VIDEO_PRESET = 'medium'
 
@@ -22,6 +23,7 @@ interface CompressedFile {
   buffer: Buffer
   mimeType: string
   size: number
+  newFilename?: string // New filename if format changed
 }
 
 export const compressFile = async (
@@ -30,7 +32,7 @@ export const compressFile = async (
   filename: string
 ): Promise<CompressedFile> => {
   if (mimeType.startsWith('image/')) {
-    return compressImage(buffer, mimeType)
+    return compressImage(buffer, mimeType, filename)
   }
 
   if (mimeType.startsWith('video/')) {
@@ -44,23 +46,90 @@ export const compressFile = async (
   return { buffer, mimeType, size: buffer.length }
 }
 
-const compressImage = async (buffer: Buffer, mimeType: string): Promise<CompressedFile> => {
+/**
+ * Check if a PNG image has actual transparency (alpha channel with non-opaque pixels)
+ */
+const hasTransparency = async (buffer: Buffer): Promise<boolean> => {
   try {
-    const sharpInstance = sharp(buffer).resize(IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT, {
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
+    const metadata = await sharp(buffer).metadata()
+
+    // If no alpha channel, no transparency
+    if (!metadata.hasAlpha) {
+      return false
+    }
+
+    // Extract alpha channel and check if any pixel is not fully opaque
+    const { data } = await sharp(buffer)
+      .extractChannel('alpha')
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+
+    // Check if any alpha value is less than 255 (not fully opaque)
+    for (let i = 0; i < data.length; i++) {
+      if (data[i] < 255) {
+        return true
+      }
+    }
+
+    return false
+  } catch {
+    // If we can't determine, assume no transparency to allow conversion
+    return false
+  }
+}
+
+/**
+ * Get filename with new extension
+ */
+const changeExtension = (filename: string, newExt: string): string => {
+  const lastDot = filename.lastIndexOf('.')
+  const baseName = lastDot > 0 ? filename.substring(0, lastDot) : filename
+  return `${baseName}.${newExt}`
+}
+
+const compressImage = async (
+  buffer: Buffer,
+  mimeType: string,
+  filename: string
+): Promise<CompressedFile> => {
+  try {
+    // Use rotate() to strip EXIF/metadata, then resize
+    const sharpInstance = sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF and strip metadata
+      .resize(IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
 
     let outputMimeType = mimeType
     let outputBuffer: Buffer
+    let newFilename: string | undefined
 
     if (mimeType === 'image/png') {
-      outputBuffer = await sharpInstance.png({ quality: IMAGE_QUALITY }).toBuffer()
+      // Check if PNG has transparency
+      const transparent = await hasTransparency(buffer)
+
+      if (transparent) {
+        // Keep as PNG but compress
+        outputBuffer = await sharpInstance.png({ compressionLevel: 9 }).toBuffer()
+      } else {
+        // Convert to WebP (better compression than JPEG, good quality)
+        outputBuffer = await sharpInstance.webp({ quality: IMAGE_QUALITY_WEBP }).toBuffer()
+        outputMimeType = 'image/webp'
+        newFilename = changeExtension(filename, 'webp')
+      }
     } else if (mimeType === 'image/webp') {
-      outputBuffer = await sharpInstance.webp({ quality: IMAGE_QUALITY }).toBuffer()
+      outputBuffer = await sharpInstance.webp({ quality: IMAGE_QUALITY_WEBP }).toBuffer()
+    } else if (mimeType === 'image/gif') {
+      // Keep GIF as-is (animated GIFs would break if converted)
+      outputBuffer = await sharpInstance.gif().toBuffer()
     } else {
-      outputBuffer = await sharpInstance.jpeg({ quality: IMAGE_QUALITY }).toBuffer()
+      // JPEG and others -> JPEG with quality 90
+      outputBuffer = await sharpInstance.jpeg({ quality: IMAGE_QUALITY_JPEG }).toBuffer()
       outputMimeType = 'image/jpeg'
+      if (!filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.jpeg')) {
+        newFilename = changeExtension(filename, 'jpg')
+      }
     }
 
     logger.info(
@@ -68,6 +137,7 @@ const compressImage = async (buffer: Buffer, mimeType: string): Promise<Compress
         originalSize: buffer.length,
         compressedSize: outputBuffer.length,
         ratio: ((1 - outputBuffer.length / buffer.length) * 100).toFixed(1) + '%',
+        formatChanged: newFilename ? `${filename} -> ${newFilename}` : 'no',
       },
       'Image compressed'
     )
@@ -76,6 +146,7 @@ const compressImage = async (buffer: Buffer, mimeType: string): Promise<Compress
       buffer: outputBuffer,
       mimeType: outputMimeType,
       size: outputBuffer.length,
+      newFilename,
     }
   } catch (error) {
     logger.error({ error }, 'Image compression failed, using original')
@@ -109,11 +180,17 @@ const compressVideo = async (buffer: Buffer, filename: string): Promise<Compress
 
     const compressedBuffer = await fs.readFile(outputPath)
 
+    // Change extension to .mp4 if not already
+    const newFilename = filename.toLowerCase().endsWith('.mp4')
+      ? undefined
+      : changeExtension(filename, 'mp4')
+
     logger.info(
       {
         originalSize: buffer.length,
         compressedSize: compressedBuffer.length,
         ratio: ((1 - compressedBuffer.length / buffer.length) * 100).toFixed(1) + '%',
+        formatChanged: newFilename ? `${filename} -> ${newFilename}` : 'no',
       },
       'Video compressed'
     )
@@ -122,6 +199,7 @@ const compressVideo = async (buffer: Buffer, filename: string): Promise<Compress
       buffer: compressedBuffer,
       mimeType: 'video/mp4',
       size: compressedBuffer.length,
+      newFilename,
     }
   } catch (error) {
     logger.error({ error }, 'Video compression failed, using original')

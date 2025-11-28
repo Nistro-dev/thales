@@ -19,10 +19,7 @@ import { MyReservationsPage } from '@/features/reservations/pages/MyReservations
 import { ReservationDetailPage } from '@/features/reservations/pages/ReservationDetailPage'
 import { ProfilePage } from '@/features/profile/pages/ProfilePage'
 import { NotificationsPage } from '@/features/notifications/pages/NotificationsPage'
-import {
-  HomePage,
-  AdminRolesPage,
-} from './placeholders'
+import { HomePage } from './placeholders'
 
 // Lazy loaded admin pages for better code splitting
 const AdminUsersPage = lazy(() => import('@/features/users/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })))
@@ -38,6 +35,9 @@ const AdminSectionsPage = lazy(() => import('@/features/sections').then(m => ({ 
 const AdminProductsPage = lazy(() => import('@/features/products/pages/AdminProductsPage').then(m => ({ default: m.AdminProductsPage })))
 const AdminProductDetailPage = lazy(() => import('@/features/products/pages/AdminProductDetailPage').then(m => ({ default: m.AdminProductDetailPage })))
 const AdminProductNewPage = lazy(() => import('@/features/products/pages/AdminProductNewPage').then(m => ({ default: m.AdminProductNewPage })))
+
+// Roles admin page
+const AdminRolesPage = lazy(() => import('@/features/roles/pages/AdminRolesPage').then(m => ({ default: m.AdminRolesPage })))
 
 export const router = createBrowserRouter([
 
@@ -140,7 +140,11 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: ROUTES.ADMIN_ROLES,
-                element: <AdminRolesPage />,
+                element: <LazyPage><AdminRolesPage /></LazyPage>,
+              },
+              {
+                path: ROUTES.ADMIN_ROLE_DETAIL,
+                element: <LazyPage><AdminRolesPage /></LazyPage>,
               },
             ],
           },

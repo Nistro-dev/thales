@@ -40,11 +40,14 @@ export const topUsersSchema = dateRangeSchema.extend({
 // Sections stats query
 export const sectionsStatsSchema = dateRangeSchema
 
-// Export query
+// Export query (CSV)
 export const exportStatsSchema = dateRangeSchema.extend({
   format: z.enum(['csv', 'xlsx']),
   type: z.enum(['reservations', 'products', 'users', 'movements']),
 })
+
+// Export XLSX query (all data in one file)
+export const exportXlsxSchema = dateRangeSchema
 
 // Type exports
 export type DashboardStatsInput = z.infer<typeof dashboardStatsSchema>
@@ -52,3 +55,4 @@ export type TopProductsInput = z.infer<typeof topProductsSchema>
 export type TopUsersInput = z.infer<typeof topUsersSchema>
 export type SectionsStatsInput = z.infer<typeof sectionsStatsSchema>
 export type ExportStatsInput = z.infer<typeof exportStatsSchema>
+export type ExportXlsxInput = z.infer<typeof exportXlsxSchema>

@@ -6,5 +6,3 @@ export const AdminUsersPage = () => <div className="text-2xl font-bold">Administ
 export const AdminRolesPage = () => <div className="text-2xl font-bold">Administration - Rôles</div>
 export const AdminSectionsPage = () => <div className="text-2xl font-bold">Administration - Sections</div>
 export const AdminProductsPage = () => <div className="text-2xl font-bold">Administration - Produits</div>
-export const AdminReservationsPage = () => <div className="text-2xl font-bold">Administration - Réservations</div>
-export const AdminStatisticsPage = () => <div className="text-2xl font-bold">Administration - Statistiques</div>

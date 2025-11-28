@@ -9,6 +9,7 @@ import {
   topUsersSchema,
   sectionsStatsSchema,
   exportStatsSchema,
+  exportXlsxSchema,
 } from '../schemas/statistics.js'
 import type {
   DashboardStatsInput,
@@ -16,6 +17,7 @@ import type {
   TopUsersInput,
   SectionsStatsInput,
   ExportStatsInput,
+  ExportXlsxInput,
 } from '../schemas/statistics.js'
 
 // ============================================
@@ -46,13 +48,20 @@ export const getAlerts = async (
 // DASHBOARD STATS
 // ============================================
 
+// Helper to set end of day (23:59:59.999)
+const endOfDay = (date: Date): Date => {
+  const d = new Date(date)
+  d.setHours(23, 59, 59, 999)
+  return d
+}
+
 export const getDashboardStats = async (
   request: FastifyRequest<{ Querystring: DashboardStatsInput }>,
   reply: FastifyReply
 ) => {
   const query = dashboardStatsSchema.parse(request.query)
   const from = new Date(query.from)
-  const to = new Date(query.to)
+  const to = endOfDay(new Date(query.to))
 
   const stats = await statisticsService.getDashboardStats(from, to)
   return reply.send(createSuccessResponse('Dashboard stats retrieved', stats))
@@ -68,7 +77,7 @@ export const getTopProducts = async (
 ) => {
   const query = topProductsSchema.parse(request.query)
   const from = new Date(query.from)
-  const to = new Date(query.to)
+  const to = endOfDay(new Date(query.to))
 
   const stats = await statisticsService.getTopProducts(from, to, query.limit)
   return reply.send(createSuccessResponse('Top products retrieved', stats))
@@ -84,7 +93,7 @@ export const getTopUsers = async (
 ) => {
   const query = topUsersSchema.parse(request.query)
   const from = new Date(query.from)
-  const to = new Date(query.to)
+  const to = endOfDay(new Date(query.to))
 
   const stats = await statisticsService.getTopUsers(from, to, query.limit)
   return reply.send(createSuccessResponse('Top users retrieved', stats))
@@ -100,7 +109,7 @@ export const getSectionsStats = async (
 ) => {
   const query = sectionsStatsSchema.parse(request.query)
   const from = new Date(query.from)
-  const to = new Date(query.to)
+  const to = endOfDay(new Date(query.to))
 
   const stats = await statisticsService.getSectionsStats(from, to)
   return reply.send(createSuccessResponse('Sections stats retrieved', stats))
@@ -115,13 +124,35 @@ export const exportStats = async (
   reply: FastifyReply
 ) => {
   const query = exportStatsSchema.parse(request.query)
+  const from = new Date(query.from)
+  const to = endOfDay(new Date(query.to))
 
-  // For now, return a placeholder response
-  // You can implement actual CSV/XLSX generation later with libraries like 'csv-writer' or 'xlsx'
-  return reply.send(
-    createSuccessResponse('Export functionality coming soon', {
-      message: "L'export CSV/XLSX sera implémenté prochainement",
-      query,
-    })
-  )
+  const result = await statisticsService.exportStats(from, to, query.type)
+
+  // Set headers for file download
+  reply.header('Content-Type', `${result.mimeType}; charset=utf-8`)
+  reply.header('Content-Disposition', `attachment; filename="${result.filename}"`)
+
+  return reply.send(result.content)
+}
+
+// ============================================
+// EXPORT XLSX (ALL DATA)
+// ============================================
+
+export const exportXlsx = async (
+  request: FastifyRequest<{ Querystring: ExportXlsxInput }>,
+  reply: FastifyReply
+) => {
+  const query = exportXlsxSchema.parse(request.query)
+  const from = new Date(query.from)
+  const to = endOfDay(new Date(query.to))
+
+  const result = await statisticsService.exportAllToXlsx(from, to)
+
+  // Set headers for file download
+  reply.header('Content-Type', result.mimeType)
+  reply.header('Content-Disposition', `attachment; filename="${result.filename}"`)
+
+  return reply.send(result.buffer)
 }

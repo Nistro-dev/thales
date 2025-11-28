@@ -2,6 +2,7 @@
 
 import { prisma } from '../utils/prisma.js'
 import { ReservationStatus, ProductCondition, ProductStatus, UserStatus } from '@prisma/client'
+import * as XLSX from 'xlsx'
 
 // ============================================
 // REALTIME STATS
@@ -728,4 +729,673 @@ export const getSectionsStats = async (from: Date, to: Date): Promise<SectionSta
   )
 
   return stats.sort((a, b) => b.totalReservations - a.totalReservations)
+}
+
+// ============================================
+// EXPORT STATS (CSV)
+// ============================================
+
+type ExportType = 'reservations' | 'products' | 'users' | 'movements'
+
+interface ExportResult {
+  filename: string
+  content: string
+  mimeType: string
+}
+
+const escapeCSV = (value: string | number | null | undefined): string => {
+  if (value === null || value === undefined) return ''
+  const str = String(value)
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  return str
+}
+
+const formatDate = (date: Date): string => {
+  return date.toISOString().split('T')[0]
+}
+
+const formatDateTime = (date: Date): string => {
+  return date.toISOString().replace('T', ' ').split('.')[0]
+}
+
+export const exportStats = async (
+  from: Date,
+  to: Date,
+  type: ExportType
+): Promise<ExportResult> => {
+  const dateRange = `${formatDate(from)}_${formatDate(to)}`
+
+  switch (type) {
+    case 'reservations':
+      return exportReservations(from, to, dateRange)
+    case 'products':
+      return exportProducts(from, to, dateRange)
+    case 'users':
+      return exportUsers(from, to, dateRange)
+    case 'movements':
+      return exportMovements(from, to, dateRange)
+    default:
+      throw new Error(`Type d'export non supporté: ${type}`)
+  }
+}
+
+const exportReservations = async (from: Date, to: Date, dateRange: string): Promise<ExportResult> => {
+  const reservations = await prisma.reservation.findMany({
+    where: {
+      createdAt: { gte: from, lte: to },
+    },
+    include: {
+      user: { select: { firstName: true, lastName: true, email: true } },
+      product: { select: { name: true, reference: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const headers = [
+    'ID',
+    'Date création',
+    'Date début',
+    'Date fin',
+    'Statut',
+    'Produit',
+    'Référence produit',
+    'Utilisateur',
+    'Email',
+    'Crédits facturés',
+    'Coût extensions',
+    'Remboursement',
+    'Motif annulation',
+  ]
+
+  const rows = reservations.map((r) => [
+    r.id,
+    formatDateTime(r.createdAt),
+    formatDate(r.startDate),
+    formatDate(r.endDate),
+    r.status,
+    r.product.name,
+    r.product.reference || '',
+    `${r.user.firstName} ${r.user.lastName}`,
+    r.user.email,
+    r.creditsCharged,
+    r.totalExtensionCost || 0,
+    r.refundAmount || 0,
+    r.cancelReason || '',
+  ])
+
+  const csv = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map((row) => row.map(escapeCSV).join(',')),
+  ].join('\n')
+
+  return {
+    filename: `reservations_${dateRange}.csv`,
+    content: csv,
+    mimeType: 'text/csv',
+  }
+}
+
+const exportProducts = async (from: Date, to: Date, dateRange: string): Promise<ExportResult> => {
+  const products = await prisma.product.findMany({
+    include: {
+      section: { select: { name: true } },
+      _count: {
+        select: {
+          reservations: {
+            where: { createdAt: { gte: from, lte: to } },
+          },
+        },
+      },
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  // Get credits generated per product
+  const creditsPerProduct = await prisma.reservation.groupBy({
+    by: ['productId'],
+    where: { createdAt: { gte: from, lte: to } },
+    _sum: { creditsCharged: true, totalExtensionCost: true },
+  })
+
+  const creditsMap = new Map(
+    creditsPerProduct.map((c) => [
+      c.productId,
+      (c._sum.creditsCharged || 0) + (c._sum.totalExtensionCost || 0),
+    ])
+  )
+
+  const headers = [
+    'ID',
+    'Nom',
+    'Référence',
+    'Section',
+    'Statut',
+    'Condition',
+    'Prix (crédits)',
+    'Réservations (période)',
+    'Crédits générés (période)',
+    'Date création',
+  ]
+
+  const rows = products.map((p) => [
+    p.id,
+    p.name,
+    p.reference || '',
+    p.section?.name || '',
+    p.status,
+    p.lastCondition,
+    p.priceCredits,
+    p._count.reservations,
+    creditsMap.get(p.id) || 0,
+    formatDateTime(p.createdAt),
+  ])
+
+  const csv = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map((row) => row.map(escapeCSV).join(',')),
+  ].join('\n')
+
+  return {
+    filename: `produits_${dateRange}.csv`,
+    content: csv,
+    mimeType: 'text/csv',
+  }
+}
+
+const exportUsers = async (from: Date, to: Date, dateRange: string): Promise<ExportResult> => {
+  const users = await prisma.user.findMany({
+    include: {
+      _count: {
+        select: {
+          reservations: {
+            where: { createdAt: { gte: from, lte: to } },
+          },
+        },
+      },
+    },
+    orderBy: { lastName: 'asc' },
+  })
+
+  // Get credits spent per user
+  const creditsPerUser = await prisma.reservation.groupBy({
+    by: ['userId'],
+    where: { createdAt: { gte: from, lte: to } },
+    _sum: { creditsCharged: true, totalExtensionCost: true },
+  })
+
+  const creditsMap = new Map(
+    creditsPerUser.map((c) => [
+      c.userId,
+      (c._sum.creditsCharged || 0) + (c._sum.totalExtensionCost || 0),
+    ])
+  )
+
+  const headers = [
+    'ID',
+    'Nom',
+    'Prénom',
+    'Email',
+    'Statut',
+    'Crédits actuels',
+    'Caution',
+    'Réservations (période)',
+    'Crédits dépensés (période)',
+    'Dernière connexion',
+    'Date création',
+  ]
+
+  const rows = users.map((u) => [
+    u.id,
+    u.lastName,
+    u.firstName,
+    u.email,
+    u.status,
+    u.creditBalance,
+    u.cautionStatus,
+    u._count.reservations,
+    creditsMap.get(u.id) || 0,
+    u.lastLoginAt ? formatDateTime(u.lastLoginAt) : '',
+    formatDateTime(u.createdAt),
+  ])
+
+  const csv = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map((row) => row.map(escapeCSV).join(',')),
+  ].join('\n')
+
+  return {
+    filename: `utilisateurs_${dateRange}.csv`,
+    content: csv,
+    mimeType: 'text/csv',
+  }
+}
+
+const exportMovements = async (from: Date, to: Date, dateRange: string): Promise<ExportResult> => {
+  const movements = await prisma.productMovement.findMany({
+    where: {
+      performedAt: { gte: from, lte: to },
+    },
+    orderBy: { performedAt: 'desc' },
+  })
+
+  // Get related data
+  const productIds = [...new Set(movements.map((m) => m.productId))]
+  const userIds = [...new Set(movements.map((m) => m.performedBy))]
+  const reservationIds = movements.map((m) => m.reservationId).filter(Boolean) as string[]
+
+  const [products, users, reservations] = await Promise.all([
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, reference: true },
+    }),
+    prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    prisma.reservation.findMany({
+      where: { id: { in: reservationIds } },
+      select: { id: true, user: { select: { firstName: true, lastName: true } } },
+    }),
+  ])
+
+  const productMap = new Map(products.map((p) => [p.id, p]))
+  const userMap = new Map(users.map((u) => [u.id, u]))
+  const reservationMap = new Map(reservations.map((r) => [r.id, r]))
+
+  const headers = [
+    'ID',
+    'Date',
+    'Type',
+    'Produit',
+    'Référence produit',
+    'Condition',
+    'Notes',
+    'Utilisateur réservation',
+    'Effectué par',
+  ]
+
+  const rows = movements.map((m) => {
+    const product = productMap.get(m.productId)
+    const performedByUser = userMap.get(m.performedBy)
+    const reservation = m.reservationId ? reservationMap.get(m.reservationId) : null
+    return [
+      m.id,
+      formatDateTime(m.performedAt),
+      m.type,
+      product?.name || '',
+      product?.reference || '',
+      m.condition || '',
+      m.notes || '',
+      reservation?.user
+        ? `${reservation.user.firstName} ${reservation.user.lastName}`
+        : '',
+      performedByUser
+        ? `${performedByUser.firstName} ${performedByUser.lastName}`
+        : m.performedBy,
+    ]
+  })
+
+  const csv = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map((row) => row.map(escapeCSV).join(',')),
+  ].join('\n')
+
+  return {
+    filename: `mouvements_${dateRange}.csv`,
+    content: csv,
+    mimeType: 'text/csv',
+  }
+}
+
+// ============================================
+// EXPORT EXCEL (XLSX) - ALL DATA IN ONE FILE
+// ============================================
+
+interface ExportXlsxResult {
+  filename: string
+  buffer: Buffer
+  mimeType: string
+}
+
+export const exportAllToXlsx = async (from: Date, to: Date): Promise<ExportXlsxResult> => {
+  const dateRange = `${formatDate(from)}_${formatDate(to)}`
+
+  // Fetch all data in parallel
+  const [reservationsData, productsData, usersData, movementsData] = await Promise.all([
+    getReservationsData(from, to),
+    getProductsData(from, to),
+    getUsersData(from, to),
+    getMovementsData(from, to),
+  ])
+
+  // Create workbook
+  const workbook = XLSX.utils.book_new()
+
+  // Add Reservations sheet
+  const reservationsSheet = XLSX.utils.aoa_to_sheet([
+    reservationsData.headers,
+    ...reservationsData.rows,
+  ])
+  XLSX.utils.book_append_sheet(workbook, reservationsSheet, 'Réservations')
+
+  // Add Products sheet
+  const productsSheet = XLSX.utils.aoa_to_sheet([
+    productsData.headers,
+    ...productsData.rows,
+  ])
+  XLSX.utils.book_append_sheet(workbook, productsSheet, 'Produits')
+
+  // Add Users sheet
+  const usersSheet = XLSX.utils.aoa_to_sheet([
+    usersData.headers,
+    ...usersData.rows,
+  ])
+  XLSX.utils.book_append_sheet(workbook, usersSheet, 'Utilisateurs')
+
+  // Add Movements sheet
+  const movementsSheet = XLSX.utils.aoa_to_sheet([
+    movementsData.headers,
+    ...movementsData.rows,
+  ])
+  XLSX.utils.book_append_sheet(workbook, movementsSheet, 'Mouvements')
+
+  // Add Summary sheet
+  const summaryData = await getSummaryData(from, to)
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Résumé')
+
+  // Generate buffer
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+
+  return {
+    filename: `statistiques_${dateRange}.xlsx`,
+    buffer: Buffer.from(buffer),
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  }
+}
+
+// Helper functions to get data with headers and rows
+async function getReservationsData(from: Date, to: Date) {
+  const reservations = await prisma.reservation.findMany({
+    where: { createdAt: { gte: from, lte: to } },
+    include: {
+      user: { select: { firstName: true, lastName: true, email: true } },
+      product: { select: { name: true, reference: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const headers = [
+    'ID',
+    'Date création',
+    'Date début',
+    'Date fin',
+    'Statut',
+    'Produit',
+    'Référence produit',
+    'Utilisateur',
+    'Email',
+    'Crédits facturés',
+    'Coût extensions',
+    'Remboursement',
+    'Motif annulation',
+  ]
+
+  const rows = reservations.map((r) => [
+    r.id,
+    formatDateTime(r.createdAt),
+    formatDate(r.startDate),
+    formatDate(r.endDate),
+    r.status,
+    r.product.name,
+    r.product.reference || '',
+    `${r.user.firstName} ${r.user.lastName}`,
+    r.user.email,
+    r.creditsCharged,
+    r.totalExtensionCost || 0,
+    r.refundAmount || 0,
+    r.cancelReason || '',
+  ])
+
+  return { headers, rows }
+}
+
+async function getProductsData(from: Date, to: Date) {
+  const products = await prisma.product.findMany({
+    include: {
+      section: { select: { name: true } },
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  const creditsPerProduct = await prisma.reservation.groupBy({
+    by: ['productId'],
+    where: { createdAt: { gte: from, lte: to } },
+    _sum: { creditsCharged: true, totalExtensionCost: true },
+    _count: { id: true },
+  })
+
+  const statsMap = new Map(
+    creditsPerProduct.map((c) => [
+      c.productId,
+      {
+        credits: (c._sum.creditsCharged || 0) + (c._sum.totalExtensionCost || 0),
+        count: c._count.id,
+      },
+    ])
+  )
+
+  const headers = [
+    'ID',
+    'Nom',
+    'Référence',
+    'Section',
+    'Statut',
+    'Condition',
+    'Prix (crédits)',
+    'Réservations (période)',
+    'Crédits générés (période)',
+    'Date création',
+  ]
+
+  const rows = products.map((p) => {
+    const stats = statsMap.get(p.id) || { credits: 0, count: 0 }
+    return [
+      p.id,
+      p.name,
+      p.reference || '',
+      p.section?.name || '',
+      p.status,
+      p.lastCondition,
+      p.priceCredits,
+      stats.count,
+      stats.credits,
+      formatDateTime(p.createdAt),
+    ]
+  })
+
+  return { headers, rows }
+}
+
+async function getUsersData(from: Date, to: Date) {
+  const users = await prisma.user.findMany({
+    orderBy: { lastName: 'asc' },
+  })
+
+  const statsPerUser = await prisma.reservation.groupBy({
+    by: ['userId'],
+    where: { createdAt: { gte: from, lte: to } },
+    _sum: { creditsCharged: true, totalExtensionCost: true },
+    _count: { id: true },
+  })
+
+  const statsMap = new Map(
+    statsPerUser.map((c) => [
+      c.userId,
+      {
+        credits: (c._sum.creditsCharged || 0) + (c._sum.totalExtensionCost || 0),
+        count: c._count.id,
+      },
+    ])
+  )
+
+  const headers = [
+    'ID',
+    'Nom',
+    'Prénom',
+    'Email',
+    'Statut',
+    'Crédits actuels',
+    'Caution',
+    'Réservations (période)',
+    'Crédits dépensés (période)',
+    'Dernière connexion',
+    'Date création',
+  ]
+
+  const rows = users.map((u) => {
+    const stats = statsMap.get(u.id) || { credits: 0, count: 0 }
+    return [
+      u.id,
+      u.lastName,
+      u.firstName,
+      u.email,
+      u.status,
+      u.creditBalance,
+      u.cautionStatus,
+      stats.count,
+      stats.credits,
+      u.lastLoginAt ? formatDateTime(u.lastLoginAt) : '',
+      formatDateTime(u.createdAt),
+    ]
+  })
+
+  return { headers, rows }
+}
+
+async function getMovementsData(from: Date, to: Date) {
+  const movements = await prisma.productMovement.findMany({
+    where: { performedAt: { gte: from, lte: to } },
+    orderBy: { performedAt: 'desc' },
+  })
+
+  // Get related data
+  const productIds = [...new Set(movements.map((m) => m.productId))]
+  const userIds = [...new Set(movements.map((m) => m.performedBy))]
+  const reservationIds = movements.map((m) => m.reservationId).filter(Boolean) as string[]
+
+  const [products, users, reservations] = await Promise.all([
+    prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, reference: true },
+    }),
+    prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    prisma.reservation.findMany({
+      where: { id: { in: reservationIds } },
+      select: { id: true, user: { select: { firstName: true, lastName: true } } },
+    }),
+  ])
+
+  const productMap = new Map(products.map((p) => [p.id, p]))
+  const userMap = new Map(users.map((u) => [u.id, u]))
+  const reservationMap = new Map(reservations.map((r) => [r.id, r]))
+
+  const headers = [
+    'ID',
+    'Date',
+    'Type',
+    'Produit',
+    'Référence produit',
+    'Condition',
+    'Notes',
+    'Utilisateur réservation',
+    'Effectué par',
+  ]
+
+  const rows = movements.map((m) => {
+    const product = productMap.get(m.productId)
+    const performedByUser = userMap.get(m.performedBy)
+    const reservation = m.reservationId ? reservationMap.get(m.reservationId) : null
+    return [
+      m.id,
+      formatDateTime(m.performedAt),
+      m.type,
+      product?.name || '',
+      product?.reference || '',
+      m.condition || '',
+      m.notes || '',
+      reservation?.user
+        ? `${reservation.user.firstName} ${reservation.user.lastName}`
+        : '',
+      performedByUser
+        ? `${performedByUser.firstName} ${performedByUser.lastName}`
+        : m.performedBy,
+    ]
+  })
+
+  return { headers, rows }
+}
+
+async function getSummaryData(from: Date, to: Date): Promise<(string | number)[][]> {
+  const [
+    totalReservations,
+    completedReservations,
+    cancelledReservations,
+    activeReservations,
+    totalProducts,
+    totalUsers,
+    newUsers,
+    creditsStats,
+  ] = await Promise.all([
+    prisma.reservation.count({ where: { createdAt: { gte: from, lte: to } } }),
+    prisma.reservation.count({
+      where: { createdAt: { gte: from, lte: to }, status: ReservationStatus.RETURNED },
+    }),
+    prisma.reservation.count({
+      where: { createdAt: { gte: from, lte: to }, status: ReservationStatus.CANCELLED },
+    }),
+    prisma.reservation.count({
+      where: { createdAt: { gte: from, lte: to }, status: ReservationStatus.CHECKED_OUT },
+    }),
+    prisma.product.count({ where: { status: { not: ProductStatus.ARCHIVED } } }),
+    prisma.user.count({ where: { status: UserStatus.ACTIVE } }),
+    prisma.user.count({ where: { createdAt: { gte: from, lte: to } } }),
+    prisma.reservation.aggregate({
+      where: { createdAt: { gte: from, lte: to } },
+      _sum: { creditsCharged: true, totalExtensionCost: true, refundAmount: true },
+    }),
+  ])
+
+  const totalCreditsSpent =
+    (creditsStats._sum.creditsCharged || 0) + (creditsStats._sum.totalExtensionCost || 0)
+  const totalRefunded = creditsStats._sum.refundAmount || 0
+
+  return [
+    ['RÉSUMÉ DES STATISTIQUES'],
+    [''],
+    ['Période', `${formatDate(from)} au ${formatDate(to)}`],
+    [''],
+    ['RÉSERVATIONS'],
+    ['Total réservations', totalReservations],
+    ['Terminées', completedReservations],
+    ['Annulées', cancelledReservations],
+    ['En cours', activeReservations],
+    [''],
+    ['CRÉDITS'],
+    ['Total dépensés', totalCreditsSpent],
+    ['Total remboursés', totalRefunded],
+    ['Net', totalCreditsSpent - totalRefunded],
+    [''],
+    ['UTILISATEURS'],
+    ['Total actifs', totalUsers],
+    ['Nouveaux (période)', newUsers],
+    [''],
+    ['PRODUITS'],
+    ['Total actifs', totalProducts],
+  ]
 }

@@ -67,7 +67,7 @@ export function MyReservationsPage() {
     const start = new Date(startDate)
     const end = new Date(endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
     return diffDays
   }
 
@@ -313,10 +313,10 @@ export function MyReservationsPage() {
                         </div>
                       )}
 
-                      {reservation.status === 'CANCELLED' && reservation.cancelledReason && (
+                      {reservation.status === 'CANCELLED' && reservation.cancelReason && (
                         <div className="rounded-lg bg-destructive/10 p-3 text-sm">
                           <p className="font-medium text-destructive">Motif d'annulation:</p>
-                          <p className="text-muted-foreground">{reservation.cancelledReason}</p>
+                          <p className="text-muted-foreground">{reservation.cancelReason}</p>
                         </div>
                       )}
                     </div>

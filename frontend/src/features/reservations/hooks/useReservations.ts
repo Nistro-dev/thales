@@ -75,9 +75,6 @@ export function useCreateReservation() {
       useAuthStore.getState().refreshUser()
       toast.success('Réservation créée avec succès')
     },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Erreur lors de la création de la réservation')
-    },
   })
 }
 
@@ -96,9 +93,6 @@ export function useCancelMyReservation() {
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
       queryClient.invalidateQueries({ queryKey: ['my-reservation'] })
       toast.success('Réservation annulée')
-    },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'annulation')
     },
   })
 }
@@ -192,9 +186,6 @@ export function useCheckoutReservation() {
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
       toast.success('Produit retiré avec succès')
     },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Erreur lors du retrait')
-    },
   })
 }
 
@@ -226,9 +217,6 @@ export function useReturnReservation() {
       queryClient.invalidateQueries({ queryKey: ['product-availability'] })
       toast.success('Produit retourné avec succès')
     },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Erreur lors du retour')
-    },
   })
 }
 
@@ -251,9 +239,6 @@ export function useCancelReservation() {
       // Rafraîchir les crédits utilisateur (remboursement automatique)
       useAuthStore.getState().refreshUser()
       toast.success('Réservation annulée')
-    },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Erreur lors de l\'annulation')
     },
   })
 }
@@ -284,9 +269,6 @@ export function useRefundReservation() {
       // Rafraîchir les crédits utilisateur
       useAuthStore.getState().refreshUser()
       toast.success('Réservation remboursée')
-    },
-    onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Erreur lors du remboursement')
     },
   })
 }

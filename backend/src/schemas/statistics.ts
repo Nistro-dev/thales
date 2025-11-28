@@ -5,10 +5,10 @@ import { z } from 'zod'
 // Date range validation
 const dateRangeSchema = z.object({
   from: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Invalid date format for from',
+    message: 'Format de date invalide pour "from"',
   }),
   to: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Invalid date format for to',
+    message: 'Format de date invalide pour "to"',
   }),
 })
 
@@ -22,7 +22,7 @@ export const topProductsSchema = dateRangeSchema.extend({
     .transform(Number)
     .default('10')
     .refine((val) => val > 0 && val <= 100, {
-      message: 'Limit must be between 1 and 100',
+      message: 'La limite doit être entre 1 et 100',
     }),
 })
 
@@ -33,7 +33,7 @@ export const topUsersSchema = dateRangeSchema.extend({
     .transform(Number)
     .default('10')
     .refine((val) => val > 0 && val <= 100, {
-      message: 'Limit must be between 1 and 100',
+      message: 'La limite doit être entre 1 et 100',
     }),
 })
 

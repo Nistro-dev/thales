@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -104,8 +104,8 @@ export function ReservationDatePicker({
           )
         }
 
-        // Check duration
-        const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        // Check duration (inclusive: startDate to endDate)
+        const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
         if (durationDays < product.minDuration) {
           errors.push(`La durée minimale est de ${product.minDuration} jours`)
         }
@@ -129,10 +129,10 @@ export function ReservationDatePicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, product, reservedDates])
 
-  // Calculate duration and cost
+  // Calculate duration and cost (inclusive: startDate to endDate)
   const duration = useMemo(() => {
     if (!startDate || !endDate) return 0
-    return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
   }, [startDate, endDate])
 
   const totalCost = useMemo(() => {
@@ -142,12 +142,15 @@ export function ReservationDatePicker({
 
   // Check if form is valid
   const isValid = useMemo(() => {
-    const valid = !!startDate && !!endDate && validationErrors.length === 0
+    return !!startDate && !!endDate && validationErrors.length === 0
+  }, [startDate, endDate, validationErrors])
+
+  // Notify parent of validation state changes
+  useEffect(() => {
     if (onValidationChange) {
-      onValidationChange(valid)
+      onValidationChange(isValid)
     }
-    return valid
-  }, [startDate, endDate, validationErrors, onValidationChange])
+  }, [isValid, onValidationChange])
 
   return (
     <div className="space-y-4">
@@ -185,8 +188,7 @@ export function ReservationDatePicker({
             }}
             min={new Date().toISOString().split('T')[0]}
             autoComplete="off"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:color-scheme-dark"
-            style={{ colorScheme: 'dark light' }}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:light] dark:[color-scheme:dark]"
           />
         </div>
 
@@ -202,8 +204,7 @@ export function ReservationDatePicker({
             }}
             min={startDate ? formatDateForInput(new Date(startDate.getTime() + 24 * 60 * 60 * 1000)) : undefined}
             autoComplete="off"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ colorScheme: 'dark light' }}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:light] dark:[color-scheme:dark]"
           />
         </div>
       </div>

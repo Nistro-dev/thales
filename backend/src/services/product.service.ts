@@ -126,11 +126,11 @@ export const getProductById = async (id: string, userCautionStatus?: string) => 
   })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   if (product.subSection && !product.subSection.name) {
-    throw { statusCode: 404, message: 'Product not accessible', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit non accessible', code: 'NOT_FOUND' }
   }
 
   const canSeePrices = userCautionStatus === 'VALIDATED' || userCautionStatus === 'EXEMPTED'
@@ -153,7 +153,7 @@ export const getProductByIdAdmin = async (id: string) => {
   })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   return product
@@ -179,13 +179,13 @@ export const createProduct = async (
   const section = await prisma.section.findUnique({ where: { id: data.sectionId } })
 
   if (!section) {
-    throw { statusCode: 404, message: 'Section not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Section introuvable', code: 'NOT_FOUND' }
   }
 
   if (data.subSectionId) {
     const subSection = await prisma.subSection.findUnique({ where: { id: data.subSectionId } })
     if (!subSection) {
-      throw { statusCode: 404, message: 'SubSection not found', code: 'NOT_FOUND' }
+      throw { statusCode: 404, message: 'Sous-section introuvable', code: 'NOT_FOUND' }
     }
   }
 
@@ -239,20 +239,20 @@ export const updateProduct = async (
   const product = await prisma.product.findUnique({ where: { id } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   if (data.sectionId) {
     const section = await prisma.section.findUnique({ where: { id: data.sectionId } })
     if (!section) {
-      throw { statusCode: 404, message: 'Section not found', code: 'NOT_FOUND' }
+      throw { statusCode: 404, message: 'Section introuvable', code: 'NOT_FOUND' }
     }
   }
 
   if (data.subSectionId) {
     const subSection = await prisma.subSection.findUnique({ where: { id: data.subSectionId } })
     if (!subSection) {
-      throw { statusCode: 404, message: 'SubSection not found', code: 'NOT_FOUND' }
+      throw { statusCode: 404, message: 'Sous-section introuvable', code: 'NOT_FOUND' }
     }
   }
 
@@ -286,7 +286,7 @@ export const changeProductStatus = async (
   const product = await prisma.product.findUnique({ where: { id } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   const updated = await prisma.product.update({
@@ -309,7 +309,7 @@ export const deleteProduct = async (id: string, performedBy: string, _request?: 
   const product = await prisma.product.findUnique({ where: { id } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   await prisma.product.update({
@@ -338,7 +338,7 @@ export const addAttribute = async (
   const product = await prisma.product.findUnique({ where: { id: productId } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   const attribute = await prisma.productAttribute.create({
@@ -368,7 +368,7 @@ export const updateAttribute = async (
   })
 
   if (!attribute) {
-    throw { statusCode: 404, message: 'Attribute not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Attribut introuvable', code: 'NOT_FOUND' }
   }
 
   const updated = await prisma.productAttribute.update({
@@ -398,7 +398,7 @@ export const deleteAttribute = async (
   })
 
   if (!attribute) {
-    throw { statusCode: 404, message: 'Attribute not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Attribut introuvable', code: 'NOT_FOUND' }
   }
 
   await prisma.productAttribute.delete({

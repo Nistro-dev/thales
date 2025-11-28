@@ -31,7 +31,7 @@ export const uploadProductFile = async (params: UploadFileParams) => {
   const product = await prisma.product.findUnique({ where: { id: productId } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   let finalBuffer = buffer
@@ -110,7 +110,7 @@ export const deleteProductFile = async (
   })
 
   if (!file) {
-    throw { statusCode: 404, message: 'File not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Fichier introuvable', code: 'NOT_FOUND' }
   }
 
   await deleteFromS3(file.s3Key)
@@ -140,7 +140,7 @@ export const reorderProductFiles = async (
 
   for (const id of fileIds) {
     if (!fileIdSet.has(id)) {
-      throw { statusCode: 400, message: 'Invalid file ID in list', code: 'VALIDATION_ERROR' }
+      throw { statusCode: 400, message: 'ID de fichier invalide dans la liste', code: 'VALIDATION_ERROR' }
     }
   }
 
@@ -174,7 +174,7 @@ export const setFileVisibility = async (
   })
 
   if (!file) {
-    throw { statusCode: 404, message: 'File not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Fichier introuvable', code: 'NOT_FOUND' }
   }
 
   const updated = await prisma.productFile.update({

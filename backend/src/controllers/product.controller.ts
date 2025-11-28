@@ -169,7 +169,7 @@ export const uploadFile = async (
   const data = await request.file()
 
   if (!data) {
-    throw { statusCode: 400, message: 'No file uploaded', code: 'VALIDATION_ERROR' }
+    throw { statusCode: 400, message: 'Aucun fichier téléchargé', code: 'VALIDATION_ERROR' }
   }
 
   const buffer = await data.toBuffer()

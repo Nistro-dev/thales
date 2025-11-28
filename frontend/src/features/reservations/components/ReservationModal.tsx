@@ -25,7 +25,7 @@ export function ReservationModal({ product, open, onOpenChange }: ReservationMod
 
   const duration =
     startDate && endDate
-      ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+      ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
       : 0
 
   const totalCost = duration && product.priceCredits ? duration * product.priceCredits : 0

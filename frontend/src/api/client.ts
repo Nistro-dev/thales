@@ -41,19 +41,13 @@ const processQueue = (error: Error | null) => {
 
 // Request interceptor
 apiClient.interceptors.request.use(
-  (config) => {
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (config) => config,
+  (error) => Promise.reject(error)
 )
 
 // Response interceptor with token refresh logic
 apiClient.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   async (error: AxiosError<ApiResponse>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -65,6 +59,12 @@ apiClient.interceptors.response.use(
           window.location.href = '/login'
           toast.error('Session expirée. Veuillez vous reconnecter.')
         }
+        return Promise.reject(error)
+      }
+
+      // For /auth/me on initial load, don't try to refresh if we're on login page
+      // This avoids unnecessary refresh attempts when user is clearly not logged in
+      if (originalRequest.url?.includes('/auth/me') && window.location.pathname.includes('/login')) {
         return Promise.reject(error)
       }
 

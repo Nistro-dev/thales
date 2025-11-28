@@ -9,6 +9,7 @@ interface AuthState {
   setUser: (user: User | null) => void
   setLoading: (loading: boolean) => void
   logout: () => void
+  refreshUser: () => Promise<void>
   hasPermission: (permission: Permission) => boolean
   hasAnyPermission: (permissions: Permission[]) => boolean
   hasAllPermissions: (permissions: Permission[]) => boolean
@@ -34,6 +35,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: false,
       isLoading: false,
     }),
+
+  refreshUser: async () => {
+    try {
+      const { apiClient } = await import('@/api/client')
+      const { data } = await apiClient.get<{ success: boolean; data?: { user: User } }>('/auth/me', {
+        skipErrorToast: true,
+      })
+      if (data.data?.user) {
+        set({ user: data.data.user })
+      }
+    } catch {
+      // Silently fail - user state remains unchanged
+    }
+  },
 
   hasPermission: (permission) => {
     const { user } = get()

@@ -23,13 +23,11 @@ export function ReservationModal({ product, open, onOpenChange }: ReservationMod
 
   const createReservation = useCreateReservation()
 
-  // Calculate duration
   const duration =
     startDate && endDate
       ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
       : 0
 
-  // Calculate total cost
   const totalCost = duration && product.priceCredits ? duration * product.priceCredits : 0
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,22 +37,29 @@ export function ReservationModal({ product, open, onOpenChange }: ReservationMod
       return
     }
 
+    const formatDateLocal = (date: Date): string => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const startDateStr = formatDateLocal(startDate)
+    const endDateStr = formatDateLocal(endDate)
+
     try {
       await createReservation.mutateAsync({
         productId: product.id,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        startDate: startDateStr,
+        endDate: endDateStr,
         notes: notes.trim() || undefined,
       })
 
-      // Reset form and close modal
       setStartDate(undefined)
       setEndDate(undefined)
       setNotes('')
       onOpenChange(false)
-    } catch (error) {
-      // Error is handled by the mutation hook
-    }
+    } catch {}
   }
 
   const handleClose = () => {

@@ -21,6 +21,7 @@ export const ROUTES = {
   ADMIN_SECTIONS: '/admin/sections',
   ADMIN_PRODUCTS: '/admin/products',
   ADMIN_RESERVATIONS: '/admin/reservations',
+  ADMIN_RESERVATION_DETAIL: '/admin/reservations/:id',
   ADMIN_QR_SCANNER: '/admin/qr-scanner',
   ADMIN_STATISTICS: '/admin/statistics',
   ADMIN_AUDIT: '/admin/audit',

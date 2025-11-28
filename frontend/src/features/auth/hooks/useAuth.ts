@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authApi, type LoginCredentials, type RegisterData } from '@/api/auth.api'
@@ -9,23 +9,10 @@ import { ROUTES } from '@/constants/routes'
 
 export function useAuth() {
   const navigate = useNavigate()
-  const { user, isAuthenticated, setUser, logout: storeLogout } = useAuthStore()
+  const { user, isAuthenticated, isLoading, setUser, logout: storeLogout } = useAuthStore()
 
-  // Fetch current user
-  const { isLoading } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: async () => {
-      try {
-        const response = await authApi.me()
-        setUser(response.data?.user || null)
-        return response.data?.user
-      } catch {
-        setUser(null)
-        return null
-      }
-    },
-    retry: false,
-  })
+  // Note: Initial auth check is done by AuthProvider
+  // This hook only provides auth state and mutations
 
   // Login mutation
   const loginMutation = useMutation({

@@ -53,16 +53,19 @@ export function ReservationDatePicker({
       .join(', ')
   }
 
-  // Format date for input
+  // Format date for input (en heure locale pour éviter le décalage UTC)
   const formatDateForInput = (date: Date | undefined): string => {
     if (!date) return ''
-    return date.toISOString().split('T')[0]
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
-  // Parse date from input
   const parseDateFromInput = (value: string): Date | undefined => {
     if (!value) return undefined
-    const date = new Date(value)
+    const [year, month, day] = value.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
     return isNaN(date.getTime()) ? undefined : date
   }
 
@@ -181,7 +184,8 @@ export function ReservationDatePicker({
             }}
             min={new Date().toISOString().split('T')[0]}
             autoComplete="off"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:color-scheme-dark"
+            style={{ colorScheme: 'dark light' }}
           />
         </div>
 
@@ -198,6 +202,7 @@ export function ReservationDatePicker({
             min={startDate ? formatDateForInput(new Date(startDate.getTime() + 24 * 60 * 60 * 1000)) : undefined}
             autoComplete="off"
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ colorScheme: 'dark light' }}
           />
         </div>
       </div>

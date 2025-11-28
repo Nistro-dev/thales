@@ -101,12 +101,12 @@ export function ProductsPage() {
                   </div>
 
                   {/* Pagination */}
-                  {data.meta.pagination && data.meta.pagination.totalPages > 1 && (
+                  {data.pagination && data.pagination.totalPages > 1 && (
                     <div className="flex items-center justify-between border-t pt-4">
                       <div className="text-sm text-muted-foreground">
-                        Page {data.meta.pagination.page} sur {data.meta.pagination.totalPages}
+                        Page {data.pagination.page} sur {data.pagination.totalPages}
                         {' · '}
-                        {data.meta.pagination.total} produit{data.meta.pagination.total > 1 ? 's' : ''}
+                        {data.pagination.total} produit{data.pagination.total > 1 ? 's' : ''}
                       </div>
 
                       <div className="flex gap-2">
@@ -114,7 +114,7 @@ export function ProductsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
-                          disabled={!data.meta.pagination.hasPreviousPage}
+                          disabled={page === 1}
                         >
                           <ChevronLeft className="h-4 w-4" />
                           Précédent
@@ -123,7 +123,7 @@ export function ProductsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setPage((p) => p + 1)}
-                          disabled={!data.meta.pagination.hasNextPage}
+                          disabled={page === data.pagination.totalPages}
                         >
                           Suivant
                           <ChevronRight className="h-4 w-4" />

@@ -8,7 +8,6 @@ import { ReservationModal } from '@/features/reservations/components/Reservation
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Calendar, Clock, Tag } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()

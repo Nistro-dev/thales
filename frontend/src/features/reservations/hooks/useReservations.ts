@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { reservationsApi, reservationsAdminApi, availabilityApi } from '@/api/reservations.api'
+import { useAuthStore } from '@/stores/auth.store'
 import type { ReservationFilters, CreateReservationInput } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -16,7 +17,11 @@ export function useMyReservations(
     queryKey: ['my-reservations', filters, page, limit],
     queryFn: async () => {
       const response = await reservationsApi.listMy(filters, page, limit)
-      return response.data
+      const data = response.data as any
+      return {
+        ...data,
+        pagination: data.meta?.pagination || data.pagination,
+      }
     },
     enabled,
   })
@@ -63,6 +68,10 @@ export function useCreateReservation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
+      queryClient.invalidateQueries({ queryKey: ['product-availability'] })
+      // Rafraîchir les crédits utilisateur
+      useAuthStore.getState().refreshUser()
       toast.success('Réservation créée avec succès')
     },
     onError: (error: any) => {
@@ -140,7 +149,11 @@ export function useAdminReservations(
     queryKey: ['admin-reservations', filters, page, limit],
     queryFn: async () => {
       const response = await reservationsAdminApi.listAll(filters, page, limit)
-      return response.data
+      const data = response.data as any
+      return {
+        ...data,
+        pagination: data.meta?.pagination || data.pagination,
+      }
     },
     enabled,
   })
@@ -174,6 +187,7 @@ export function useCheckoutReservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
       toast.success('Produit retiré avec succès')
     },
     onError: (error: any) => {
@@ -206,6 +220,8 @@ export function useReturnReservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
+      queryClient.invalidateQueries({ queryKey: ['product-availability'] })
       toast.success('Produit retourné avec succès')
     },
     onError: (error: any) => {
@@ -228,6 +244,10 @@ export function useCancelReservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
+      queryClient.invalidateQueries({ queryKey: ['product-availability'] })
+      // Rafraîchir les crédits utilisateur (remboursement automatique)
+      useAuthStore.getState().refreshUser()
       toast.success('Réservation annulée')
     },
     onError: (error: any) => {
@@ -258,6 +278,9 @@ export function useRefundReservation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
       queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
+      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
+      // Rafraîchir les crédits utilisateur
+      useAuthStore.getState().refreshUser()
       toast.success('Réservation remboursée')
     },
     onError: (error: any) => {

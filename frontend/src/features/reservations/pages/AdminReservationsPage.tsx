@@ -96,7 +96,9 @@ export function AdminReservationsPage() {
     try {
       await checkoutMutation.mutateAsync({ id: dialogState.reservation.id, notes })
       closeDialog()
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const handleReturn = async (condition: ProductCondition, notes?: string) => {
@@ -107,7 +109,9 @@ export function AdminReservationsPage() {
         data: { condition, notes },
       })
       closeDialog()
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const handleCancel = async (reason?: string) => {
@@ -115,7 +119,9 @@ export function AdminReservationsPage() {
     try {
       await cancelMutation.mutateAsync({ id: dialogState.reservation.id, reason })
       closeDialog()
-    } catch {}
+    } catch {
+      // Error handled by mutation onError
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -154,7 +160,7 @@ export function AdminReservationsPage() {
     setPage(Math.max(1, Math.min(newPage, totalPages)))
   }
 
-  const filteredReservations = data?.data.filter((reservation) => {
+  const filteredReservations: Reservation[] = data?.data.filter((reservation: Reservation) => {
     if (!searchQuery.trim()) return true
     const query = searchQuery.toLowerCase()
     const productName = reservation.product?.name?.toLowerCase() || ''

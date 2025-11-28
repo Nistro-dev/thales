@@ -1,6 +1,5 @@
 export const HomePage = () => <div className="text-2xl font-bold">Page d'accueil</div>
 export const MyReservationsPage = () => <div className="text-2xl font-bold">Mes Réservations</div>
-export const ProfilePage = () => <div className="text-2xl font-bold">Profil</div>
 
 // Admin pages placeholders
 export const AdminUsersPage = () => <div className="text-2xl font-bold">Administration - Utilisateurs</div>

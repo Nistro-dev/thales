@@ -314,9 +314,9 @@ export function MyReservationsPage() {
                       )}
 
                       {reservation.status === 'CANCELLED' && reservation.cancelReason && (
-                        <div className="rounded-lg bg-destructive/10 p-3 text-sm">
-                          <p className="font-medium text-destructive">Motif d'annulation:</p>
-                          <p className="text-muted-foreground">{reservation.cancelReason}</p>
+                        <div className="text-sm">
+                          <p className="text-muted-foreground">Motif d'annulation:</p>
+                          <p>{reservation.cancelReason}</p>
                         </div>
                       )}
                     </div>

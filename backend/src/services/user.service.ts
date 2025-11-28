@@ -124,6 +124,29 @@ export const updateUser = async (params: UpdateUserParams) => {
       lastName: params.lastName,
       phone: params.phone,
     },
+    include: {
+      roles: {
+        include: {
+          role: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isSystem: true,
+              permissions: {
+                select: {
+                  permission: {
+                    select: {
+                      key: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
 
   await createAuditLog({
@@ -142,9 +165,30 @@ export const updateUser = async (params: UpdateUserParams) => {
     },
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password: _, ...userWithoutPassword } = updatedUser
-  return userWithoutPassword
+  // Map roles to the expected format
+  const mappedRoles = updatedUser.roles.map((userRole) => ({
+    id: userRole.role.id,
+    name: userRole.role.name,
+    description: userRole.role.description,
+    isSystem: userRole.role.isSystem,
+    permissions: userRole.role.permissions.map((p) => p.permission.key),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }))
+
+  return {
+    id: updatedUser.id,
+    email: updatedUser.email,
+    firstName: updatedUser.firstName,
+    lastName: updatedUser.lastName,
+    phone: updatedUser.phone,
+    status: updatedUser.status,
+    credits: updatedUser.creditBalance,
+    cautionPaid: updatedUser.cautionStatus === 'VALIDATED',
+    roles: mappedRoles,
+    createdAt: updatedUser.createdAt,
+    updatedAt: updatedUser.updatedAt,
+  }
 }
 
 export const deleteUser = async (userId: string, performedBy: string) => {

@@ -20,6 +20,9 @@ export default async function notificationRoutes(fastify: FastifyInstance) {
   // Mark all notifications as read
   fastify.patch('/read-all', notificationController.markAllAsRead)
 
+  // Delete all notifications (must be before /:id)
+  fastify.delete('/all', notificationController.deleteAllNotifications)
+
   // Delete notification
   fastify.delete('/:id', notificationController.deleteNotification)
 }

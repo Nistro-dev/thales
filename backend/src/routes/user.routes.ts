@@ -5,6 +5,26 @@ import { requirePermission } from '../middlewares/permission.js'
 import { PERMISSIONS } from '../constants/permissions.js'
 
 export default async function userRoutes(fastify: FastifyInstance) {
+  // IMPORTANT: All /me routes must be before /:id routes to avoid "me" being parsed as an ID
+
+  // Update current user's profile (no special permission, just auth)
+  fastify.patch(
+    '/me',
+    {
+      onRequest: [authMiddleware],
+    },
+    userController.updateMyProfile
+  )
+
+  // Get current user's credit transactions (no special permission, just auth)
+  fastify.get(
+    '/me/credits/transactions',
+    {
+      onRequest: [authMiddleware],
+    },
+    userController.getMyCreditTransactions
+  )
+
   // Get all users (with filters)
   fastify.get(
     '/',

@@ -1,9 +1,9 @@
 import { prisma } from '../utils/prisma.js'
-import { comparePassword } from '../utils/password.js'
+import { comparePassword, hashPassword } from '../utils/password.js'
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, getRefreshTokenExpiry } from '../utils/jwt.js'
 import { logger } from '../utils/logger.js'
 import { ErrorMessages } from '../utils/response.js'
-import type { LoginInput } from '../schemas/auth.js'
+import type { LoginInput, ChangePasswordInput } from '../schemas/auth.js'
 import type { UserStatus } from '@prisma/client'
 
 interface AuthTokens {
@@ -195,4 +195,34 @@ const generateTokens = async (userId: string, email: string): Promise<AuthTokens
   })
 
   return { accessToken, refreshToken }
+}
+
+export const changePassword = async (userId: string, data: ChangePasswordInput): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  })
+
+  if (!user) {
+    throw { statusCode: 404, message: ErrorMessages.USER_NOT_FOUND, code: 'NOT_FOUND' }
+  }
+
+  const isValidPassword = await comparePassword(data.currentPassword, user.password)
+
+  if (!isValidPassword) {
+    throw { statusCode: 400, message: 'Mot de passe actuel incorrect', code: 'INVALID_PASSWORD' }
+  }
+
+  const hashedPassword = await hashPassword(data.newPassword)
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  })
+
+  // Invalidate all refresh tokens to force re-login on other devices
+  await prisma.refreshToken.deleteMany({
+    where: { userId },
+  })
+
+  logger.info({ userId }, 'Password changed')
 }

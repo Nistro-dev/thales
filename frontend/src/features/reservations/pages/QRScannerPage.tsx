@@ -118,7 +118,7 @@ export function QRScannerPage() {
     const start = new Date(startDate)
     const end = new Date(endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
     return diffDays
   }
 
@@ -309,7 +309,7 @@ export function QRScannerPage() {
                       {scannedReservation.notes && <Separator />}
                       <div>
                         <p className="text-sm font-medium mb-1">Notes administrateur</p>
-                        <p className="text-sm text-muted-foreground">{scannedReservation.adminNotes}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-line">{scannedReservation.adminNotes}</p>
                       </div>
                     </>
                   )}

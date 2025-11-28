@@ -101,7 +101,7 @@ export function AdminReservationDetailPage() {
     const start = new Date(startDate)
     const end = new Date(endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
     return diffDays
   }
 
@@ -269,28 +269,23 @@ export function AdminReservationDetailPage() {
                 </div>
               </div>
 
-              {reservation.status === 'REFUNDED' && reservation.refundedAmount !== null && (
+              {reservation.status === 'REFUNDED' && reservation.refundAmount !== null && (
                 <>
                   <Separator className="my-4" />
                   <div className="flex items-baseline justify-between text-green-600">
                     <span className="text-sm font-medium">Montant remboursé</span>
                     <div className="text-right">
-                      <span className="text-xl font-bold">{reservation.refundedAmount}</span>
+                      <span className="text-xl font-bold">{reservation.refundAmount}</span>
                       <span className="ml-1">crédits</span>
                     </div>
                   </div>
-                  {reservation.refundedReason && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Raison: {reservation.refundedReason}
-                    </p>
-                  )}
                 </>
               )}
             </CardContent>
           </Card>
 
           {/* Notes */}
-          {(reservation.notes || reservation.adminNotes || reservation.cancelledReason) && (
+          {(reservation.notes || reservation.adminNotes || reservation.cancelReason) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -311,17 +306,17 @@ export function AdminReservationDetailPage() {
                     {reservation.notes && <Separator />}
                     <div>
                       <p className="text-sm font-medium mb-1">Notes administrateur</p>
-                      <p className="text-sm text-muted-foreground">{reservation.adminNotes}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">{reservation.adminNotes}</p>
                     </div>
                   </>
                 )}
 
-                {reservation.cancelledReason && (
+                {reservation.cancelReason && (
                   <>
                     {(reservation.notes || reservation.adminNotes) && <Separator />}
                     <div className="rounded-lg bg-destructive/10 p-3">
                       <p className="text-sm font-medium text-destructive mb-1">Motif d'annulation</p>
-                      <p className="text-sm text-muted-foreground">{reservation.cancelledReason}</p>
+                      <p className="text-sm text-muted-foreground">{reservation.cancelReason}</p>
                     </div>
                   </>
                 )}
@@ -416,22 +411,22 @@ export function AdminReservationDetailPage() {
                   <p className="text-muted-foreground">{formatDateTime(reservation.createdAt)}</p>
                 </div>
 
-                {reservation.checkoutAt && (
+                {reservation.checkedOutAt && (
                   <>
                     <Separator />
                     <div>
                       <p className="font-medium">Retirée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.checkoutAt)}</p>
+                      <p className="text-muted-foreground">{formatDateTime(reservation.checkedOutAt)}</p>
                     </div>
                   </>
                 )}
 
-                {reservation.returnAt && (
+                {reservation.returnedAt && (
                   <>
                     <Separator />
                     <div>
                       <p className="font-medium">Retournée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.returnAt)}</p>
+                      <p className="text-muted-foreground">{formatDateTime(reservation.returnedAt)}</p>
                     </div>
                   </>
                 )}

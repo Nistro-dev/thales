@@ -167,17 +167,16 @@ export interface Reservation {
   notes?: string | null
   adminNotes?: string | null
   qrCode?: string | null
-  checkoutAt?: string | null
-  checkoutBy?: string | null
-  returnAt?: string | null
-  returnBy?: string | null
+  checkedOutAt?: string | null
+  checkedOutBy?: string | null
+  returnedAt?: string | null
+  returnedBy?: string | null
   cancelledAt?: string | null
   cancelledBy?: string | null
-  cancelledReason?: string | null
+  cancelReason?: string | null
   refundedAt?: string | null
   refundedBy?: string | null
-  refundedAmount?: number | null
-  refundedReason?: string | null
+  refundAmount?: number | null
   createdAt: string
   updatedAt: string
 }

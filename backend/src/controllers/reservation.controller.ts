@@ -61,7 +61,7 @@ export const getMyReservationQR = async (
   if (!reservation.qrCode) {
     throw {
       statusCode: 404,
-      message: 'QR code not available for this reservation',
+      message: 'QR code non disponible pour cette réservation',
       code: 'NOT_FOUND',
     }
   }
@@ -220,24 +220,37 @@ export const checkout = async (
 }
 
 export const returnProduct = async (
-  request: FastifyRequest<{ Params: { id: string } }>,
+  request: FastifyRequest<{ Params: { id: string }; Body?: { condition?: string; notes?: string } }>,
   reply: FastifyReply
 ) => {
-  const fields: Record<string, string> = {}
+  let fields: Record<string, string> = {}
   const photoFiles: Array<{ buffer: Buffer; filename: string; mimetype: string }> = []
 
-  // Process multipart data
-  const parts = request.parts()
-  for await (const part of parts) {
-    if (part.type === 'file' && part.fieldname === 'photos') {
-      const buffer = await part.toBuffer()
-      photoFiles.push({
-        buffer,
-        filename: part.filename,
-        mimetype: part.mimetype,
-      })
-    } else if (part.type === 'field') {
-      fields[part.fieldname] = part.value as string
+  // Check if request is multipart or JSON
+  const contentType = request.headers['content-type'] || ''
+  const isMultipart = contentType.includes('multipart/form-data')
+
+  if (isMultipart) {
+    // Process multipart data
+    const parts = request.parts()
+    for await (const part of parts) {
+      if (part.type === 'file' && part.fieldname === 'photos') {
+        const buffer = await part.toBuffer()
+        photoFiles.push({
+          buffer,
+          filename: part.filename,
+          mimetype: part.mimetype,
+        })
+      } else if (part.type === 'field') {
+        fields[part.fieldname] = part.value as string
+      }
+    }
+  } else {
+    // Process JSON body
+    const body = request.body as { condition?: string; notes?: string } | undefined
+    if (body) {
+      if (body.condition) fields.condition = body.condition
+      if (body.notes) fields.notes = body.notes
     }
   }
 
@@ -248,7 +261,7 @@ export const returnProduct = async (
   if (!validConditions.includes(condition)) {
     throw {
       statusCode: 400,
-      message: `Invalid condition. Must be one of: ${validConditions.join(', ')}`,
+      message: `Condition invalide. Doit être l'une des suivantes : ${validConditions.join(', ')}`,
       code: 'INVALID_CONDITION',
     }
   }
@@ -257,7 +270,7 @@ export const returnProduct = async (
   if (photoFiles.length > 3) {
     throw {
       statusCode: 400,
-      message: 'Maximum 3 photos allowed',
+      message: 'Maximum 3 photos autorisées',
       code: 'TOO_MANY_PHOTOS',
     }
   }

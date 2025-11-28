@@ -104,7 +104,7 @@ export const getProductMovements = async (productId: string) => {
   const product = await prisma.product.findUnique({ where: { id: productId } })
 
   if (!product) {
-    throw { statusCode: 404, message: 'Product not found', code: 'NOT_FOUND' }
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
   return prisma.productMovement.findMany({

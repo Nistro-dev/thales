@@ -136,7 +136,7 @@ export function AdminReservationsPage() {
     const start = new Date(startDate)
     const end = new Date(endDate)
     const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
     return diffDays
   }
 
@@ -443,7 +443,7 @@ export function AdminReservationsPage() {
                               {reservation.adminNotes && (
                                 <div>
                                   <p className="text-muted-foreground">Notes admin:</p>
-                                  <p className="font-medium">{reservation.adminNotes}</p>
+                                  <p className="font-medium whitespace-pre-line">{reservation.adminNotes}</p>
                                 </div>
                               )}
                             </div>

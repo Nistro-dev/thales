@@ -83,7 +83,7 @@ export const getDownloadUrl = async (
   });
 
   if (!file) {
-    throw { statusCode: 404, message: "File not found" };
+    throw { statusCode: 404, message: "Fichier introuvable" };
   }
 
   return getSignedDownloadUrl(file.key);
@@ -95,7 +95,7 @@ export const remove = async (userId: string, fileId: string): Promise<void> => {
   });
 
   if (!file) {
-    throw { statusCode: 404, message: "File not found" };
+    throw { statusCode: 404, message: "Fichier introuvable" };
   }
 
   await deleteFile(file.key);

@@ -120,7 +120,7 @@ export const exportStats = async (
   // You can implement actual CSV/XLSX generation later with libraries like 'csv-writer' or 'xlsx'
   return reply.send(
     createSuccessResponse('Export functionality coming soon', {
-      message: 'CSV/XLSX export will be implemented in the future',
+      message: "L'export CSV/XLSX sera implémenté prochainement",
       query,
     })
   )

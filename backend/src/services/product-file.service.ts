@@ -37,16 +37,21 @@ export const uploadProductFile = async (params: UploadFileParams) => {
   let finalBuffer = buffer
   let finalMimeType = mimeType
   let finalSize = buffer.length
+  let finalFilename = filename
 
   if (isCompressibleType(mimeType)) {
     const compressed = await compressFile(buffer, mimeType, filename)
     finalBuffer = compressed.buffer
     finalMimeType = compressed.mimeType
     finalSize = compressed.size
+    // Use new filename if format changed (e.g., photo.png -> photo.webp)
+    if (compressed.newFilename) {
+      finalFilename = compressed.newFilename
+    }
   }
 
   const fileId = crypto.randomBytes(8).toString('hex')
-  const ext = filename.split('.').pop() || ''
+  const ext = finalFilename.split('.').pop() || ''
   const s3Key = `products/${productId}/${fileId}.${ext}`
 
   await uploadToS3(s3Key, finalBuffer, finalMimeType)
@@ -59,7 +64,7 @@ export const uploadProductFile = async (params: UploadFileParams) => {
   const file = await prisma.productFile.create({
     data: {
       productId,
-      filename,
+      filename: finalFilename,
       mimeType: finalMimeType,
       size: finalSize,
       s3Key,
@@ -73,7 +78,14 @@ export const uploadProductFile = async (params: UploadFileParams) => {
     action: 'PRODUCT_FILE_UPLOAD',
     targetType: 'Product',
     targetId: productId,
-    metadata: { fileId: file.id, filename, originalSize: buffer.length, compressedSize: finalSize },
+    metadata: {
+      fileId: file.id,
+      originalFilename: filename,
+      finalFilename,
+      originalSize: buffer.length,
+      compressedSize: finalSize,
+      compressionRatio: ((1 - finalSize / buffer.length) * 100).toFixed(1) + '%',
+    },
   })
 
   return file

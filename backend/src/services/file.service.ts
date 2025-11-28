@@ -6,6 +6,7 @@ import {
   getSignedDownloadUrl,
   logger,
 } from "../utils/index.js";
+import { compressFile, isCompressibleType } from "./file-compression.service.js";
 
 interface UploadedFile {
   id: string;
@@ -30,15 +31,30 @@ export const upload = async (
   mimeType: string,
   buffer: Buffer
 ): Promise<UploadedFile> => {
-  const key = `${userId}/${randomUUID()}-${filename}`;
+  let finalBuffer = buffer;
+  let finalMimeType = mimeType;
+  let finalFilename = filename;
+  const originalSize = buffer.length;
 
-  await uploadFile(key, buffer, mimeType);
+  // Compress file if applicable (images, videos, PDFs)
+  if (isCompressibleType(mimeType)) {
+    const compressed = await compressFile(buffer, mimeType, filename);
+    finalBuffer = compressed.buffer;
+    finalMimeType = compressed.mimeType;
+    if (compressed.newFilename) {
+      finalFilename = compressed.newFilename;
+    }
+  }
+
+  const key = `${userId}/${randomUUID()}-${finalFilename}`;
+
+  await uploadFile(key, finalBuffer, finalMimeType);
 
   const file = await prisma.file.create({
     data: {
-      filename,
-      mimeType,
-      size: buffer.length,
+      filename: finalFilename,
+      mimeType: finalMimeType,
+      size: finalBuffer.length,
       key,
       userId,
     },
@@ -46,7 +62,16 @@ export const upload = async (
 
   const url = await getSignedDownloadUrl(key);
 
-  logger.info({ fileId: file.id, userId }, "File uploaded");
+  logger.info(
+    {
+      fileId: file.id,
+      userId,
+      originalSize,
+      compressedSize: finalBuffer.length,
+      compressionRatio: ((1 - finalBuffer.length / originalSize) * 100).toFixed(1) + '%',
+    },
+    "File uploaded"
+  );
 
   return {
     id: file.id,

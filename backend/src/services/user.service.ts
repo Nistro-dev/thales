@@ -184,7 +184,7 @@ export const updateUser = async (params: UpdateUserParams) => {
     phone: updatedUser.phone,
     status: updatedUser.status,
     credits: updatedUser.creditBalance,
-    cautionPaid: updatedUser.cautionStatus === 'VALIDATED',
+    cautionPaid: updatedUser.cautionStatus === 'VALIDATED' || updatedUser.cautionStatus === 'EXEMPTED',
     roles: mappedRoles,
     createdAt: updatedUser.createdAt,
     updatedAt: updatedUser.updatedAt,

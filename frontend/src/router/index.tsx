@@ -22,8 +22,6 @@ import { NotificationsPage } from '@/features/notifications/pages/NotificationsP
 import {
   HomePage,
   AdminRolesPage,
-  AdminSectionsPage,
-  AdminProductsPage,
 } from './placeholders'
 
 // Lazy loaded admin pages for better code splitting
@@ -34,6 +32,12 @@ const AdminReservationDetailPage = lazy(() => import('@/features/reservations/pa
 const QRScannerPage = lazy(() => import('@/features/reservations/pages/QRScannerPage').then(m => ({ default: m.QRScannerPage })))
 const AdminDashboardPage = lazy(() => import('@/features/stats').then(m => ({ default: m.AdminDashboardPage })))
 const AdminStatsPage = lazy(() => import('@/features/stats').then(m => ({ default: m.AdminStatsPage })))
+
+// Products & Sections admin pages
+const AdminSectionsPage = lazy(() => import('@/features/sections').then(m => ({ default: m.AdminSectionsPage })))
+const AdminProductsPage = lazy(() => import('@/features/products/pages/AdminProductsPage').then(m => ({ default: m.AdminProductsPage })))
+const AdminProductDetailPage = lazy(() => import('@/features/products/pages/AdminProductDetailPage').then(m => ({ default: m.AdminProductDetailPage })))
+const AdminProductNewPage = lazy(() => import('@/features/products/pages/AdminProductNewPage').then(m => ({ default: m.AdminProductNewPage })))
 
 export const router = createBrowserRouter([
 
@@ -145,7 +149,7 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: ROUTES.ADMIN_SECTIONS,
-                element: <AdminSectionsPage />,
+                element: <LazyPage><AdminSectionsPage /></LazyPage>,
               },
             ],
           },
@@ -154,7 +158,15 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: ROUTES.ADMIN_PRODUCTS,
-                element: <AdminProductsPage />,
+                element: <LazyPage><AdminProductsPage /></LazyPage>,
+              },
+              {
+                path: ROUTES.ADMIN_PRODUCT_NEW,
+                element: <LazyPage><AdminProductNewPage /></LazyPage>,
+              },
+              {
+                path: ROUTES.ADMIN_PRODUCT_DETAIL,
+                element: <LazyPage><AdminProductDetailPage /></LazyPage>,
               },
             ],
           },

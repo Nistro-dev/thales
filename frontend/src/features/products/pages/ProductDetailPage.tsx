@@ -8,7 +8,7 @@ import { ReservationModal } from '@/features/reservations/components/Reservation
 import { useAuthStore } from '@/stores/auth.store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, Tag, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Tag, AlertTriangle, FileText, Download, FileVideo } from 'lucide-react'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -150,6 +150,42 @@ export function ProductDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Documents (non-image files) */}
+          {(() => {
+            const documents = (product.files || []).filter(
+              (file) => !file.mimeType.startsWith('image/')
+            )
+            if (documents.length === 0) return null
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Documents</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {documents.map((doc) => {
+                      const isVideo = doc.mimeType.startsWith('video/')
+                      const Icon = isVideo ? FileVideo : FileText
+                      return (
+                        <a
+                          key={doc.id}
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted transition-colors"
+                        >
+                          <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <span className="flex-1 text-sm truncate">{doc.filename}</span>
+                          <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        </a>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })()}
 
           {/* Reserve Button */}
           {!isCautionValid ? (

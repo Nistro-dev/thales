@@ -51,6 +51,10 @@ export const setFileVisibilitySchema = z.object({
   visibility: z.enum(['PUBLIC', 'ADMIN']),
 })
 
+export const renameFileSchema = z.object({
+  filename: z.string().min(1).max(255),
+})
+
 export type ListProductsInput = z.infer<typeof listProductsSchema>
 export type CreateProductInput = z.infer<typeof createProductSchema>
 export type UpdateProductInput = z.infer<typeof updateProductSchema>
@@ -58,3 +62,4 @@ export type ChangeProductStatusInput = z.infer<typeof changeProductStatusSchema>
 export type ProductAttributeInput = z.infer<typeof productAttributeSchema>
 export type ReorderFilesInput = z.infer<typeof reorderFilesSchema>
 export type SetFileVisibilityInput = z.infer<typeof setFileVisibilitySchema>
+export type RenameFileInput = z.infer<typeof renameFileSchema>

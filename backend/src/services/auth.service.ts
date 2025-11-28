@@ -175,7 +175,7 @@ export const getMe = async (userId: string): Promise<GetMeResponse> => {
     lastName: user.lastName,
     status: user.status,
     credits: user.creditBalance,
-    cautionPaid: user.cautionStatus === 'VALIDATED',
+    cautionPaid: user.cautionStatus === 'VALIDATED' || user.cautionStatus === 'EXEMPTED',
     roles: mappedRoles,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

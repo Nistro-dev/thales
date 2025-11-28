@@ -23,8 +23,8 @@ import {
   AdminRolesPage,
   AdminSectionsPage,
   AdminProductsPage,
-  AdminStatisticsPage,
 } from './placeholders'
+import { AdminDashboardPage, AdminStatsPage } from '@/features/stats'
 
 export const router = createBrowserRouter([
 
@@ -150,8 +150,12 @@ export const router = createBrowserRouter([
             element: <RequireAuth permissions={[PERMISSIONS.VIEW_STATISTICS]} />,
             children: [
               {
+                path: ROUTES.ADMIN_DASHBOARD,
+                element: <AdminDashboardPage />,
+              },
+              {
                 path: ROUTES.ADMIN_STATISTICS,
-                element: <AdminStatisticsPage />,
+                element: <AdminStatsPage />,
               },
             ],
           },

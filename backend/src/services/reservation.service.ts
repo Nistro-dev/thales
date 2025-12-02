@@ -5,7 +5,7 @@ import { logAudit } from './audit.service.js'
 import { createMovement } from './movement.service.js'
 import { generateReservationQRCode } from '../utils/qrCode.js'
 import { FastifyRequest } from 'fastify'
-import type { ReservationStatus, ProductCondition } from '@prisma/client'
+import type { ReservationStatus, ProductCondition, CreditPeriod } from '@prisma/client'
 import * as notificationHelper from './notification-helper.service.js'
 
 // ============================================
@@ -30,6 +30,27 @@ const getDayOfWeek = (date: Date): number => {
 const daysBetween = (start: Date, end: Date): number => {
   const diffTime = Math.abs(end.getTime() - start.getTime())
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+}
+
+/**
+ * Calculate credits based on duration and credit period
+ * @param priceCredits - Price per period (day or week)
+ * @param creditPeriod - Period type (DAY or WEEK)
+ * @param durationDays - Duration in days
+ * @returns Total credits to charge
+ */
+export const calculateCredits = (
+  priceCredits: number,
+  creditPeriod: CreditPeriod,
+  durationDays: number
+): number => {
+  if (creditPeriod === 'WEEK') {
+    // Calculate weeks (rounded up)
+    const weeks = Math.ceil(durationDays / 7)
+    return priceCredits * weeks
+  }
+  // Default: per day
+  return priceCredits * durationDays
 }
 
 // ============================================
@@ -162,28 +183,58 @@ export const validateNoConflict = async (
   endDate: Date,
   excludeReservationId?: string
 ): Promise<ValidationResult> => {
-  const conflictWhere: any = {
+  // Get all active reservations for this product
+  const reservationsWhere: any = {
     productId,
     status: { in: ['CONFIRMED', 'CHECKED_OUT'] },
-    OR: [
-      {
-        startDate: { lte: endDate },
-        endDate: { gte: startDate },
-      },
-    ],
   }
 
   if (excludeReservationId) {
-    conflictWhere.id = { not: excludeReservationId }
+    reservationsWhere.id = { not: excludeReservationId }
   }
 
-  const conflict = await prisma.reservation.findFirst({ where: conflictWhere })
+  const reservations = await prisma.reservation.findMany({
+    where: reservationsWhere,
+    select: {
+      status: true,
+      startDate: true,
+      endDate: true,
+      checkedOutAt: true,
+    },
+  })
 
-  if (conflict) {
-    return {
-      valid: false,
-      error: 'Le produit est déjà réservé pour cette période',
-      code: 'CONFLICT',
+  // Normalize input dates
+  const reqStart = new Date(startDate)
+  reqStart.setUTCHours(0, 0, 0, 0)
+  const reqEnd = new Date(endDate)
+  reqEnd.setUTCHours(23, 59, 59, 999)
+
+  // Check for conflicts manually to handle early checkouts
+  for (const res of reservations) {
+    const resStart = new Date(res.startDate)
+    resStart.setUTCHours(0, 0, 0, 0)
+    const resEnd = new Date(res.endDate)
+    resEnd.setUTCHours(23, 59, 59, 999)
+
+    let effectiveStart = resStart
+
+    // For CHECKED_OUT reservations with early checkout, use checkout date as effective start
+    if (res.status === 'CHECKED_OUT' && res.checkedOutAt) {
+      const checkoutDate = new Date(res.checkedOutAt)
+      checkoutDate.setUTCHours(0, 0, 0, 0)
+      if (checkoutDate < resStart) {
+        effectiveStart = checkoutDate
+      }
+    }
+
+    // Check if there's an overlap
+    // Overlap occurs if: reqStart <= resEnd AND reqEnd >= effectiveStart
+    if (reqStart <= resEnd && reqEnd >= effectiveStart) {
+      return {
+        valid: false,
+        error: 'Le produit est déjà réservé pour cette période',
+        code: 'CONFLICT',
+      }
     }
   }
 
@@ -268,16 +319,16 @@ export const createReservation = async (params: CreateReservationParams) => {
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    select: { priceCredits: true, name: true },
+    select: { priceCredits: true, creditPeriod: true, name: true },
   })
 
   if (!product) {
     throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
-  // Calculate total credits: price per day × number of days
+  // Calculate total credits based on credit period (per day or per week)
   const durationDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-  const totalCredits = product.priceCredits * durationDays
+  const totalCredits = calculateCredits(product.priceCredits, product.creditPeriod, durationDays)
 
   const creditValidation = await validateUserCredits(userId, totalCredits)
   if (!creditValidation.valid) {
@@ -837,13 +888,7 @@ export const checkoutReservation = async (params: CheckoutParams) => {
     updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${earlyNote}` : earlyNote
   }
 
-  // If early checkout, mark product as UNAVAILABLE
-  if (isEarlyCheckout && reservation.product.status === 'AVAILABLE') {
-    await prisma.product.update({
-      where: { id: reservation.productId },
-      data: { status: 'UNAVAILABLE' },
-    })
-  }
+  // Note: Product stays AVAILABLE - calendar handles blocking based on checkedOutAt date
 
   const updated = await prisma.reservation.update({
     where: { id: reservationId },
@@ -930,13 +975,7 @@ export const returnReservation = async (params: ReturnParams) => {
     updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${returnNote}` : returnNote
   }
 
-  // If product was marked UNAVAILABLE (early checkout), restore to AVAILABLE
-  if (reservation.product.status === 'UNAVAILABLE') {
-    await prisma.product.update({
-      where: { id: reservation.productId },
-      data: { status: 'AVAILABLE' },
-    })
-  }
+  // Note: Product status is not changed - it stays AVAILABLE throughout the reservation lifecycle
 
   const updated = await prisma.reservation.update({
     where: { id: reservationId },
@@ -1012,63 +1051,64 @@ export const getProductAvailability = async (productId: string, month: string) =
       ],
     },
     select: {
-      id: true,
+      status: true,
       startDate: true,
       endDate: true,
-      status: true,
+      checkedOutAt: true,
     },
   })
 
-  const days: Array<{
-    date: string
-    dayOfWeek: number
-    status: 'LIBRE' | 'RÉSERVÉ' | 'SORTI'
-    reservationId?: string
-    isBlocked: boolean
-  }> = []
+  // Build list of reserved dates (without exposing reservation IDs for security)
+  const reservedDates: Array<{ date: string }> = []
+  const today = new Date()
+  today.setUTCHours(0, 0, 0, 0)
 
-  const currentDate = new Date(startOfMonth)
-
-  while (currentDate <= endOfMonth) {
-    const dateStr = currentDate.toISOString().split('T')[0]
-    const dayOfWeek = currentDate.getDay()
-
-    const isBlockedIn = !product.section.allowedDaysIn.includes(dayOfWeek)
-    const isBlockedOut = !product.section.allowedDaysOut.includes(dayOfWeek)
-    const isBlocked = isBlockedIn && isBlockedOut
-
-    let status: 'LIBRE' | 'RÉSERVÉ' | 'SORTI' = 'LIBRE'
-    let reservationId: string | undefined
+  // Iterate through each day of the month
+  for (let day = 1; day <= endOfMonth.getDate(); day++) {
+    const currentDate = new Date(Date.UTC(year, monthNum - 1, day, 0, 0, 0, 0))
+    const dateStr = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
     for (const res of reservations) {
+      // Normalize reservation dates to start of day UTC
       const resStart = new Date(res.startDate)
+      resStart.setUTCHours(0, 0, 0, 0)
       const resEnd = new Date(res.endDate)
+      resEnd.setUTCHours(23, 59, 59, 999) // End of day to include the last day
 
-      if (currentDate >= resStart && currentDate <= resEnd) {
-        reservationId = res.id
-        status = res.status === 'CHECKED_OUT' ? 'SORTI' : 'RÉSERVÉ'
-        break
+      // For CHECKED_OUT reservations with early checkout, block from checkout date
+      if (res.status === 'CHECKED_OUT' && res.checkedOutAt) {
+        const checkoutDate = new Date(res.checkedOutAt)
+        checkoutDate.setUTCHours(0, 0, 0, 0)
+
+        // If checked out before start date (early checkout), block from checkout date to end date
+        if (checkoutDate < resStart) {
+          if (currentDate >= checkoutDate && currentDate <= resEnd) {
+            reservedDates.push({ date: dateStr })
+            break
+          }
+        } else {
+          // Normal case: block from start to end
+          if (currentDate >= resStart && currentDate <= resEnd) {
+            reservedDates.push({ date: dateStr })
+            break
+          }
+        }
+      } else {
+        // CONFIRMED reservations: block from start to end
+        if (currentDate >= resStart && currentDate <= resEnd) {
+          reservedDates.push({ date: dateStr })
+          break
+        }
       }
     }
-
-    days.push({
-      date: dateStr,
-      dayOfWeek,
-      status,
-      reservationId,
-      isBlocked,
-    })
-
-    currentDate.setDate(currentDate.getDate() + 1)
   }
 
   return {
     productId,
-    productName: product.name,
     month,
     allowedDaysIn: product.section.allowedDaysIn,
     allowedDaysOut: product.section.allowedDaysOut,
-    days,
+    reservedDates,
   }
 }
 

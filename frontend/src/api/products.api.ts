@@ -6,11 +6,14 @@ import type { ApiResponse, PaginatedResponse } from '@/types'
 // TYPES
 // ============================================
 
+export type CreditPeriod = 'DAY' | 'WEEK'
+
 export interface CreateProductInput {
   name: string
   description?: string
   reference?: string
   priceCredits: number
+  creditPeriod?: CreditPeriod
   minDuration?: number
   maxDuration?: number
   sectionId: string
@@ -23,6 +26,7 @@ export interface UpdateProductInput {
   description?: string
   reference?: string
   priceCredits?: number
+  creditPeriod?: CreditPeriod
   minDuration?: number
   maxDuration?: number
   sectionId?: string

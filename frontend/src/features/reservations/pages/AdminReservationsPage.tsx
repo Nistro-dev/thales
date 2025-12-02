@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, Clock } from 'lucide-react'
+import { Calendar, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, Clock, QrCode } from 'lucide-react'
 import { ReservationCardSkeleton } from '../components/ReservationCardSkeleton'
 import { ReservationFiltersSkeleton } from '../components/ReservationFiltersSkeleton'
 import { CheckoutDialog } from '../components/CheckoutDialog'
 import { ReturnDialog } from '../components/ReturnDialog'
 import { AdminCancelDialog } from '../components/AdminCancelDialog'
+import { QRScannerDialog } from '../components/QRScannerDialog'
 import type { ReservationStatus, ReservationFilters, Reservation, ProductCondition } from '@/types'
 
 const statusLabels: Record<ReservationStatus, string> = {
@@ -47,6 +48,7 @@ export function AdminReservationsPage() {
   const [limit, setLimit] = useState(10)
   const [showFilters, setShowFilters] = useState(false)
   const [dialogState, setDialogState] = useState<DialogState>({ type: null, reservation: null })
+  const [qrScannerOpen, setQrScannerOpen] = useState(false)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -181,10 +183,16 @@ export function AdminReservationsPage() {
   }) || []
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Gestion des réservations</h1>
-        <p className="text-muted-foreground">Gérez les réservations et les mouvements de matériel</p>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Gestion des réservations</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gérez les réservations et les mouvements de matériel</p>
+        </div>
+        <Button onClick={() => setQrScannerOpen(true)} className="w-full sm:w-auto">
+          <QrCode className="mr-2 h-4 w-4" />
+          Scanner QR
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => {
@@ -192,12 +200,12 @@ export function AdminReservationsPage() {
         setPage(1)
         setStatusFilter('all')
       }}>
-        <TabsList className="grid w-full max-w-xl grid-cols-4">
-          <TabsTrigger value="all">Toutes</TabsTrigger>
-          <TabsTrigger value="checkouts">Sorties du jour</TabsTrigger>
-          <TabsTrigger value="returns">Retours du jour</TabsTrigger>
-          <TabsTrigger value="overdue" className="text-destructive data-[state=active]:text-destructive">
-            <Clock className="mr-1 h-4 w-4" />
+        <TabsList className="flex w-full overflow-x-auto">
+          <TabsTrigger value="all" className="flex-1 min-w-fit px-3 text-xs sm:text-sm">Toutes</TabsTrigger>
+          <TabsTrigger value="checkouts" className="flex-1 min-w-fit px-3 text-xs sm:text-sm">Sorties du jour</TabsTrigger>
+          <TabsTrigger value="returns" className="flex-1 min-w-fit px-3 text-sm sm:text-sm">Retours du jour</TabsTrigger>
+          <TabsTrigger value="overdue" className="flex-1 min-w-fit px-3 text-xs sm:text-sm text-destructive data-[state=active]:text-destructive">
+            <Clock className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
             En retard
           </TabsTrigger>
         </TabsList>
@@ -680,6 +688,11 @@ export function AdminReservationsPage() {
             : undefined
         }
         isLoading={cancelMutation.isPending}
+      />
+
+      <QRScannerDialog
+        open={qrScannerOpen}
+        onOpenChange={setQrScannerOpen}
       />
     </div>
   )

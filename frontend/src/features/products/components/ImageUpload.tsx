@@ -165,7 +165,7 @@ export function ImageUpload({
       {/* Preview files */}
       {previewFiles.length > 0 && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {previewFiles.map(({ file, preview }, index) => (
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg border bg-muted overflow-hidden">

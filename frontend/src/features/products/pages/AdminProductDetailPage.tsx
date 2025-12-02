@@ -113,14 +113,14 @@ export function AdminProductDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <Skeleton className="h-10 w-32 mb-6" />
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-1">
             <Skeleton className="aspect-square w-full rounded-lg" />
           </div>
           <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-8 w-64 max-w-full" />
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-24 w-full" />
           </div>
@@ -131,7 +131,7 @@ export function AdminProductDetailPage() {
 
   if (isError || !product) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="rounded-lg border border-destructive bg-destructive/10 p-8 text-center">
           <p className="text-destructive">Produit introuvable</p>
           <Button asChild variant="link" className="mt-4">
@@ -143,35 +143,34 @@ export function AdminProductDetailPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Button asChild variant="ghost">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <Button asChild variant="ghost" className="self-start">
           <Link to={ROUTES.ADMIN_PRODUCTS}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour aux produits
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2">
-          {!isEditMode && (
-            <>
-              <Button variant="outline" onClick={handleEditClick}>
-                <Edit className="mr-2 h-4 w-4" />
-                Modifier
+        {!isEditMode && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleEditClick} className="flex-1 sm:flex-none">
+              <Edit className="mr-2 h-4 w-4" />
+              Modifier
+            </Button>
+            {product.status !== 'ARCHIVED' && (
+              <Button
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+                className="flex-1 sm:flex-none"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Archiver
               </Button>
-              {product.status !== 'ARCHIVED' && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Archiver
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -244,7 +243,9 @@ export function AdminProductDetailPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Prix</span>
-                <span className="font-medium">{product.priceCredits} crédits/jour</span>
+                <span className="font-medium">
+                  {product.priceCredits} crédits/{product.creditPeriod === 'WEEK' ? 'semaine' : 'jour'}
+                </span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -277,7 +278,7 @@ export function AdminProductDetailPage() {
 
         {/* Right Column - Tabs */}
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
@@ -289,26 +290,32 @@ export function AdminProductDetailPage() {
             </CardHeader>
             <CardContent>
               <Tabs value={isEditMode ? 'edit' : activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-4">
-                  <TabsTrigger value="details" disabled={isEditMode}>
-                    <Tag className="h-4 w-4 mr-2" />
-                    Détails
-                  </TabsTrigger>
-                  <TabsTrigger value="files" disabled={isEditMode}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    Fichiers ({files?.length || 0})
-                  </TabsTrigger>
-                  <TabsTrigger value="movements" disabled={isEditMode}>
-                    <History className="h-4 w-4 mr-2" />
-                    Mouvements
-                  </TabsTrigger>
-                  {isEditMode && (
-                    <TabsTrigger value="edit">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Modifier
+                <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 mb-4">
+                  <TabsList className="w-full md:w-auto">
+                    <TabsTrigger value="details" disabled={isEditMode} className="flex-1 md:flex-none">
+                      <Tag className="h-4 w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Détails</span>
+                      <span className="sm:hidden">Détails</span>
                     </TabsTrigger>
-                  )}
-                </TabsList>
+                    <TabsTrigger value="files" disabled={isEditMode} className="flex-1 md:flex-none">
+                      <FileText className="h-4 w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Fichiers ({files?.length || 0})</span>
+                      <span className="sm:hidden">{files?.length || 0}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="movements" disabled={isEditMode} className="flex-1 md:flex-none">
+                      <History className="h-4 w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Mouvements</span>
+                      <span className="sm:hidden">Mvts</span>
+                    </TabsTrigger>
+                    {isEditMode && (
+                      <TabsTrigger value="edit" className="flex-1 md:flex-none">
+                        <Edit className="h-4 w-4 mr-1 md:mr-2" />
+                        <span className="hidden sm:inline">Modifier</span>
+                        <span className="sm:hidden">Edit</span>
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                </div>
 
                 {/* Details Tab */}
                 <TabsContent value="details" className="space-y-6">

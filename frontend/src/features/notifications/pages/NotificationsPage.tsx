@@ -47,32 +47,34 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Bell className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Bell className="h-6 w-6 sm:h-8 sm:w-8" />
             Notifications
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {unreadCount > 0
               ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}`
               : 'Toutes vos notifications sont lues'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {unreadCount > 0 && (
             <Button
               variant="outline"
               onClick={handleMarkAllAsRead}
               disabled={markAllAsRead.isPending}
+              className="w-full sm:w-auto"
             >
               {markAllAsRead.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <CheckCheck className="h-4 w-4 mr-2" />
               )}
-              Tout marquer comme lu
+              <span className="hidden sm:inline">Tout marquer comme lu</span>
+              <span className="sm:hidden">Marquer lu</span>
             </Button>
           )}
           {total > 0 && (
@@ -80,14 +82,15 @@ export function NotificationsPage() {
               variant="outline"
               onClick={handleDeleteAll}
               disabled={deleteAllNotifications.isPending}
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive w-full sm:w-auto"
             >
               {deleteAllNotifications.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
-              Tout supprimer
+              <span className="hidden sm:inline">Tout supprimer</span>
+              <span className="sm:hidden">Supprimer</span>
             </Button>
           )}
         </div>

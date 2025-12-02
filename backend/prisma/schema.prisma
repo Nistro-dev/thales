@@ -65,6 +65,11 @@ enum ProductCondition {
   BROKEN
 }
 
+enum CreditPeriod {
+  DAY
+  WEEK
+}
+
 enum AuditAction {
   // Auth
   LOGIN
@@ -320,6 +325,7 @@ model Product {
   description    String?
   reference      String?
   priceCredits   Int
+  creditPeriod   CreditPeriod     @default(DAY)
   minDuration    Int              @default(1)
   maxDuration    Int              @default(14)
   status         ProductStatus    @default(AVAILABLE)

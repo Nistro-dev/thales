@@ -217,7 +217,7 @@ export function ProductFilesList({
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {previewFiles.map((file, index) => {
           const FileIcon = getFileIcon(file.mimeType)
           const isImage = file.mimeType.startsWith('image/')
@@ -280,44 +280,46 @@ export function ProductFilesList({
               </div>
 
               {/* File info and actions */}
-              <div className="p-2">
+              <div className="p-2 min-w-0">
                 {isEditing ? (
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center flex-1 gap-0">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-0">
                       <Input
                         value={editingFilename}
                         onChange={(e) => setEditingFilename(e.target.value)}
                         onKeyDown={(e) => handleRenameKeyDown(e, file.id)}
-                        className="h-7 text-sm rounded-r-none"
+                        className="h-7 text-sm rounded-r-none min-w-0 flex-1"
                         autoFocus
                       />
-                      <span className="h-7 px-2 flex items-center bg-muted border border-l-0 rounded-r-md text-xs text-muted-foreground">
+                      <span className="h-7 px-1 flex items-center bg-muted border border-l-0 rounded-r-md text-xs text-muted-foreground shrink-0">
                         {getExtension(file.filename)}
                       </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 text-green-600 hover:text-green-700"
-                      onClick={() => confirmRename(file.id)}
-                      disabled={renameFile.isPending}
-                    >
-                      <Check className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={cancelRename}
-                      disabled={renameFile.isPending}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 flex-1 text-green-600 hover:text-green-700"
+                        onClick={() => confirmRename(file.id)}
+                        disabled={renameFile.isPending}
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 flex-1"
+                        onClick={cancelRename}
+                        disabled={renameFile.isPending}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 min-w-0">
                     <p
-                      className="text-sm truncate flex-1 cursor-pointer hover:text-primary"
+                      className="text-sm truncate flex-1 min-w-0 cursor-pointer hover:text-primary"
                       title={file.filename}
                       onClick={() => canEdit && startRename(file)}
                     >
@@ -327,7 +329,7 @@ export function ProductFilesList({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                        className="h-6 w-6 p-0 shrink-0 opacity-0 group-hover:opacity-100"
                         onClick={() => startRename(file)}
                       >
                         <Pencil className="h-3 w-3" />
@@ -344,26 +346,26 @@ export function ProductFilesList({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 h-7 text-xs"
+                      className="flex-1 h-7 text-xs px-1"
                       onClick={() => toggleVisibility(file)}
                       disabled={updateVisibility.isPending}
                     >
                       {file.visibility === 'PUBLIC' ? (
                         <>
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          Masquer
+                          <EyeOff className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Masquer</span>
                         </>
                       ) : (
                         <>
-                          <Eye className="h-3 w-3 mr-1" />
-                          Afficher
+                          <Eye className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Afficher</span>
                         </>
                       )}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                      className="h-7 w-7 p-0 shrink-0 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteClick(file)}
                       disabled={deleteFile.isPending}
                     >

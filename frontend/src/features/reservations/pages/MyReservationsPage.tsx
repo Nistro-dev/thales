@@ -89,11 +89,11 @@ export function MyReservationsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Mes réservations</h1>
-          <p className="text-muted-foreground">Gérez vos réservations de matériel</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Mes réservations</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Gérez vos réservations de matériel</p>
         </div>
         {data && data.pagination && (
           <div className="text-sm text-muted-foreground">
@@ -263,7 +263,7 @@ export function MyReservationsPage() {
           ) : (
             <div className="space-y-4">
               {data.data.map((reservation: Reservation) => (
-                <Card key={reservation.id} className="p-6">
+                <Card key={reservation.id} className="p-4 sm:p-6">
                   <div className="flex flex-col lg:flex-row gap-6">
                     <div className="flex-1 space-y-3">
                       <div className="flex items-start justify-between gap-4">

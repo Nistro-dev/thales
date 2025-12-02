@@ -61,7 +61,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <CardFooter className="flex items-center justify-between border-t pt-4">
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground">Prix</span>
+            <span className="text-xs text-muted-foreground">
+              Prix{product.creditPeriod === 'WEEK' ? '/sem.' : '/jour'}
+            </span>
             {product.priceCredits !== null ? (
               <span className="text-lg font-bold">{product.priceCredits} crédits</span>
             ) : (

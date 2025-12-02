@@ -47,7 +47,7 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
               <TableHead>Référence</TableHead>
               <TableHead>Section</TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead className="text-right">Crédits/jour</TableHead>
+              <TableHead className="text-right">Prix</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -105,7 +105,7 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
             <TableHead>Référence</TableHead>
             <TableHead>Section</TableHead>
             <TableHead>Statut</TableHead>
-            <TableHead className="text-right">Crédits/jour</TableHead>
+            <TableHead className="text-right">Prix</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -143,7 +143,13 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
               <TableCell>
                 <ProductStatusBadge status={product.status} />
               </TableCell>
-              <TableCell className="text-right">{product.priceCredits ?? '-'}</TableCell>
+              <TableCell className="text-right">
+                {product.priceCredits !== null ? (
+                  <span>
+                    {product.priceCredits}/{product.creditPeriod === 'WEEK' ? 'sem.' : 'j'}
+                  </span>
+                ) : '-'}
+              </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

@@ -85,18 +85,18 @@ export function AdminProductsPage() {
   const hasPrevPage = page > 1
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Package className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Package className="h-6 w-6 sm:h-8 sm:w-8" />
             Produits
           </h1>
-          <p className="text-muted-foreground">Gérer le catalogue de produits</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Gérer le catalogue de produits</p>
         </div>
 
-        <Button onClick={() => navigate(ROUTES.ADMIN_PRODUCT_NEW)}>
+        <Button onClick={() => navigate(ROUTES.ADMIN_PRODUCT_NEW)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nouveau produit
         </Button>
@@ -114,8 +114,8 @@ export function AdminProductsPage() {
 
       {/* Pagination */}
       {data?.data && data.data.length > 0 && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>Afficher</span>
             <Select value={String(limit)} onValueChange={(v) => handleLimitChange(Number(v))}>
               <SelectTrigger className="w-20 h-8">
@@ -130,7 +130,7 @@ export function AdminProductsPage() {
               </SelectContent>
             </Select>
             <span>par page</span>
-            <span className="ml-4">
+            <span className="hidden sm:inline ml-4">
               {total} produit{total > 1 ? 's' : ''} au total
             </span>
           </div>

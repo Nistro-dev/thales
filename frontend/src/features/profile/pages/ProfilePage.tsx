@@ -12,7 +12,7 @@ export function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6 flex justify-center items-center min-h-[400px]">
+      <div className="container mx-auto px-4 py-6 flex justify-center items-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
@@ -20,7 +20,7 @@ export function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="rounded-lg border border-destructive bg-destructive/10 p-8 text-center">
           <p className="text-destructive">Utilisateur non connecté</p>
         </div>
@@ -29,10 +29,10 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Mon profil</h1>
-        <p className="text-muted-foreground">Gérez vos informations personnelles et vos crédits</p>
+        <h1 className="text-2xl sm:text-3xl font-bold">Mon profil</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Gérez vos informations personnelles et vos crédits</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

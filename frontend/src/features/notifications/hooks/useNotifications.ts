@@ -12,7 +12,9 @@ export function useNotifications(limit = 50, offset = 0, enabled = true) {
       return response.data
     },
     enabled,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -27,7 +29,9 @@ export function useUnreadCount(enabled = true) {
       return response.data!.count
     },
     enabled,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 

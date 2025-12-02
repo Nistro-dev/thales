@@ -40,15 +40,15 @@ export function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Produits</h1>
-        <p className="text-muted-foreground">Parcourez notre catalogue de produits disponibles</p>
+        <h1 className="text-2xl sm:text-3xl font-bold">Produits</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Parcourez notre catalogue de produits disponibles</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        {/* Filters Sidebar */}
-        <aside className="space-y-4">
+        {/* Filters Sidebar - Hidden on mobile */}
+        <aside className="hidden lg:block space-y-4">
           {isLoading ? <ProductFiltersSkeleton /> : <ProductFilters filters={filters} onFiltersChange={handleFiltersChange} />}
         </aside>
 
@@ -56,6 +56,11 @@ export function ProductsPage() {
         <div className="space-y-6">
           {/* Search Bar */}
           <ProductSearch value={search} onChange={handleSearchChange} />
+
+          {/* Mobile Filters */}
+          <div className="lg:hidden">
+            {!isLoading && <ProductFilters filters={filters} onFiltersChange={handleFiltersChange} />}
+          </div>
 
           {/* Loading State */}
           {isLoading && (
@@ -102,7 +107,7 @@ export function ProductsPage() {
 
                   {/* Pagination */}
                   {data.pagination && data.pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between border-t pt-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t pt-4">
                       <div className="text-sm text-muted-foreground">
                         Page {data.pagination.page} sur {data.pagination.totalPages}
                         {' · '}
@@ -117,7 +122,7 @@ export function ProductsPage() {
                           disabled={page === 1}
                         >
                           <ChevronLeft className="h-4 w-4" />
-                          Précédent
+                          <span className="hidden sm:inline ml-1">Précédent</span>
                         </Button>
                         <Button
                           variant="outline"
@@ -125,7 +130,7 @@ export function ProductsPage() {
                           onClick={() => setPage((p) => p + 1)}
                           disabled={page === data.pagination.totalPages}
                         >
-                          Suivant
+                          <span className="hidden sm:inline mr-1">Suivant</span>
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>

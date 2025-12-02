@@ -82,6 +82,7 @@ export const listProducts = async (params: ListProductsParams, userCautionStatus
         description: true,
         reference: true,
         priceCredits: true,
+        creditPeriod: true,
         minDuration: true,
         maxDuration: true,
         status: true,
@@ -185,6 +186,7 @@ interface CreateProductInput {
   description?: string
   reference?: string
   priceCredits: number
+  creditPeriod?: 'DAY' | 'WEEK'
   minDuration?: number
   maxDuration?: number
   sectionId: string
@@ -216,6 +218,7 @@ export const createProduct = async (
       description: data.description,
       reference: data.reference,
       priceCredits: data.priceCredits,
+      creditPeriod: data.creditPeriod ?? 'DAY',
       minDuration: data.minDuration ?? 1,
       maxDuration: data.maxDuration ?? 14,
       sectionId: data.sectionId,
@@ -245,10 +248,12 @@ interface UpdateProductInput {
   description?: string
   reference?: string
   priceCredits?: number
+  creditPeriod?: 'DAY' | 'WEEK'
   minDuration?: number
   maxDuration?: number
   sectionId?: string
   subSectionId?: string | null
+  attributes?: Array<{ key: string; value: string }>
 }
 
 export const updateProduct = async (
@@ -277,14 +282,52 @@ export const updateProduct = async (
     }
   }
 
-  const updated = await prisma.product.update({
-    where: { id },
-    data,
-    include: {
-      section: true,
-      subSection: true,
-      attributes: true,
-    },
+  // Extract attributes from data to handle separately
+  const { attributes, ...productData } = data
+
+  // Update product and attributes in a transaction
+  const updated = await prisma.$transaction(async (tx) => {
+    // Update product fields
+    const updatedProduct = await tx.product.update({
+      where: { id },
+      data: productData,
+      include: {
+        section: true,
+        subSection: true,
+        attributes: true,
+      },
+    })
+
+    // If attributes are provided, replace all existing attributes
+    if (attributes !== undefined) {
+      // Delete all existing attributes
+      await tx.productAttribute.deleteMany({
+        where: { productId: id },
+      })
+
+      // Create new attributes if any
+      if (attributes.length > 0) {
+        await tx.productAttribute.createMany({
+          data: attributes.map((attr) => ({
+            productId: id,
+            key: attr.key,
+            value: attr.value,
+          })),
+        })
+      }
+
+      // Fetch updated product with new attributes
+      return tx.product.findUnique({
+        where: { id },
+        include: {
+          section: true,
+          subSection: true,
+          attributes: true,
+        },
+      })
+    }
+
+    return updatedProduct
   })
 
   await logAudit({

@@ -113,7 +113,7 @@ export function AdminReservationDetailPage() {
 
   if (isError || !reservation) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <Card className="border-destructive bg-destructive/10 p-8">
           <div className="flex flex-col items-center gap-4 text-center">
             <AlertCircle className="h-12 w-12 text-destructive" />
@@ -138,7 +138,7 @@ export function AdminReservationDetailPage() {
   const canRefund = reservation.status === 'CANCELLED' || reservation.status === 'RETURNED'
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Back Button */}
       <Button asChild variant="ghost">
         <Link to="/admin/reservations">
@@ -148,12 +148,12 @@ export function AdminReservationDetailPage() {
       </Button>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Détail de la réservation</h1>
-          <p className="text-sm text-muted-foreground">#{reservation.id}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Détail de la réservation</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground break-all">#{reservation.id}</p>
         </div>
-        <Badge variant={statusColors[reservation.status]} className="text-base">
+        <Badge variant={statusColors[reservation.status]} className="text-sm sm:text-base self-start">
           {statusLabels[reservation.status]}
         </Badge>
       </div>

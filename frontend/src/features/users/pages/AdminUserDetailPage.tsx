@@ -104,7 +104,7 @@ export function AdminUserDetailPage() {
 
   if (isLoadingUser) {
     return (
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-4">
           <Skeleton className="h-10 w-10" />
           <Skeleton className="h-8 w-64" />
@@ -119,7 +119,7 @@ export function AdminUserDetailPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="text-center py-12">
           <p className="text-muted-foreground">Utilisateur introuvable</p>
           <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/users')}>
@@ -131,18 +131,18 @@ export function AdminUserDetailPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/admin/users')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-bold truncate">
               {user.firstName} {user.lastName}
             </h1>
-            <p className="text-muted-foreground">{user.email}</p>
+            <p className="text-sm sm:text-base text-muted-foreground truncate">{user.email}</p>
           </div>
         </div>
 

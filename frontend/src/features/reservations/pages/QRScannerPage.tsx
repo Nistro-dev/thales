@@ -7,9 +7,11 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { QrCode, Scan, CheckCircle, RotateCcw, Loader2, AlertCircle, UserCircle, Package, Calendar } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { QrCode, Scan, CheckCircle, RotateCcw, Loader2, AlertCircle, UserCircle, Package, Calendar, Camera, Keyboard } from 'lucide-react'
 import { CheckoutDialog } from '../components/CheckoutDialog'
 import { ReturnDialog } from '../components/ReturnDialog'
+import { QRScanner } from '@/components/QRScanner'
 import type { Reservation, ReservationStatus, ProductCondition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -39,10 +41,30 @@ export function QRScannerPage() {
   const [error, setError] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [dialogType, setDialogType] = useState<DialogType>(null)
+  const [scannerActive, setScannerActive] = useState(true)
 
   const queryClient = useQueryClient()
 
-  const handleScan = async () => {
+  const handleCameraScan = async (scannedCode: string) => {
+    setScannerActive(false)
+    setIsScanning(true)
+    setError(null)
+    setScannedReservation(null)
+
+    try {
+      const response = await scanApi.scan(scannedCode.trim())
+      setScannedReservation(response.data.data?.reservation || null)
+    } catch (err: unknown) {
+      const error = err as Error & { response?: { data?: { message?: string } } }
+      setError(error.response?.data?.message || 'Erreur lors du scan du QR code')
+      setScannedReservation(null)
+      setScannerActive(true)
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  const handleManualScan = async () => {
     if (!qrCode.trim()) {
       setError('Veuillez entrer un code QR')
       return
@@ -55,7 +77,7 @@ export function QRScannerPage() {
     try {
       const response = await scanApi.scan(qrCode.trim())
       setScannedReservation(response.data.data?.reservation || null)
-      setQrCode('') // Clear input after successful scan
+      setQrCode('')
     } catch (err: unknown) {
       const error = err as Error & { response?: { data?: { message?: string } } }
       setError(error.response?.data?.message || 'Erreur lors du scan du QR code')
@@ -127,60 +149,89 @@ export function QRScannerPage() {
   const canPerformAction = canCheckout || canReturn
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Scanner QR</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold">Scanner QR</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Scannez un QR code de réservation pour effectuer un retrait ou un retour
         </p>
       </div>
 
-      {/* Scanner Input */}
+      {/* Scanner */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <QrCode className="h-4 w-4 sm:h-5 sm:w-5" />
             Scanner le QR code
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Label htmlFor="qrCode">Code QR</Label>
-              <Input
-                id="qrCode"
-                type="text"
-                placeholder="Entrez ou scannez le code QR..."
-                value={qrCode}
-                onChange={(e) => setQrCode(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleScan()
-                  }
-                }}
-                disabled={isScanning || isProcessing}
-                autoFocus
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                onClick={handleScan}
-                disabled={isScanning || isProcessing || !qrCode.trim()}
-              >
-                {isScanning ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Scan...
-                  </>
-                ) : (
-                  <>
-                    <Scan className="mr-2 h-4 w-4" />
-                    Scanner
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+          <Tabs defaultValue="camera" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="camera" className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                <span className="hidden sm:inline">Caméra</span>
+              </TabsTrigger>
+              <TabsTrigger value="manual" className="flex items-center gap-2">
+                <Keyboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Manuel</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="camera" className="mt-4">
+              {isScanning ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Recherche de la réservation...</p>
+                </div>
+              ) : (
+                <QRScanner
+                  onScan={handleCameraScan}
+                  isActive={scannerActive && !scannedReservation}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="manual" className="mt-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="qrCode">Code QR</Label>
+                  <Input
+                    id="qrCode"
+                    type="text"
+                    placeholder="Entrez le code QR..."
+                    value={qrCode}
+                    onChange={(e) => setQrCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleManualScan()
+                      }
+                    }}
+                    disabled={isScanning || isProcessing}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleManualScan}
+                    disabled={isScanning || isProcessing || !qrCode.trim()}
+                    className="w-full sm:w-auto"
+                  >
+                    {isScanning ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Scan...
+                      </>
+                    ) : (
+                      <>
+                        <Scan className="mr-2 h-4 w-4" />
+                        Valider
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {error && (
             <Alert variant="destructive">
@@ -368,6 +419,7 @@ export function QRScannerPage() {
                   onClick={() => {
                     setScannedReservation(null)
                     setQrCode('')
+                    setScannerActive(true)
                   }}
                   disabled={isProcessing}
                 >

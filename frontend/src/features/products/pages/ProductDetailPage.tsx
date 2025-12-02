@@ -23,7 +23,7 @@ export function ProductDetailPage() {
 
   if (isError || !product) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="rounded-lg border border-destructive bg-destructive/10 p-8 text-center">
           <p className="text-destructive">Produit introuvable</p>
           <Button asChild variant="link" className="mt-4">
@@ -35,7 +35,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-6">
       {/* Back Button */}
       <Button asChild variant="ghost" className="mb-6">
         <Link to="/products">
@@ -44,7 +44,7 @@ export function ProductDetailPage() {
         </Link>
       </Button>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 lg:gap-8 lg:grid-cols-2">
         {/* Left Column - Gallery */}
         <div>
           <ProductGallery files={product.files || []} productName={product.name} />
@@ -54,8 +54,8 @@ export function ProductDetailPage() {
         <div className="space-y-6">
           {/* Header */}
           <div>
-            <div className="mb-2 flex items-start justify-between gap-4">
-              <h1 className="text-3xl font-bold">{product.name}</h1>
+            <div className="mb-2 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+              <h1 className="text-2xl sm:text-3xl font-bold">{product.name}</h1>
               <AvailabilityBadge status={product.status} />
             </div>
             {product.reference && (
@@ -72,7 +72,9 @@ export function ProductDetailPage() {
               {product.priceCredits !== null ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold">{product.priceCredits}</span>
-                  <span className="text-muted-foreground">crédits / jour</span>
+                  <span className="text-muted-foreground">
+                    crédits / {product.creditPeriod === 'WEEK' ? 'semaine' : 'jour'}
+                  </span>
                 </div>
               ) : (
                 <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">

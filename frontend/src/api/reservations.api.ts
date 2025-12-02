@@ -156,8 +156,11 @@ export const availabilityApi = {
   getMonthly: (productId: string, month: string) => {
     return apiClient.get<
       ApiResponse<{
-        availableDates: string[]
-        reservedDates: Array<{ date: string; reservationId: string }>
+        productId: string
+        month: string
+        allowedDaysIn: number[]
+        allowedDaysOut: number[]
+        reservedDates: Array<{ date: string }>
       }>
     >(`/products/${productId}/availability?month=${month}`)
   },

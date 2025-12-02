@@ -1,8 +1,10 @@
-import { useMemo, useEffect } from 'react'
-import { Label } from '@/components/ui/label'
+import { useMemo, useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle, CheckCircle } from 'lucide-react'
+import { AvailabilityCalendar } from './AvailabilityCalendar'
+import { useProductAvailability } from '../hooks/useReservations'
 import type { Product } from '@/types'
 
 interface ReservationDatePickerProps {
@@ -11,7 +13,6 @@ interface ReservationDatePickerProps {
   endDate: Date | undefined
   onStartDateChange: (date: Date | undefined) => void
   onEndDateChange: (date: Date | undefined) => void
-  reservedDates?: string[]
   onValidationChange?: (isValid: boolean) => void
 }
 
@@ -21,52 +22,71 @@ export function ReservationDatePicker({
   endDate,
   onStartDateChange,
   onEndDateChange,
-  reservedDates = [],
   onValidationChange,
 }: ReservationDatePickerProps) {
+  // Current month for fetching availability
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  // Fetch availability for current month
+  const { data: availabilityData, isLoading: isLoadingAvailability } = useProductAvailability(
+    product.id,
+    currentMonth,
+    true
+  )
+
+  // Also fetch next month to have more data
+  const nextMonth = useMemo(() => {
+    const [year, month] = currentMonth.split('-').map(Number)
+    const nextDate = new Date(year, month, 1)
+    return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`
+  }, [currentMonth])
+
+  const { data: nextMonthData } = useProductAvailability(product.id, nextMonth, true)
+
+  // Combine reserved dates from both months
+  const reservedDates = useMemo(() => {
+    const dates: string[] = []
+    if (availabilityData?.reservedDates) {
+      dates.push(...availabilityData.reservedDates.map((r) => r.date))
+    }
+    if (nextMonthData?.reservedDates) {
+      dates.push(...nextMonthData.reservedDates.map((r) => r.date))
+    }
+    return [...new Set(dates)]
+  }, [availabilityData, nextMonthData])
+
   // Helper: Check if a date is in the allowed days array
   const isAllowedDay = (date: Date, allowedDays: number[] | undefined): boolean => {
     if (!allowedDays || allowedDays.length === 0) return true
     const dayOfWeek = date.getDay()
-    // Convert backend format (1=Monday, 7=Sunday) to JS format (0=Sunday, 1=Monday)
     return allowedDays.some((day) => {
       const jsDay = day === 7 ? 0 : day
       return dayOfWeek === jsDay
     })
   }
 
-  // Helper: Check if date is reserved
+  // Check if date is reserved
   const isDateReserved = (date: Date): boolean => {
-    const dateStr = date.toISOString().split('T')[0]
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
     return reservedDates.includes(dateStr)
   }
 
   // Get allowed days names for display
   const getAllowedDaysNames = (days: number[] | undefined): string => {
     if (!days || days.length === 0) return 'Tous les jours'
-    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
     return days
       .map((day) => {
         const jsDay = day === 7 ? 0 : day
         return dayNames[jsDay]
       })
       .join(', ')
-  }
-
-  // Format date for input (en heure locale pour éviter le décalage UTC)
-  const formatDateForInput = (date: Date | undefined): string => {
-    if (!date) return ''
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
-  const parseDateFromInput = (value: string): Date | undefined => {
-    if (!value) return undefined
-    const [year, month, day] = value.split('-').map(Number)
-    const date = new Date(year, month - 1, day)
-    return isNaN(date.getTime()) ? undefined : date
   }
 
   // Validation errors
@@ -93,7 +113,7 @@ export function ReservationDatePicker({
     // Validate end date
     if (endDate) {
       if (!startDate) {
-        errors.push('Veuillez sélectionner une date de sortie d\'abord')
+        errors.push("Veuillez sélectionner une date de sortie d'abord")
       } else {
         if (endDate <= startDate) {
           errors.push('La date de retour doit être après la date de sortie')
@@ -105,7 +125,8 @@ export function ReservationDatePicker({
         }
 
         // Check duration (inclusive: startDate to endDate)
-        const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+        const durationDays =
+          Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
         if (durationDays < product.minDuration) {
           errors.push(`La durée minimale est de ${product.minDuration} jours`)
         }
@@ -137,8 +158,12 @@ export function ReservationDatePicker({
 
   const totalCost = useMemo(() => {
     if (!duration || !product.priceCredits) return 0
+    if (product.creditPeriod === 'WEEK') {
+      const weeks = Math.ceil(duration / 7)
+      return weeks * product.priceCredits
+    }
     return duration * product.priceCredits
-  }, [duration, product.priceCredits])
+  }, [duration, product.priceCredits, product.creditPeriod])
 
   // Check if form is valid
   const isValid = useMemo(() => {
@@ -152,69 +177,85 @@ export function ReservationDatePicker({
     }
   }, [isValid, onValidationChange])
 
+  // Handle month change in calendar
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentMonth(`${year}-${String(month).padStart(2, '0')}`)
+  }
+
+  // Format date for display
+  const formatDate = (date: Date | undefined): string => {
+    if (!date) return '-'
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+    })
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Info Card */}
-      <Card className="p-4">
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Jours de sortie autorisés :</span>
-            <span className="font-medium">{getAllowedDaysNames(product.section.allowedDaysOut)}</span>
+      <Card className="p-2.5">
+        <div className="grid grid-cols-3 gap-2 text-[10px] sm:text-xs">
+          <div>
+            <p className="text-muted-foreground">Sortie</p>
+            <p className="font-medium">{getAllowedDaysNames(product.section.allowedDaysOut)}</p>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Jours de retour autorisés :</span>
-            <span className="font-medium">{getAllowedDaysNames(product.section.allowedDaysIn)}</span>
+          <div>
+            <p className="text-muted-foreground">Retour</p>
+            <p className="font-medium">{getAllowedDaysNames(product.section.allowedDaysIn)}</p>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Durée min/max :</span>
-            <span className="font-medium">
-              {product.minDuration} - {product.maxDuration} jours
-            </span>
+          <div>
+            <p className="text-muted-foreground">Durée</p>
+            <p className="font-medium">{product.minDuration}-{product.maxDuration}j</p>
           </div>
         </div>
       </Card>
 
-      {/* Date Inputs */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="startDate">Date de sortie *</Label>
-          <input
-            type="date"
-            id="startDate"
-            value={formatDateForInput(startDate)}
-            onChange={(e) => {
-              const date = parseDateFromInput(e.target.value)
-              onStartDateChange(date)
-            }}
-            min={new Date().toISOString().split('T')[0]}
-            autoComplete="off"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:light] dark:[color-scheme:dark]"
+      {/* Calendar */}
+      <Card className="p-2.5">
+        {isLoadingAvailability ? (
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-full" />
+            <div className="grid grid-cols-7 gap-0.5">
+              {Array.from({ length: 42 }).map((_, i) => (
+                <Skeleton key={i} className="h-7 w-full" />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <AvailabilityCalendar
+            selectedStartDate={startDate}
+            selectedEndDate={endDate}
+            onStartDateSelect={onStartDateChange}
+            onEndDateSelect={onEndDateChange}
+            reservedDates={reservedDates}
+            allowedDaysOut={product.section.allowedDaysOut}
+            allowedDaysIn={product.section.allowedDaysIn}
+            onMonthChange={handleMonthChange}
           />
-        </div>
+        )}
+      </Card>
 
-        <div className="space-y-2">
-          <Label htmlFor="endDate">Date de retour *</Label>
-          <input
-            type="date"
-            id="endDate"
-            value={formatDateForInput(endDate)}
-            onChange={(e) => {
-              const date = parseDateFromInput(e.target.value)
-              onEndDateChange(date)
-            }}
-            min={startDate ? formatDateForInput(new Date(startDate.getTime() + 24 * 60 * 60 * 1000)) : undefined}
-            autoComplete="off"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:light] dark:[color-scheme:dark]"
-          />
+      {/* Selected dates display */}
+      {(startDate || endDate) && (
+        <div className="flex justify-between items-center px-1 text-xs">
+          <div>
+            <span className="text-muted-foreground">Sortie: </span>
+            <span className="font-medium">{formatDate(startDate)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Retour: </span>
+            <span className="font-medium">{formatDate(endDate)}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Validation Errors */}
       {validationErrors.length > 0 && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant="destructive" className="py-2">
+          <AlertCircle className="h-3 w-3" />
           <AlertDescription>
-            <ul className="list-disc list-inside space-y-1">
+            <ul className="list-disc list-inside space-y-0.5 text-[10px] sm:text-xs">
               {validationErrors.map((error, index) => (
                 <li key={index}>{error}</li>
               ))}
@@ -225,33 +266,30 @@ export function ReservationDatePicker({
 
       {/* Success message */}
       {isValid && (
-        <Alert>
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-600">
-            Les dates sélectionnées sont valides
+        <Alert className="border-green-200 bg-green-50 py-2">
+          <CheckCircle className="h-3 w-3 text-green-600" />
+          <AlertDescription className="text-green-600 text-[10px] sm:text-xs">
+            Dates valides
           </AlertDescription>
         </Alert>
       )}
 
       {/* Summary */}
       {startDate && endDate && duration > 0 && (
-        <Card className="bg-primary/5 p-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="font-medium">Durée :</span>
-              <span>{duration} jour{duration > 1 ? 's' : ''}</span>
+        <Card className="bg-primary/5 p-2.5">
+          <div className="flex justify-between items-center">
+            <div className="text-xs">
+              <span className="text-muted-foreground">{duration}j</span>
+              {product.priceCredits !== null && (
+                <span className="text-muted-foreground">
+                  {' '}× {product.priceCredits} cr/{product.creditPeriod === 'WEEK' ? 'sem' : 'j'}
+                </span>
+              )}
             </div>
             {product.priceCredits !== null && (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">Prix/jour :</span>
-                  <span>{product.priceCredits} crédits</span>
-                </div>
-                <div className="flex justify-between border-t pt-2 font-bold">
-                  <span>Total :</span>
-                  <span>{totalCost} crédits</span>
-                </div>
-              </>
+              <div className="text-sm font-bold">
+                {totalCost} crédits
+              </div>
             )}
           </div>
         </Card>

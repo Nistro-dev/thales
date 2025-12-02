@@ -23,6 +23,7 @@ const productSchema = z.object({
   reference: z.string().max(100).optional(),
   description: z.string().max(2000).optional(),
   priceCredits: z.coerce.number().min(0, 'Le prix doit être positif'),
+  creditPeriod: z.enum(['DAY', 'WEEK']).default('DAY'),
   minDuration: z.coerce.number().min(1, 'Minimum 1 jour').default(1),
   maxDuration: z.coerce.number().min(1, 'Minimum 1 jour').default(14),
   sectionId: z.string().min(1, 'La section est requise'),
@@ -64,6 +65,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
       reference: '',
       description: '',
       priceCredits: 0,
+      creditPeriod: 'DAY',
       minDuration: 1,
       maxDuration: 14,
       sectionId: '',
@@ -89,6 +91,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
         reference: product.reference || '',
         description: product.description || '',
         priceCredits: product.priceCredits ?? 0,
+        creditPeriod: product.creditPeriod || 'DAY',
         minDuration: product.minDuration,
         maxDuration: product.maxDuration,
         sectionId: product.sectionId,
@@ -105,6 +108,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
         reference: '',
         description: '',
         priceCredits: 0,
+        creditPeriod: 'DAY',
         minDuration: 1,
         maxDuration: 14,
         sectionId: '',
@@ -134,7 +138,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
   })
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-6">
+    <form onSubmit={handleFormSubmit} className="space-y-6 overflow-hidden">
       {/* Basic Info */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
@@ -177,8 +181,8 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
       </div>
 
       {/* Section & SubSection */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
+      <div className="grid gap-4 md:grid-cols-2 overflow-hidden">
+        <div className="space-y-2 relative">
           <Label>Section *</Label>
           <Select
             value={selectedSectionId}
@@ -201,7 +205,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
           )}
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 relative">
           <Label>Sous-section</Label>
           <Select
             value={watch('subSectionId') || 'none'}
@@ -224,9 +228,9 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
       </div>
 
       {/* Pricing & Duration */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 overflow-hidden">
         <div className="space-y-2">
-          <Label htmlFor="priceCredits">Prix (crédits/jour) *</Label>
+          <Label htmlFor="priceCredits">Prix (crédits) *</Label>
           <Input
             id="priceCredits"
             type="number"
@@ -236,6 +240,26 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
           />
           {errors.priceCredits && (
             <p className="text-sm text-destructive">{errors.priceCredits.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2 relative">
+          <Label>Facturation</Label>
+          <Select
+            value={watch('creditPeriod')}
+            onValueChange={(value: 'DAY' | 'WEEK') => setValue('creditPeriod', value)}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Période de facturation" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DAY">Par jour</SelectItem>
+              <SelectItem value="WEEK">Par semaine</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.creditPeriod && (
+            <p className="text-sm text-destructive">{errors.creditPeriod.message}</p>
           )}
         </div>
 
@@ -287,18 +311,18 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
         {fields.length > 0 && (
           <div className="space-y-2">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex gap-2">
+              <div key={field.id} className="flex flex-col sm:flex-row gap-2">
                 <Input
                   {...register(`attributes.${index}.key`)}
                   placeholder="Clé (ex: Capteur)"
                   disabled={isSubmitting}
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                 />
                 <Input
                   {...register(`attributes.${index}.value`)}
                   placeholder="Valeur (ex: Full Frame)"
                   disabled={isSubmitting}
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                 />
                 <Button
                   type="button"
@@ -306,7 +330,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                   size="icon"
                   onClick={() => remove(index)}
                   disabled={isSubmitting}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive shrink-0 self-end sm:self-auto"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

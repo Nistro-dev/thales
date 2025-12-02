@@ -7,13 +7,13 @@ export function AdminDashboardPage() {
   const { data: alerts, isLoading: isLoadingAlerts } = useAlerts()
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <LayoutDashboard className="h-8 w-8" />
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+          <LayoutDashboard className="h-6 w-6 sm:h-8 sm:w-8" />
           Dashboard
         </h1>
-        <p className="text-muted-foreground">Vue d'ensemble en temps réel</p>
+        <p className="text-sm sm:text-base text-muted-foreground">Vue d'ensemble en temps réel</p>
       </div>
 
       <StatsGrid stats={realtimeStats} isLoading={isLoadingStats} />

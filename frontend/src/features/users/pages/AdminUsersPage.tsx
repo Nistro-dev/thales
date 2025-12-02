@@ -95,19 +95,19 @@ export function AdminUsersPage() {
   const hasPrevPage = page > 1
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Users className="h-6 w-6 sm:h-8 sm:w-8" />
             Utilisateurs
           </h1>
-          <p className="text-muted-foreground">Gérer les utilisateurs de la plateforme</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Gérer les utilisateurs de la plateforme</p>
         </div>
 
         {canManageUsers && (
-          <Button onClick={() => setInviteDialogOpen(true)}>
+          <Button onClick={() => setInviteDialogOpen(true)} className="w-full sm:w-auto">
             <UserPlus className="h-4 w-4 mr-2" />
             Inviter un utilisateur
           </Button>

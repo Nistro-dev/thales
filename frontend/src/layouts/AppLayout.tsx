@@ -331,7 +331,7 @@ export function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-muted/40 p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/40">
           <Outlet />
         </main>
       </div>

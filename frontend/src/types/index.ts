@@ -85,6 +85,7 @@ export interface SubSection {
 export type ProductStatus = 'AVAILABLE' | 'UNAVAILABLE' | 'MAINTENANCE' | 'ARCHIVED'
 export type ProductCondition = 'OK' | 'MINOR_DAMAGE' | 'MAJOR_DAMAGE' | 'MISSING_PARTS' | 'BROKEN'
 export type FileVisibility = 'PUBLIC' | 'ADMIN'
+export type CreditPeriod = 'DAY' | 'WEEK'
 
 export interface ProductAttribute {
   id: string
@@ -114,6 +115,7 @@ export interface Product {
   description: string | null
   reference: string | null
   priceCredits: number | null // null if user caution not validated
+  creditPeriod: CreditPeriod
   minDuration: number
   maxDuration: number
   status: ProductStatus

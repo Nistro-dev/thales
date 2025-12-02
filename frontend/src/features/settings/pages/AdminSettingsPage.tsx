@@ -377,7 +377,7 @@ export function AdminSettingsPage() {
               Configurez les informations de base de votre application.
             </p>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-2 overflow-hidden">
               <div className="space-y-2">
                 <Label htmlFor="siteName">Nom du site</Label>
                 <Input
@@ -433,7 +433,7 @@ export function AdminSettingsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <Label htmlFor="timezone">Fuseau horaire</Label>
                 <Select
                   value={generalSettings.timezone}
@@ -864,7 +864,7 @@ export function AdminSettingsPage() {
               </div>
 
               {notificationSettings.digestEnabled && (
-                <div className="space-y-2 ml-6">
+                <div className="space-y-2 ml-6 relative">
                   <Label htmlFor="digestFrequency">Fréquence du digest</Label>
                   <Select
                     value={notificationSettings.digestFrequency}

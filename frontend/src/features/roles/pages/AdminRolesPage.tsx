@@ -124,18 +124,18 @@ export function AdminRolesPage() {
   // Render list view
   if (viewMode === 'list') {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Shield className="h-6 w-6" />
               Rôles & Permissions
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               Gérez les rôles et leurs permissions
             </p>
           </div>
-          <Button onClick={handleCreateClick}>
+          <Button onClick={handleCreateClick} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nouveau rôle
           </Button>
@@ -198,7 +198,7 @@ export function AdminRolesPage() {
   // Render detail view
   if (viewMode === 'detail') {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <Button variant="ghost" onClick={handleBackToList}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -241,7 +241,7 @@ export function AdminRolesPage() {
   // Render edit view
   if (viewMode === 'edit') {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <Button variant="ghost" onClick={handleCancelEdit}>
             <ArrowLeft className="mr-2 h-4 w-4" />

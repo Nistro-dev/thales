@@ -4,6 +4,7 @@ import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
 import * as notificationHelper from './notification-helper.service.js'
 import { FastifyRequest } from 'fastify'
+import { calculateCredits } from './reservation.service.js'
 
 const startOfDay = (date: Date): Date => {
   const d = new Date(date)
@@ -31,6 +32,7 @@ export const checkExtensionPossible = async (params: CheckExtensionParams) => {
           id: true,
           name: true,
           priceCredits: true,
+          creditPeriod: true,
           section: {
             select: {
               allowedDaysOut: true,
@@ -86,9 +88,13 @@ export const checkExtensionPossible = async (params: CheckExtensionParams) => {
     }
   }
 
-  // Calculate extension duration and cost
+  // Calculate extension duration and cost based on credit period
   const extensionDays = Math.ceil((newEnd.getTime() - currentEnd.getTime()) / (1000 * 60 * 60 * 24))
-  const extensionCost = reservation.product.priceCredits * extensionDays
+  const extensionCost = calculateCredits(
+    reservation.product.priceCredits,
+    reservation.product.creditPeriod,
+    extensionDays
+  )
 
   // Check user has enough credits
   if (reservation.user.creditBalance < extensionCost) {

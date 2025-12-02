@@ -67,8 +67,8 @@ export function AdminSectionsPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <Skeleton className="h-8 w-48 mb-2" />
             <Skeleton className="h-4 w-64" />
@@ -76,7 +76,7 @@ export function AdminSectionsPage() {
           <Skeleton className="h-10 w-32" />
         </div>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="space-y-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
@@ -90,7 +90,7 @@ export function AdminSectionsPage() {
 
   if (isError) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto px-4 py-6">
         <div className="rounded-lg border border-destructive bg-destructive/10 p-8 text-center">
           <p className="text-destructive">Erreur lors du chargement des sections</p>
         </div>
@@ -99,19 +99,19 @@ export function AdminSectionsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FolderTree className="h-6 w-6" />
             Sections
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Gérez les sections et sous-sections de produits
           </p>
         </div>
-        <Button onClick={handleAddSection}>
+        <Button onClick={handleAddSection} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle section
         </Button>

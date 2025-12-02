@@ -18,6 +18,7 @@ export const createProductSchema = z.object({
   description: z.string().max(2000).optional(),
   reference: z.string().max(100).optional(),
   priceCredits: z.number().int().min(0),
+  creditPeriod: z.enum(['DAY', 'WEEK']).default('DAY'),
   minDuration: z.number().int().min(1).default(1),
   maxDuration: z.number().int().min(1).default(14),
   sectionId: z.string().uuid(),
@@ -32,7 +33,7 @@ export const createProductSchema = z.object({
     .optional(),
 })
 
-export const updateProductSchema = createProductSchema.partial().omit({ attributes: true })
+export const updateProductSchema = createProductSchema.partial()
 
 export const changeProductStatusSchema = z.object({
   status: z.enum(['AVAILABLE', 'UNAVAILABLE', 'MAINTENANCE', 'ARCHIVED']),

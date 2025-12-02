@@ -123,4 +123,22 @@ export default async function userRoutes(fastify: FastifyInstance) {
     },
     userController.getCreditTransactions
   )
+
+  // Disable user
+  fastify.post(
+    '/:id/disable',
+    {
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_USERS)],
+    },
+    userController.disableUser
+  )
+
+  // Reactivate user
+  fastify.post(
+    '/:id/reactivate',
+    {
+      onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_USERS)],
+    },
+    userController.reactivateUser
+  )
 }

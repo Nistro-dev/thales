@@ -58,13 +58,13 @@ export function RoleDetail({ role, isLoading, onEdit, onDelete }: RoleDetailProp
       {/* Role Info Card */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted">
                 <RoleIcon className="h-6 w-6" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-xl font-semibold">{role.name}</h2>
                   {role.isSystem && (
                     <Badge variant="outline">Système</Badge>
@@ -73,7 +73,7 @@ export function RoleDetail({ role, isLoading, onEdit, onDelete }: RoleDetailProp
                 {role.description && (
                   <p className="text-muted-foreground mt-1">{role.description}</p>
                 )}
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-sm text-muted-foreground">
                   <span>
                     Créé le{' '}
                     {new Date(role.createdAt).toLocaleDateString('fr-FR', {
@@ -82,23 +82,25 @@ export function RoleDetail({ role, isLoading, onEdit, onDelete }: RoleDetailProp
                       year: 'numeric',
                     })}
                   </span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <span>{role.users.length} utilisateur(s)</span>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              {canEdit && (
-                <Button variant="outline" onClick={onEdit}>
-                  Modifier
-                </Button>
-              )}
-              {canDelete && (
-                <Button variant="destructive" onClick={onDelete}>
-                  Supprimer
-                </Button>
-              )}
-            </div>
+            {(canEdit || canDelete) && (
+              <div className="flex gap-2 shrink-0">
+                {canEdit && (
+                  <Button variant="outline" size="sm" className="sm:size-default" onClick={onEdit}>
+                    Modifier
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button variant="destructive" size="sm" className="sm:size-default" onClick={onDelete}>
+                    Supprimer
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

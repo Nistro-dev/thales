@@ -1,23 +1,71 @@
-import nodemailer from 'nodemailer'
+import nodemailer, { Transporter } from 'nodemailer'
 import Handlebars from 'handlebars'
 import { readFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { env } from '../config/env.js'
 import { logger } from '../utils/logger.js'
+import * as settingsService from './settings.service.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_SECURE,
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-})
+// Cached transporter and config
+let cachedTransporter: Transporter | null = null
+let cachedFromAddress: string | null = null
+let cacheTimestamp: number = 0
+const CACHE_TTL = 60000 // 1 minute cache
+
+// Get or create transporter with DB settings fallback to env
+const getTransporter = async (): Promise<{ transporter: Transporter; fromAddress: string }> => {
+  const now = Date.now()
+
+  // Return cached transporter if still valid
+  if (cachedTransporter && cachedFromAddress && (now - cacheTimestamp) < CACHE_TTL) {
+    return { transporter: cachedTransporter, fromAddress: cachedFromAddress }
+  }
+
+  // Try to get settings from DB first
+  const dbSettings = await settingsService.getSmtpSettings()
+
+  // Determine which settings to use (DB if configured, else env)
+  const useDbSettings = dbSettings.smtpHost && dbSettings.smtpHost.length > 0
+
+  const host = useDbSettings ? dbSettings.smtpHost : env.SMTP_HOST
+  const port = useDbSettings ? dbSettings.smtpPort : env.SMTP_PORT
+  const secure = useDbSettings ? dbSettings.smtpSecure : env.SMTP_SECURE
+  const user = useDbSettings ? dbSettings.smtpUser : env.SMTP_USER
+  const pass = useDbSettings ? dbSettings.smtpPassword : env.SMTP_PASS
+
+  // Build from address
+  const fromName = useDbSettings && dbSettings.fromName ? dbSettings.fromName : 'Thales App'
+  const fromEmail = useDbSettings && dbSettings.fromEmail ? dbSettings.fromEmail : env.SMTP_FROM
+  const fromAddress = `"${fromName}" <${fromEmail}>`
+
+  // Create transporter
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: user && pass ? { user, pass } : undefined,
+  })
+
+  // Cache the transporter
+  cachedTransporter = transporter
+  cachedFromAddress = fromAddress
+  cacheTimestamp = now
+
+  logger.debug({ useDbSettings, host, port }, 'Email transporter configured')
+
+  return { transporter, fromAddress }
+}
+
+// Clear transporter cache (called when settings are updated)
+export const clearTransporterCache = (): void => {
+  cachedTransporter = null
+  cachedFromAddress = null
+  cacheTimestamp = 0
+}
 
 // Register Handlebars helpers
 Handlebars.registerHelper('eq', function (a, b) {
@@ -84,8 +132,9 @@ interface SendEmailOptions {
 
 export const sendEmail = async ({ to, subject, html }: SendEmailOptions): Promise<void> => {
   try {
+    const { transporter, fromAddress } = await getTransporter()
     await transporter.sendMail({
-      from: env.SMTP_FROM,
+      from: fromAddress,
       to,
       subject,
       html,

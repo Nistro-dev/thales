@@ -167,6 +167,46 @@ export function useDeleteUser() {
 }
 
 // ============================================
+// DISABLE USER
+// ============================================
+
+export function useDisableUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => adminUsersApi.disableUser(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(id) })
+      toast.success('Utilisateur désactivé')
+    },
+    onError: () => {
+      toast.error("Erreur lors de la désactivation de l'utilisateur")
+    },
+  })
+}
+
+// ============================================
+// REACTIVATE USER
+// ============================================
+
+export function useReactivateUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => adminUsersApi.reactivateUser(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(id) })
+      toast.success('Utilisateur réactivé')
+    },
+    onError: () => {
+      toast.error("Erreur lors de la réactivation de l'utilisateur")
+    },
+  })
+}
+
+// ============================================
 // ADJUST CREDITS
 // ============================================
 
@@ -312,8 +352,16 @@ export function useRevokeRole() {
       queryClient.invalidateQueries({ queryKey: userKeys.detail(userId) })
       toast.success('Rôle révoqué')
     },
-    onError: () => {
-      toast.error('Erreur lors de la révocation du rôle')
+    onError: (error: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorCode = (error as any)?.response?.data?.error?.code
+      if (errorCode === 'CANNOT_REVOKE_DEFAULT_ROLE') {
+        toast.error('Impossible de révoquer le rôle Utilisateur par défaut')
+      } else if (errorCode === 'CANNOT_REVOKE_LAST_ROLE') {
+        toast.error('Impossible de révoquer le dernier rôle d\'un utilisateur')
+      } else {
+        toast.error('Erreur lors de la révocation du rôle')
+      }
     },
   })
 }

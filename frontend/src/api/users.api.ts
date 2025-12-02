@@ -204,6 +204,14 @@ export const adminUsersApi = {
 
   getUserRoles: (userId: string) =>
     get<{ roles: UserRole[] }>(`/roles/users/${userId}/roles`),
+
+  // Disable user
+  disableUser: (id: string) =>
+    post<{ user: UserDetail }>(`/users/${id}/disable`),
+
+  // Reactivate user
+  reactivateUser: (id: string) =>
+    post<{ user: UserDetail }>(`/users/${id}/reactivate`),
 }
 
 // ============================================

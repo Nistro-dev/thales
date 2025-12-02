@@ -372,24 +372,14 @@ export function ReservationDetailPage() {
 
           {/* Actions */}
           {canCancel && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="text-lg text-destructive">Zone de danger</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  L'annulation de cette réservation est irréversible.
-                </p>
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => setCancelDialogOpen(true)}
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Annuler la réservation
-                </Button>
-              </CardContent>
-            </Card>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setCancelDialogOpen(true)}
+            >
+              <X className="mr-2 h-4 w-4" />
+              Annuler la réservation
+            </Button>
           )}
         </div>
       </div>

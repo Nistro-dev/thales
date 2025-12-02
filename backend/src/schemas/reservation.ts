@@ -45,6 +45,7 @@ export const listReservationsSchema = z.object({
   productId: z.string().uuid().optional(),
   startDateFrom: z.string().optional(),
   startDateTo: z.string().optional(),
+  overdue: z.enum(['checkouts', 'returns']).optional(),
   sortBy: z.enum(['createdAt', 'startDate', 'endDate']).default('startDate'),
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
 })

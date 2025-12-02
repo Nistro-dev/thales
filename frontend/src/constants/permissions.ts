@@ -44,6 +44,13 @@ export const PERMISSIONS = {
 
   // Statistics
   VIEW_STATISTICS: 'VIEW_STATISTICS',
+
+  // Settings
+  VIEW_SETTINGS: 'VIEW_SETTINGS',
+  MANAGE_SETTINGS: 'MANAGE_SETTINGS',
+
+  // Maintenance
+  BYPASS_MAINTENANCE: 'BYPASS_MAINTENANCE',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]

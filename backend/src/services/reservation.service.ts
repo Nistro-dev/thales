@@ -377,6 +377,7 @@ interface ListReservationsParams {
   productId?: string
   startDateFrom?: string
   startDateTo?: string
+  overdue?: 'checkouts' | 'returns' // Filter for overdue reservations
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -390,11 +391,14 @@ export const listReservations = async (params: ListReservationsParams, forUserId
     productId,
     startDateFrom,
     startDateTo,
+    overdue,
     sortBy = 'startDate',
     sortOrder = 'asc',
   } = params
 
   const where: any = {}
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
   if (forUserId) {
     where.userId = forUserId
@@ -402,18 +406,30 @@ export const listReservations = async (params: ListReservationsParams, forUserId
     where.userId = userId
   }
 
-  if (status) {
-    where.status = status
+  // Handle overdue filter
+  if (overdue === 'checkouts') {
+    // Overdue checkouts: CONFIRMED status with startDate < today
+    where.status = 'CONFIRMED'
+    where.startDate = { lt: today }
+  } else if (overdue === 'returns') {
+    // Overdue returns: CHECKED_OUT status with endDate < today
+    where.status = 'CHECKED_OUT'
+    where.endDate = { lt: today }
+  } else {
+    // Normal filters
+    if (status) {
+      where.status = status
+    }
+
+    if (startDateFrom || startDateTo) {
+      where.startDate = {}
+      if (startDateFrom) where.startDate.gte = new Date(startDateFrom)
+      if (startDateTo) where.startDate.lte = new Date(startDateTo)
+    }
   }
 
   if (productId) {
     where.productId = productId
-  }
-
-  if (startDateFrom || startDateTo) {
-    where.startDate = {}
-    if (startDateFrom) where.startDate.gte = new Date(startDateFrom)
-    if (startDateTo) where.startDate.lte = new Date(startDateTo)
   }
 
   const [reservations, total] = await Promise.all([
@@ -788,7 +804,7 @@ export const checkoutReservation = async (params: CheckoutParams) => {
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    include: { product: { select: { id: true, name: true } } },
+    include: { product: { select: { id: true, name: true, status: true } } },
   })
 
   if (!reservation) {
@@ -803,11 +819,30 @@ export const checkoutReservation = async (params: CheckoutParams) => {
     }
   }
 
+  // Check if this is an early checkout (before startDate)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const startDate = new Date(reservation.startDate)
+  startDate.setHours(0, 0, 0, 0)
+  const isEarlyCheckout = today < startDate
+
   // Build adminNotes with checkout notes if provided
   let updatedAdminNotes = reservation.adminNotes || ''
   if (notes) {
     const checkoutNote = `[RETRAIT] ${notes}`
     updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${checkoutNote}` : checkoutNote
+  }
+  if (isEarlyCheckout) {
+    const earlyNote = `[RETRAIT ANTICIPÉ] Produit sorti avant la date prévue`
+    updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${earlyNote}` : earlyNote
+  }
+
+  // If early checkout, mark product as UNAVAILABLE
+  if (isEarlyCheckout && reservation.product.status === 'AVAILABLE') {
+    await prisma.product.update({
+      where: { id: reservation.productId },
+      data: { status: 'UNAVAILABLE' },
+    })
   }
 
   const updated = await prisma.reservation.update({
@@ -816,7 +851,7 @@ export const checkoutReservation = async (params: CheckoutParams) => {
       status: 'CHECKED_OUT',
       checkedOutAt: new Date(),
       checkedOutBy: adminId,
-      ...(notes && { adminNotes: updatedAdminNotes }),
+      adminNotes: updatedAdminNotes || undefined,
     },
     include: {
       user: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -873,7 +908,7 @@ export const returnReservation = async (params: ReturnParams) => {
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    include: { product: { select: { id: true, name: true } } },
+    include: { product: { select: { id: true, name: true, status: true } } },
   })
 
   if (!reservation) {
@@ -893,6 +928,14 @@ export const returnReservation = async (params: ReturnParams) => {
   if (notes) {
     const returnNote = `[RETOUR] ${notes}`
     updatedAdminNotes = updatedAdminNotes ? `${updatedAdminNotes}\n${returnNote}` : returnNote
+  }
+
+  // If product was marked UNAVAILABLE (early checkout), restore to AVAILABLE
+  if (reservation.product.status === 'UNAVAILABLE') {
+    await prisma.product.update({
+      where: { id: reservation.productId },
+      data: { status: 'AVAILABLE' },
+    })
   }
 
   const updated = await prisma.reservation.update({

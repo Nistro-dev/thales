@@ -14,9 +14,8 @@ import {
   InviteUserDialog,
   CreditAdjustmentDialog,
   SuspendUserDialog,
-  DeleteUserDialog,
 } from '../components'
-import { useUsers, useUpdateUserStatus } from '../hooks/useUsers'
+import { useUsers, useDisableUser, useReactivateUser } from '../hooks/useUsers'
 import { useAuthStore } from '@/stores/auth.store'
 import { PERMISSIONS } from '@/constants/permissions'
 import type { UserStatus, CautionStatus, UserListItem } from '@/api/users.api'
@@ -27,9 +26,9 @@ export function AdminUsersPage() {
   const { hasPermission } = useAuthStore()
   const canManageUsers = hasPermission(PERMISSIONS.MANAGE_USERS)
 
-  // Filters state
+  // Filters state - default to ACTIVE users
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState<UserStatus | ''>('')
+  const [status, setStatus] = useState<UserStatus | 'ALL'>('ACTIVE')
   const [cautionStatus, setCautionStatus] = useState<CautionStatus | ''>('')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
@@ -38,7 +37,7 @@ export function AdminUsersPage() {
   const filters = useMemo(
     () => ({
       ...(search && { search }),
-      ...(status && { status }),
+      ...(status && status !== 'ALL' && { status }),
       ...(cautionStatus && { cautionStatus }),
       page,
       limit,
@@ -54,13 +53,14 @@ export function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null)
   const [creditDialogOpen, setCreditDialogOpen] = useState(false)
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-  const updateStatus = useUpdateUserStatus()
+  // Mutations
+  const disableUser = useDisableUser()
+  const reactivateUser = useReactivateUser()
 
   const handleClearFilters = () => {
     setSearch('')
-    setStatus('')
+    setStatus('ACTIVE')
     setCautionStatus('')
     setPage(1)
   }
@@ -70,13 +70,12 @@ export function AdminUsersPage() {
     setSuspendDialogOpen(true)
   }
 
-  const handleActivate = async (user: UserListItem) => {
-    await updateStatus.mutateAsync({ id: user.id, status: 'ACTIVE' })
+  const handleDisable = async (user: UserListItem) => {
+    await disableUser.mutateAsync(user.id)
   }
 
-  const handleDelete = (user: UserListItem) => {
-    setSelectedUser(user)
-    setDeleteDialogOpen(true)
+  const handleReactivate = async (user: UserListItem) => {
+    await reactivateUser.mutateAsync(user.id)
   }
 
   const handleAdjustCredits = (user: UserListItem) => {
@@ -140,8 +139,8 @@ export function AdminUsersPage() {
         users={data?.users || []}
         isLoading={isLoading}
         onSuspend={handleSuspend}
-        onActivate={handleActivate}
-        onDelete={handleDelete}
+        onDisable={handleDisable}
+        onReactivate={handleReactivate}
         onAdjustCredits={handleAdjustCredits}
       />
 
@@ -208,12 +207,6 @@ export function AdminUsersPage() {
       <SuspendUserDialog
         open={suspendDialogOpen}
         onOpenChange={setSuspendDialogOpen}
-        user={selectedUser}
-      />
-
-      <DeleteUserDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
         user={selectedUser}
       />
     </div>

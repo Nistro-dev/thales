@@ -13,8 +13,8 @@ import type { UserStatus, CautionStatus } from '@/api/users.api'
 interface UserFiltersProps {
   search: string
   onSearchChange: (value: string) => void
-  status: UserStatus | ''
-  onStatusChange: (value: UserStatus | '') => void
+  status: UserStatus | 'ALL'
+  onStatusChange: (value: UserStatus | 'ALL') => void
   cautionStatus: CautionStatus | ''
   onCautionStatusChange: (value: CautionStatus | '') => void
   onClearFilters: () => void
@@ -29,7 +29,7 @@ export function UserFilters({
   onCautionStatusChange,
   onClearFilters,
 }: UserFiltersProps) {
-  const hasFilters = search || status || cautionStatus
+  const hasFilters = search || status !== 'ACTIVE' || cautionStatus
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -44,14 +44,14 @@ export function UserFilters({
       </div>
 
       <Select
-        value={status || 'all'}
-        onValueChange={(v) => onStatusChange(v === 'all' ? '' : (v as UserStatus))}
+        value={status}
+        onValueChange={(v) => onStatusChange(v as UserStatus | 'ALL')}
       >
         <SelectTrigger className="w-full sm:w-40">
           <SelectValue placeholder="Statut" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Tous les statuts</SelectItem>
+          <SelectItem value="ALL">Tous les statuts</SelectItem>
           <SelectItem value="ACTIVE">Actif</SelectItem>
           <SelectItem value="SUSPENDED">Suspendu</SelectItem>
           <SelectItem value="DISABLED">Désactivé</SelectItem>

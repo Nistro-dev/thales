@@ -400,12 +400,25 @@ export const revokeRole = async (params: RevokeRoleParams) => {
     }
   }
 
-  // Prevent revocation of the "User" role
-  if (userRole.role.name === 'User') {
+  // Prevent revocation of the default "Utilisateur" role (system role)
+  if (userRole.role.name === 'Utilisateur' || (userRole.role.isSystem && userRole.role.name.toLowerCase() === 'utilisateur')) {
     throw {
       statusCode: 403,
-      message: 'Impossible de révoquer le rôle User. Tous les utilisateurs doivent avoir ce rôle.',
-      code: 'FORBIDDEN',
+      message: 'Impossible de révoquer le rôle Utilisateur. Tous les utilisateurs doivent avoir ce rôle.',
+      code: 'CANNOT_REVOKE_DEFAULT_ROLE',
+    }
+  }
+
+  // Ensure user has at least one role remaining
+  const userRoleCount = await prisma.userRole.count({
+    where: { userId: params.userId },
+  })
+
+  if (userRoleCount <= 1) {
+    throw {
+      statusCode: 403,
+      message: 'Impossible de révoquer le dernier rôle d\'un utilisateur.',
+      code: 'CANNOT_REVOKE_LAST_ROLE',
     }
   }
 

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal } from 'lucide-react'
+import { Calendar, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, Clock } from 'lucide-react'
 import { ReservationCardSkeleton } from '../components/ReservationCardSkeleton'
 import { ReservationFiltersSkeleton } from '../components/ReservationFiltersSkeleton'
 import { CheckoutDialog } from '../components/CheckoutDialog'
@@ -38,7 +38,7 @@ interface DialogState {
 }
 
 export function AdminReservationsPage() {
-  const [activeTab, setActiveTab] = useState<'all' | 'checkouts' | 'returns'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'checkouts' | 'returns' | 'overdue'>('all')
   const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'startDate' | 'createdAt' | 'endDate'>('startDate')
@@ -49,6 +49,8 @@ export function AdminReservationsPage() {
   const [dialogState, setDialogState] = useState<DialogState>({ type: null, reservation: null })
 
   const today = new Date().toISOString().split('T')[0]
+
+  const [overdueType, setOverdueType] = useState<'checkouts' | 'returns'>('checkouts')
 
   const getFilters = (): ReservationFilters => {
     const baseFilters: ReservationFilters = {
@@ -72,6 +74,14 @@ export function AdminReservationsPage() {
         status: 'CHECKED_OUT',
         startDateFrom: today,
         startDateTo: today,
+      }
+    }
+
+    if (activeTab === 'overdue') {
+      return {
+        sortBy,
+        sortOrder,
+        overdue: overdueType,
       }
     }
 
@@ -182,13 +192,41 @@ export function AdminReservationsPage() {
         setPage(1)
         setStatusFilter('all')
       }}>
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-xl grid-cols-4">
           <TabsTrigger value="all">Toutes</TabsTrigger>
           <TabsTrigger value="checkouts">Sorties du jour</TabsTrigger>
           <TabsTrigger value="returns">Retours du jour</TabsTrigger>
+          <TabsTrigger value="overdue" className="text-destructive data-[state=active]:text-destructive">
+            <Clock className="mr-1 h-4 w-4" />
+            En retard
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-6">
+          {/* Overdue Type Filter */}
+          {activeTab === 'overdue' && (
+            <Card className="p-4">
+              <div className="flex items-center gap-4">
+                <Label>Type de retard :</Label>
+                <Select
+                  value={overdueType}
+                  onValueChange={(value) => {
+                    setOverdueType(value as 'checkouts' | 'returns')
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="checkouts">Sorties en retard</SelectItem>
+                    <SelectItem value="returns">Retours en retard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
+          )}
+
           {/* Filters */}
           {activeTab === 'all' && (
             isLoading ? (
@@ -351,15 +389,23 @@ export function AdminReservationsPage() {
               {filteredReservations.length === 0 ? (
                 <Card className="p-12">
                   <div className="flex flex-col items-center gap-4 text-center">
-                    <Calendar className="h-16 w-16 text-muted-foreground" />
+                    {activeTab === 'overdue' ? (
+                      <CheckCircle className="h-16 w-16 text-green-500" />
+                    ) : (
+                      <Calendar className="h-16 w-16 text-muted-foreground" />
+                    )}
                     <div>
-                      <p className="text-lg font-semibold">Aucune réservation</p>
+                      <p className="text-lg font-semibold">
+                        {activeTab === 'overdue' ? 'Aucun retard' : 'Aucune réservation'}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {activeTab === 'checkouts' && "Aucune sortie prévue aujourd'hui"}
                         {activeTab === 'returns' && "Aucun retour prévu aujourd'hui"}
+                        {activeTab === 'overdue' && overdueType === 'checkouts' && "Aucune sortie en retard"}
+                        {activeTab === 'overdue' && overdueType === 'returns' && "Aucun retour en retard"}
                         {activeTab === 'all' && hasActiveFilters
                           ? "Aucune réservation ne correspond à vos filtres"
-                          : "Aucune réservation trouvée"}
+                          : activeTab === 'all' && "Aucune réservation trouvée"}
                       </p>
                     </div>
                     {hasActiveFilters && activeTab === 'all' && (

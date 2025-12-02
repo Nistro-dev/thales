@@ -8,6 +8,7 @@ import { env } from './config/env.js'
 import { logger } from './utils/logger.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 import { registerRoutes } from './routes/index.js'
+import { startAllJobs, stopAllJobs } from './jobs/index.js'
 
 const fastify = Fastify({
   logger: false,
@@ -91,6 +92,9 @@ const start = async (): Promise<void> => {
 
     await fastify.listen({ port: env.PORT, host: '0.0.0.0' })
 
+    // Start scheduled jobs
+    startAllJobs()
+
     logger.info(`Server running on port ${env.PORT}`)
     logger.info(`Environment: ${env.NODE_ENV}`)
   } catch (error) {
@@ -101,6 +105,7 @@ const start = async (): Promise<void> => {
 
 const shutdown = async (): Promise<void> => {
   logger.info('Shutting down server...')
+  stopAllJobs()
   await fastify.close()
   process.exit(0)
 }

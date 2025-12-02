@@ -39,6 +39,9 @@ const AdminProductNewPage = lazy(() => import('@/features/products/pages/AdminPr
 // Roles admin page
 const AdminRolesPage = lazy(() => import('@/features/roles/pages/AdminRolesPage').then(m => ({ default: m.AdminRolesPage })))
 
+// Settings admin page
+const AdminSettingsPage = lazy(() => import('@/features/settings').then(m => ({ default: m.AdminSettingsPage })))
+
 export const router = createBrowserRouter([
 
   {
@@ -201,6 +204,15 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.ADMIN_STATISTICS,
                 element: <LazyPage><AdminStatsPage /></LazyPage>,
+              },
+            ],
+          },
+          {
+            element: <RequireAuth permissions={[PERMISSIONS.VIEW_SETTINGS]} />,
+            children: [
+              {
+                path: ROUTES.ADMIN_SETTINGS,
+                element: <LazyPage><AdminSettingsPage /></LazyPage>,
               },
             ],
           },

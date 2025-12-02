@@ -36,6 +36,7 @@ export const ROUTES = {
   ADMIN_STATISTICS: '/admin/statistics',
   ADMIN_AUDIT: '/admin/audit',
   ADMIN_FILES: '/admin/files',
+  ADMIN_SETTINGS: '/admin/settings',
 } as const
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES]

@@ -129,6 +129,14 @@ apiClient.interceptors.response.use(
       const errorCode = (data as any)?.error?.code
 
       // Handle specific error codes first
+      if (errorCode === 'ACCOUNT_DISABLED') {
+        toast.error('Votre compte a été désactivé. Veuillez contacter un administrateur.', {
+          duration: 5000,
+          icon: '🚫',
+        })
+        return Promise.reject(error)
+      }
+
       if (errorCode === 'ACCOUNT_SUSPENDED') {
         toast.error('Votre compte a été suspendu. Veuillez contacter un administrateur.', {
           duration: 5000,

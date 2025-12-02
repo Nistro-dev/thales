@@ -209,6 +209,7 @@ export interface ReservationFilters {
   productId?: string
   startDateFrom?: string
   startDateTo?: string
+  overdue?: 'checkouts' | 'returns'
   sortBy?: 'createdAt' | 'startDate' | 'endDate'
   sortOrder?: 'asc' | 'desc'
 }

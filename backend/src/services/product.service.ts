@@ -2,6 +2,7 @@
 
 import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
+import { createMovement } from './movement.service.js'
 import { getSignedDownloadUrl } from '../utils/s3.js'
 import { FastifyRequest } from 'fastify'
 import type { ProductStatus } from '@prisma/client'
@@ -220,7 +221,7 @@ export const createProduct = async (
       priceCredits: data.priceCredits,
       creditPeriod: data.creditPeriod ?? 'DAY',
       minDuration: data.minDuration ?? 1,
-      maxDuration: data.maxDuration ?? 14,
+      maxDuration: data.maxDuration ?? 0, // 0 = unlimited
       sectionId: data.sectionId,
       subSectionId: data.subSectionId,
       attributes: data.attributes ? { create: data.attributes } : undefined,
@@ -353,9 +354,19 @@ export const changeProductStatus = async (
     throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
+  const oldStatus = product.status
+
   const updated = await prisma.product.update({
     where: { id },
     data: { status },
+  })
+
+  // Create a movement record for status change
+  await createMovement({
+    productId: id,
+    type: 'STATUS_CHANGE',
+    notes: `Changement de statut: ${oldStatus} → ${status}`,
+    performedBy,
   })
 
   await logAudit({
@@ -363,7 +374,7 @@ export const changeProductStatus = async (
     action: 'PRODUCT_STATUS_CHANGE',
     targetType: 'Product',
     targetId: id,
-    metadata: { oldStatus: product.status, newStatus: status },
+    metadata: { oldStatus, newStatus: status },
   })
 
   return updated

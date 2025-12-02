@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   CheckCircle,
@@ -15,8 +15,9 @@ import {
   Bell,
   X,
   Check,
-} from 'lucide-react'
-import type { Notification, NotificationType } from '@/api/notifications.api'
+  Loader2,
+} from "lucide-react";
+import type { Notification, NotificationType } from "@/api/notifications.api";
 
 const typeIcons: Record<NotificationType, React.ElementType> = {
   RESERVATION_CONFIRMED: CheckCircle,
@@ -32,30 +33,31 @@ const typeIcons: Record<NotificationType, React.ElementType> = {
   CREDIT_REMOVED: Coins,
   ACCOUNT_ACTIVATED: Shield,
   PASSWORD_CHANGED: Lock,
-}
+};
 
 const typeColors: Record<NotificationType, string> = {
-  RESERVATION_CONFIRMED: 'text-green-500',
-  RESERVATION_CANCELLED: 'text-red-500',
-  RESERVATION_REFUNDED: 'text-blue-500',
-  RESERVATION_CHECKOUT: 'text-orange-500',
-  RESERVATION_RETURN: 'text-green-500',
-  RESERVATION_REMINDER: 'text-yellow-500',
-  RESERVATION_EXTENDED: 'text-blue-500',
-  RESERVATION_OVERDUE: 'text-red-500',
-  RESERVATION_EXPIRED: 'text-gray-500',
-  CREDIT_ADDED: 'text-green-500',
-  CREDIT_REMOVED: 'text-red-500',
-  ACCOUNT_ACTIVATED: 'text-green-500',
-  PASSWORD_CHANGED: 'text-blue-500',
-}
+  RESERVATION_CONFIRMED: "text-green-500",
+  RESERVATION_CANCELLED: "text-red-500",
+  RESERVATION_REFUNDED: "text-blue-500",
+  RESERVATION_CHECKOUT: "text-orange-500",
+  RESERVATION_RETURN: "text-green-500",
+  RESERVATION_REMINDER: "text-yellow-500",
+  RESERVATION_EXTENDED: "text-blue-500",
+  RESERVATION_OVERDUE: "text-red-500",
+  RESERVATION_EXPIRED: "text-gray-500",
+  CREDIT_ADDED: "text-green-500",
+  CREDIT_REMOVED: "text-red-500",
+  ACCOUNT_ACTIVATED: "text-green-500",
+  PASSWORD_CHANGED: "text-blue-500",
+};
 
 interface NotificationItemProps {
-  notification: Notification
-  onClick?: () => void
-  onMarkAsRead?: (id: string) => void
-  onDelete?: (id: string) => void
-  showActions?: boolean
+  notification: Notification;
+  onClick?: () => void;
+  onMarkAsRead?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  showActions?: boolean;
+  isDeleting?: boolean;
 }
 
 export function NotificationItem({
@@ -64,52 +66,62 @@ export function NotificationItem({
   onMarkAsRead,
   onDelete,
   showActions = false,
+  isDeleting = false,
 }: NotificationItemProps) {
-  const Icon = typeIcons[notification.type] || Bell
-  const iconColor = typeColors[notification.type] || 'text-muted-foreground'
+  const Icon = typeIcons[notification.type] || Bell;
+  const iconColor = typeColors[notification.type] || "text-muted-foreground";
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / (1000 * 60))
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffMins < 1) return "À l'instant"
-    if (diffMins < 60) return `Il y a ${diffMins} min`
-    if (diffHours < 24) return `Il y a ${diffHours}h`
-    if (diffDays < 7) return `Il y a ${diffDays}j`
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-  }
+    if (diffMins < 1) return "À l'instant";
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays < 7) return `Il y a ${diffDays}j`;
+    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
 
   const handleMarkAsRead = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onMarkAsRead?.(notification.id)
-  }
+    e.stopPropagation();
+    onMarkAsRead?.(notification.id);
+  };
 
   const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onDelete?.(notification.id)
-  }
+    e.stopPropagation();
+    onDelete?.(notification.id);
+  };
 
   return (
     <div
       className={cn(
-        'flex gap-3 p-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-md group',
-        !notification.read && 'bg-accent/30'
+        "flex gap-3 p-3 cursor-pointer hover:bg-accent/50 transition-colors rounded-md group",
+        !notification.read && "bg-accent/30",
       )}
       onClick={onClick}
     >
-      <div className={cn('mt-0.5', iconColor)}>
+      <div className={cn("mt-0.5", iconColor)}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn('text-sm font-medium', !notification.read && 'font-semibold')}>
+        <p
+          className={cn(
+            "text-sm font-medium",
+            !notification.read && "font-semibold",
+          )}
+        >
           {notification.title}
         </p>
-        <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-        <p className="text-xs text-muted-foreground mt-1">{formatDate(notification.createdAt)}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {notification.message}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {formatDate(notification.createdAt)}
+        </p>
       </div>
       {showActions && (
         <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -130,9 +142,14 @@ export function NotificationItem({
               size="icon"
               className="h-7 w-7"
               onClick={handleDelete}
+              disabled={isDeleting}
               title="Supprimer"
             >
-              <X className="h-4 w-4 text-destructive" />
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <X className="h-4 w-4 text-destructive" />
+              )}
             </Button>
           )}
         </div>
@@ -143,5 +160,5 @@ export function NotificationItem({
         </div>
       )}
     </div>
-  )
+  );
 }

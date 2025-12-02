@@ -1,114 +1,140 @@
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { useAdminReservation, useCheckoutReservation, useReturnReservation, useCancelReservation, useRefundReservation } from '../hooks/useReservations'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Calendar, Package, CreditCard, FileText, AlertCircle, UserCircle, CheckCircle, RotateCcw, X, RefreshCcw, Loader2 } from 'lucide-react'
-import { ReservationDetailSkeleton } from '../components/ReservationDetailSkeleton'
-import { CheckoutDialog } from '../components/CheckoutDialog'
-import { ReturnDialog } from '../components/ReturnDialog'
-import { AdminCancelDialog } from '../components/AdminCancelDialog'
-import { RefundDialog } from '../components/RefundDialog'
-import type { ReservationStatus, ProductCondition } from '@/types'
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  useAdminReservation,
+  useCheckoutReservation,
+  useReturnReservation,
+  useCancelReservation,
+  useRefundReservation,
+} from "../hooks/useReservations";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  ArrowLeft,
+  Calendar,
+  Package,
+  CreditCard,
+  FileText,
+  AlertCircle,
+  UserCircle,
+  CheckCircle,
+  RotateCcw,
+  X,
+  RefreshCcw,
+  Loader2,
+} from "lucide-react";
+import { ReservationDetailSkeleton } from "../components/ReservationDetailSkeleton";
+import { CheckoutDialog } from "../components/CheckoutDialog";
+import { ReturnDialog } from "../components/ReturnDialog";
+import { AdminCancelDialog } from "../components/AdminCancelDialog";
+import { RefundDialog } from "../components/RefundDialog";
+import type { ReservationStatus, ProductCondition } from "@/types";
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: 'Confirmée',
-  CHECKED_OUT: 'En cours',
-  RETURNED: 'Terminée',
-  CANCELLED: 'Annulée',
-  REFUNDED: 'Remboursée',
-}
+  CONFIRMED: "Confirmée",
+  CHECKED_OUT: "En cours",
+  RETURNED: "Terminée",
+  CANCELLED: "Annulée",
+  REFUNDED: "Remboursée",
+};
 
-const statusColors: Record<ReservationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  CONFIRMED: 'default',
-  CHECKED_OUT: 'default',
-  RETURNED: 'outline',
-  CANCELLED: 'destructive',
-  REFUNDED: 'outline',
-}
+const statusColors: Record<
+  ReservationStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  CONFIRMED: "default",
+  CHECKED_OUT: "default",
+  RETURNED: "outline",
+  CANCELLED: "destructive",
+  REFUNDED: "outline",
+};
 
-type DialogType = 'checkout' | 'return' | 'cancel' | 'refund' | null
+type DialogType = "checkout" | "return" | "cancel" | "refund" | null;
 
 export function AdminReservationDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const { data: reservation, isLoading, isError } = useAdminReservation(id!)
-  const checkoutMutation = useCheckoutReservation()
-  const returnMutation = useReturnReservation()
-  const cancelMutation = useCancelReservation()
-  const refundMutation = useRefundReservation()
-  const [dialogType, setDialogType] = useState<DialogType>(null)
+  const { id } = useParams<{ id: string }>();
+  const { data: reservation, isLoading, isError } = useAdminReservation(id!);
+  const checkoutMutation = useCheckoutReservation();
+  const returnMutation = useReturnReservation();
+  const cancelMutation = useCancelReservation();
+  const refundMutation = useRefundReservation();
+  const [dialogType, setDialogType] = useState<DialogType>(null);
 
   const handleCheckout = async (notes?: string) => {
     try {
-      await checkoutMutation.mutateAsync({ id: id!, notes })
-      setDialogType(null)
+      await checkoutMutation.mutateAsync({ id: id!, notes });
+      setDialogType(null);
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const handleReturn = async (condition: ProductCondition, notes?: string) => {
     try {
       await returnMutation.mutateAsync({
         id: id!,
         data: { condition, notes },
-      })
-      setDialogType(null)
+      });
+      setDialogType(null);
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const handleCancel = async (reason?: string) => {
     try {
-      await cancelMutation.mutateAsync({ id: id!, reason })
-      setDialogType(null)
+      await cancelMutation.mutateAsync({ id: id!, reason });
+      setDialogType(null);
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const handleRefund = async (amount?: number, reason?: string) => {
     try {
-      await refundMutation.mutateAsync({ id: id!, amount, reason })
-      setDialogType(null)
+      await refundMutation.mutateAsync({ id: id!, amount, reason });
+      setDialogType(null);
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const calculateDuration = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return diffDays
-  }
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
 
-  const isActionPending = checkoutMutation.isPending || returnMutation.isPending || cancelMutation.isPending || refundMutation.isPending
+  const isActionPending =
+    checkoutMutation.isPending ||
+    returnMutation.isPending ||
+    cancelMutation.isPending ||
+    refundMutation.isPending;
 
   if (isLoading) {
-    return <ReservationDetailSkeleton />
+    return <ReservationDetailSkeleton />;
   }
 
   if (isError || !reservation) {
@@ -118,7 +144,9 @@ export function AdminReservationDetailPage() {
           <div className="flex flex-col items-center gap-4 text-center">
             <AlertCircle className="h-12 w-12 text-destructive" />
             <div>
-              <p className="text-lg font-semibold text-destructive">Réservation introuvable</p>
+              <p className="text-lg font-semibold text-destructive">
+                Réservation introuvable
+              </p>
               <p className="text-sm text-muted-foreground">
                 Cette réservation n'existe pas ou vous n'y avez pas accès
               </p>
@@ -129,13 +157,16 @@ export function AdminReservationDetailPage() {
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
-  const canCheckout = reservation.status === 'CONFIRMED'
-  const canReturn = reservation.status === 'CHECKED_OUT'
-  const canCancel = reservation.status === 'CONFIRMED'
-  const canRefund = reservation.status === 'CANCELLED' || reservation.status === 'RETURNED'
+  const canCheckout = reservation.status === "CONFIRMED";
+  const canReturn = reservation.status === "CHECKED_OUT";
+  const canCancel = reservation.status === "CONFIRMED";
+  // Can refund if CANCELLED or RETURNED, but not already refunded
+  const canRefund =
+    (reservation.status === "CANCELLED" || reservation.status === "RETURNED") &&
+    !reservation.refundedAt;
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -150,10 +181,17 @@ export function AdminReservationDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Détail de la réservation</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground break-all">#{reservation.id}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            Détail de la réservation
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground break-all">
+            #{reservation.id}
+          </p>
         </div>
-        <Badge variant={statusColors[reservation.status]} className="text-sm sm:text-base self-start">
+        <Badge
+          variant={statusColors[reservation.status]}
+          className="text-sm sm:text-base self-start"
+        >
           {statusLabels[reservation.status]}
         </Badge>
       </div>
@@ -179,7 +217,9 @@ export function AdminReservationDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium">Email</p>
-                  <p className="text-muted-foreground">{reservation.user.email}</p>
+                  <p className="text-muted-foreground">
+                    {reservation.user.email}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -196,7 +236,7 @@ export function AdminReservationDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-semibold text-lg">
-                  {reservation.product?.name || 'Produit'}
+                  {reservation.product?.name || "Produit"}
                 </h3>
                 {reservation.product?.reference && (
                   <p className="text-sm text-muted-foreground">
@@ -208,7 +248,9 @@ export function AdminReservationDetailPage() {
               {reservation.product?.description && (
                 <>
                   <Separator />
-                  <p className="text-sm text-muted-foreground">{reservation.product.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {reservation.product.description}
+                  </p>
                 </>
               )}
 
@@ -233,11 +275,15 @@ export function AdminReservationDetailPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Date de sortie</p>
-                  <p className="text-muted-foreground">{formatDate(reservation.startDate)}</p>
+                  <p className="text-muted-foreground">
+                    {formatDate(reservation.startDate)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Date de retour</p>
-                  <p className="text-muted-foreground">{formatDate(reservation.endDate)}</p>
+                  <p className="text-muted-foreground">
+                    {formatDate(reservation.endDate)}
+                  </p>
                 </div>
               </div>
 
@@ -246,7 +292,11 @@ export function AdminReservationDetailPage() {
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Durée totale</span>
                 <span className="text-muted-foreground">
-                  {calculateDuration(reservation.startDate, reservation.endDate)} jours
+                  {calculateDuration(
+                    reservation.startDate,
+                    reservation.endDate,
+                  )}{" "}
+                  jours
                 </span>
               </div>
             </CardContent>
@@ -264,28 +314,50 @@ export function AdminReservationDetailPage() {
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-medium">Total</span>
                 <div className="text-right">
-                  <span className="text-2xl font-bold">{reservation.creditsCharged}</span>
+                  <span className="text-2xl font-bold">
+                    {reservation.creditsCharged}
+                  </span>
                   <span className="text-muted-foreground ml-1">crédits</span>
                 </div>
               </div>
 
-              {reservation.status === 'REFUNDED' && reservation.refundAmount !== null && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="flex items-baseline justify-between text-green-600">
-                    <span className="text-sm font-medium">Montant remboursé</span>
-                    <div className="text-right">
-                      <span className="text-xl font-bold">{reservation.refundAmount}</span>
-                      <span className="ml-1">crédits</span>
+              {reservation.refundAmount !== null &&
+                reservation.refundAmount > 0 && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="flex items-baseline justify-between text-green-600">
+                      <span className="text-sm font-medium">
+                        Montant remboursé
+                      </span>
+                      <div className="text-right">
+                        <span className="text-xl font-bold">
+                          {reservation.refundAmount}
+                        </span>
+                        <span className="ml-1">crédits</span>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+
+              {reservation.status === "CANCELLED" &&
+                !reservation.refundedAt && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="flex items-baseline justify-between text-orange-600">
+                      <span className="text-sm font-medium">Non remboursé</span>
+                      <div className="text-right text-sm text-muted-foreground">
+                        Annulation hors délai
+                      </div>
+                    </div>
+                  </>
+                )}
             </CardContent>
           </Card>
 
           {/* Notes */}
-          {(reservation.notes || reservation.adminNotes || reservation.cancelReason) && (
+          {(reservation.notes ||
+            reservation.adminNotes ||
+            reservation.cancelReason) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -296,8 +368,12 @@ export function AdminReservationDetailPage() {
               <CardContent className="space-y-4">
                 {reservation.notes && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Notes utilisateur</p>
-                    <p className="text-sm text-muted-foreground italic">{reservation.notes}</p>
+                    <p className="text-sm font-medium mb-1">
+                      Notes utilisateur
+                    </p>
+                    <p className="text-sm text-muted-foreground italic">
+                      {reservation.notes}
+                    </p>
                   </div>
                 )}
 
@@ -305,18 +381,28 @@ export function AdminReservationDetailPage() {
                   <>
                     {reservation.notes && <Separator />}
                     <div>
-                      <p className="text-sm font-medium mb-1">Notes administrateur</p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">{reservation.adminNotes}</p>
+                      <p className="text-sm font-medium mb-1">
+                        Notes administrateur
+                      </p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {reservation.adminNotes}
+                      </p>
                     </div>
                   </>
                 )}
 
                 {reservation.cancelReason && (
                   <>
-                    {(reservation.notes || reservation.adminNotes) && <Separator />}
+                    {(reservation.notes || reservation.adminNotes) && (
+                      <Separator />
+                    )}
                     <div className="rounded-lg bg-destructive/10 p-3">
-                      <p className="text-sm font-medium text-destructive mb-1">Motif d'annulation</p>
-                      <p className="text-sm text-muted-foreground">{reservation.cancelReason}</p>
+                      <p className="text-sm font-medium text-destructive mb-1">
+                        Motif d'annulation
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {reservation.cancelReason}
+                      </p>
                     </div>
                   </>
                 )}
@@ -337,7 +423,7 @@ export function AdminReservationDetailPage() {
                 {canCheckout && (
                   <Button
                     className="w-full"
-                    onClick={() => setDialogType('checkout')}
+                    onClick={() => setDialogType("checkout")}
                     disabled={isActionPending}
                   >
                     {checkoutMutation.isPending ? (
@@ -352,7 +438,7 @@ export function AdminReservationDetailPage() {
                 {canReturn && (
                   <Button
                     className="w-full"
-                    onClick={() => setDialogType('return')}
+                    onClick={() => setDialogType("return")}
                     disabled={isActionPending}
                   >
                     {returnMutation.isPending ? (
@@ -368,7 +454,7 @@ export function AdminReservationDetailPage() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => setDialogType('refund')}
+                    onClick={() => setDialogType("refund")}
                     disabled={isActionPending}
                   >
                     {refundMutation.isPending ? (
@@ -384,7 +470,7 @@ export function AdminReservationDetailPage() {
                   <Button
                     variant="destructive"
                     className="w-full"
-                    onClick={() => setDialogType('cancel')}
+                    onClick={() => setDialogType("cancel")}
                     disabled={isActionPending}
                   >
                     {cancelMutation.isPending ? (
@@ -408,7 +494,9 @@ export function AdminReservationDetailPage() {
               <div className="space-y-2 text-sm">
                 <div>
                   <p className="font-medium">Créée</p>
-                  <p className="text-muted-foreground">{formatDateTime(reservation.createdAt)}</p>
+                  <p className="text-muted-foreground">
+                    {formatDateTime(reservation.createdAt)}
+                  </p>
                 </div>
 
                 {reservation.checkedOutAt && (
@@ -416,7 +504,9 @@ export function AdminReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium">Retirée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.checkedOutAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.checkedOutAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -426,7 +516,9 @@ export function AdminReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium">Retournée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.returnedAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.returnedAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -436,7 +528,9 @@ export function AdminReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium text-destructive">Annulée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.cancelledAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.cancelledAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -446,7 +540,9 @@ export function AdminReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium text-green-600">Remboursée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.refundedAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.refundedAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -458,7 +554,7 @@ export function AdminReservationDetailPage() {
 
       {/* Dialogs */}
       <CheckoutDialog
-        open={dialogType === 'checkout'}
+        open={dialogType === "checkout"}
         onOpenChange={(open) => !open && setDialogType(null)}
         onConfirm={handleCheckout}
         productName={reservation.product?.name}
@@ -471,7 +567,7 @@ export function AdminReservationDetailPage() {
       />
 
       <ReturnDialog
-        open={dialogType === 'return'}
+        open={dialogType === "return"}
         onOpenChange={(open) => !open && setDialogType(null)}
         onConfirm={handleReturn}
         productName={reservation.product?.name}
@@ -484,7 +580,7 @@ export function AdminReservationDetailPage() {
       />
 
       <AdminCancelDialog
-        open={dialogType === 'cancel'}
+        open={dialogType === "cancel"}
         onOpenChange={(open) => !open && setDialogType(null)}
         onConfirm={handleCancel}
         productName={reservation.product?.name}
@@ -497,7 +593,7 @@ export function AdminReservationDetailPage() {
       />
 
       <RefundDialog
-        open={dialogType === 'refund'}
+        open={dialogType === "refund"}
         onOpenChange={(open) => !open && setDialogType(null)}
         onConfirm={handleRefund}
         productName={reservation.product?.name}
@@ -510,5 +606,5 @@ export function AdminReservationDetailPage() {
         isLoading={refundMutation.isPending}
       />
     </div>
-  )
+  );
 }

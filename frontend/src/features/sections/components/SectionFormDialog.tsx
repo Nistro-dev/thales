@@ -1,53 +1,61 @@
-import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useCreateSection, useUpdateSection } from '../hooks/useSectionsAdmin'
-import type { Section } from '@/types'
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useCreateSection, useUpdateSection } from "../hooks/useSectionsAdmin";
+import type { Section } from "@/types";
 
 // Schema
 const sectionSchema = z.object({
-  name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères').max(100),
+  name: z
+    .string()
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(100),
   description: z.string().max(500).optional(),
   allowedDaysIn: z.array(z.number()).default([1, 2, 3, 4, 5]),
   allowedDaysOut: z.array(z.number()).default([1, 2, 3, 4, 5]),
-})
+  refundDeadlineHours: z.coerce.number().int().min(0).default(48),
+});
 
-type SectionFormData = z.infer<typeof sectionSchema>
+type SectionFormData = z.infer<typeof sectionSchema>;
 
 interface SectionFormDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  section?: Section | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  section?: Section | null;
 }
 
 const DAYS = [
-  { value: 0, label: 'Dim' },
-  { value: 1, label: 'Lun' },
-  { value: 2, label: 'Mar' },
-  { value: 3, label: 'Mer' },
-  { value: 4, label: 'Jeu' },
-  { value: 5, label: 'Ven' },
-  { value: 6, label: 'Sam' },
-]
+  { value: 0, label: "Dim" },
+  { value: 1, label: "Lun" },
+  { value: 2, label: "Mar" },
+  { value: 3, label: "Mer" },
+  { value: 4, label: "Jeu" },
+  { value: 5, label: "Ven" },
+  { value: 6, label: "Sam" },
+];
 
-export function SectionFormDialog({ open, onOpenChange, section }: SectionFormDialogProps) {
-  const createSection = useCreateSection()
-  const updateSection = useUpdateSection()
-  const isEditing = !!section
+export function SectionFormDialog({
+  open,
+  onOpenChange,
+  section,
+}: SectionFormDialogProps) {
+  const createSection = useCreateSection();
+  const updateSection = useUpdateSection();
+  const isEditing = !!section;
 
   const {
     register,
@@ -59,66 +67,74 @@ export function SectionFormDialog({ open, onOpenChange, section }: SectionFormDi
   } = useForm<SectionFormData>({
     resolver: zodResolver(sectionSchema),
     defaultValues: {
-      name: '',
-      description: '',
+      name: "",
+      description: "",
       allowedDaysIn: [1, 2, 3, 4, 5],
       allowedDaysOut: [1, 2, 3, 4, 5],
+      refundDeadlineHours: 48,
     },
-  })
+  });
 
-  const allowedDaysIn = watch('allowedDaysIn')
-  const allowedDaysOut = watch('allowedDaysOut')
+  const allowedDaysIn = watch("allowedDaysIn");
+  const allowedDaysOut = watch("allowedDaysOut");
 
   useEffect(() => {
     if (section) {
       reset({
         name: section.name,
-        description: section.description || '',
+        description: section.description || "",
         allowedDaysIn: section.allowedDaysIn || [1, 2, 3, 4, 5],
         allowedDaysOut: section.allowedDaysOut || [1, 2, 3, 4, 5],
-      })
+        refundDeadlineHours: section.refundDeadlineHours ?? 48,
+      });
     } else {
       reset({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         allowedDaysIn: [1, 2, 3, 4, 5],
         allowedDaysOut: [1, 2, 3, 4, 5],
-      })
+        refundDeadlineHours: 48,
+      });
     }
-  }, [section, reset])
+  }, [section, reset]);
 
-  const toggleDay = (field: 'allowedDaysIn' | 'allowedDaysOut', day: number) => {
-    const current = field === 'allowedDaysIn' ? allowedDaysIn : allowedDaysOut
+  const toggleDay = (
+    field: "allowedDaysIn" | "allowedDaysOut",
+    day: number,
+  ) => {
+    const current = field === "allowedDaysIn" ? allowedDaysIn : allowedDaysOut;
     if (current.includes(day)) {
       setValue(
         field,
-        current.filter((d) => d !== day)
-      )
+        current.filter((d) => d !== day),
+      );
     } else {
-      setValue(field, [...current, day].sort())
+      setValue(field, [...current, day].sort());
     }
-  }
+  };
 
   const onSubmit = async (data: SectionFormData) => {
     try {
       if (isEditing && section) {
-        await updateSection.mutateAsync({ id: section.id, data })
+        await updateSection.mutateAsync({ id: section.id, data });
       } else {
-        await createSection.mutateAsync(data)
+        await createSection.mutateAsync(data);
       }
-      onOpenChange(false)
+      onOpenChange(false);
     } catch {
       // Error handled in hook
     }
-  }
+  };
 
-  const isPending = createSection.isPending || updateSection.isPending
+  const isPending = createSection.isPending || updateSection.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Modifier la section' : 'Nouvelle section'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Modifier la section" : "Nouvelle section"}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -126,24 +142,28 @@ export function SectionFormDialog({ open, onOpenChange, section }: SectionFormDi
             <Label htmlFor="name">Nom *</Label>
             <Input
               id="name"
-              {...register('name')}
+              {...register("name")}
               placeholder="Ex: Photo, Vidéo, Son..."
               disabled={isPending}
             />
-            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+            {errors.name && (
+              <p className="text-sm text-destructive">{errors.name.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              {...register('description')}
+              {...register("description")}
               placeholder="Description de la section (optionnel)"
               disabled={isPending}
               rows={3}
             />
             {errors.description && (
-              <p className="text-sm text-destructive">{errors.description.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
@@ -157,7 +177,9 @@ export function SectionFormDialog({ open, onOpenChange, section }: SectionFormDi
                 >
                   <Checkbox
                     checked={allowedDaysIn.includes(day.value)}
-                    onCheckedChange={() => toggleDay('allowedDaysIn', day.value)}
+                    onCheckedChange={() =>
+                      toggleDay("allowedDaysIn", day.value)
+                    }
                     disabled={isPending}
                   />
                   <span className="text-sm">{day.label}</span>
@@ -176,7 +198,9 @@ export function SectionFormDialog({ open, onOpenChange, section }: SectionFormDi
                 >
                   <Checkbox
                     checked={allowedDaysOut.includes(day.value)}
-                    onCheckedChange={() => toggleDay('allowedDaysOut', day.value)}
+                    onCheckedChange={() =>
+                      toggleDay("allowedDaysOut", day.value)
+                    }
                     disabled={isPending}
                   />
                   <span className="text-sm">{day.label}</span>
@@ -185,17 +209,44 @@ export function SectionFormDialog({ open, onOpenChange, section }: SectionFormDi
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="refundDeadlineHours">
+              Délai d'annulation pour remboursement (heures)
+            </Label>
+            <Input
+              id="refundDeadlineHours"
+              type="number"
+              min="0"
+              {...register("refundDeadlineHours")}
+              disabled={isPending}
+            />
+            <p className="text-xs text-muted-foreground">
+              L'utilisateur doit annuler au moins ce nombre d'heures avant le
+              début de la réservation pour être remboursé automatiquement.
+            </p>
+            {errors.refundDeadlineHours && (
+              <p className="text-sm text-destructive">
+                {errors.refundDeadlineHours.message}
+              </p>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
               Annuler
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Enregistrer' : 'Créer'}
+              {isEditing ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

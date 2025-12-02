@@ -1,24 +1,33 @@
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { useProduct } from '../hooks/useProduct'
-import { ProductGallery } from '../components/ProductGallery'
-import { ProductDetailSkeleton } from '../components/ProductDetailSkeleton'
-import { AvailabilityBadge } from '../components/AvailabilityBadge'
-import { ReservationModal } from '@/features/reservations/components/ReservationModal'
-import { useAuthStore } from '@/stores/auth.store'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Calendar, Clock, Tag, AlertTriangle, FileText, Download, FileVideo } from 'lucide-react'
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useProduct } from "../hooks/useProduct";
+import { ProductGallery } from "../components/ProductGallery";
+import { ProductDetailSkeleton } from "../components/ProductDetailSkeleton";
+import { AvailabilityBadge } from "../components/AvailabilityBadge";
+import { ReservationModal } from "@/features/reservations/components/ReservationModal";
+import { useAuthStore } from "@/stores/auth.store";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Tag,
+  AlertTriangle,
+  FileText,
+  Download,
+  FileVideo,
+} from "lucide-react";
 
 export function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const { data: product, isLoading, isError } = useProduct(id!)
-  const [reservationModalOpen, setReservationModalOpen] = useState(false)
-  const user = useAuthStore((state) => state.user)
-  const isCautionValid = user?.cautionPaid ?? false
+  const { id } = useParams<{ id: string }>();
+  const { data: product, isLoading, isError } = useProduct(id!);
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const isCautionValid = user?.cautionPaid ?? false;
 
   if (isLoading) {
-    return <ProductDetailSkeleton />
+    return <ProductDetailSkeleton />;
   }
 
   if (isError || !product) {
@@ -31,7 +40,7 @@ export function ProductDetailPage() {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -47,7 +56,10 @@ export function ProductDetailPage() {
       <div className="grid gap-6 lg:gap-8 lg:grid-cols-2">
         {/* Left Column - Gallery */}
         <div>
-          <ProductGallery files={product.files || []} productName={product.name} />
+          <ProductGallery
+            files={product.files || []}
+            productName={product.name}
+          />
         </div>
 
         {/* Right Column - Details */}
@@ -59,7 +71,9 @@ export function ProductDetailPage() {
               <AvailabilityBadge status={product.status} />
             </div>
             {product.reference && (
-              <p className="text-sm text-muted-foreground">Référence : {product.reference}</p>
+              <p className="text-sm text-muted-foreground">
+                Référence : {product.reference}
+              </p>
             )}
           </div>
 
@@ -71,9 +85,12 @@ export function ProductDetailPage() {
             <CardContent>
               {product.priceCredits !== null ? (
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{product.priceCredits}</span>
+                  <span className="text-3xl font-bold">
+                    {product.priceCredits}
+                  </span>
                   <span className="text-muted-foreground">
-                    crédits / {product.creditPeriod === 'WEEK' ? 'semaine' : 'jour'}
+                    crédits /{" "}
+                    {product.creditPeriod === "WEEK" ? "semaine" : "jour"}
                   </span>
                 </div>
               ) : (
@@ -96,7 +113,9 @@ export function ProductDetailPage() {
                 <Tag className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Section</p>
-                  <p className="text-sm text-muted-foreground">{product.section.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {product.section.name}
+                  </p>
                 </div>
               </div>
 
@@ -105,7 +124,9 @@ export function ProductDetailPage() {
                   <Tag className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium">Sous-section</p>
-                    <p className="text-sm text-muted-foreground">{product.subSection.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {product.subSection.name}
+                    </p>
                   </div>
                 </div>
               )}
@@ -115,7 +136,9 @@ export function ProductDetailPage() {
                 <div>
                   <p className="text-sm font-medium">Durée de location</p>
                   <p className="text-sm text-muted-foreground">
-                    {product.minDuration} à {product.maxDuration} jours
+                    {product.minDuration} à{" "}
+                    {product.maxDuration === 0 ? "∞" : product.maxDuration}{" "}
+                    jours
                   </p>
                 </div>
               </div>
@@ -131,9 +154,16 @@ export function ProductDetailPage() {
               <CardContent>
                 <dl className="space-y-2">
                   {product.attributes.map((attr) => (
-                    <div key={attr.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                      <dt className="text-sm font-medium capitalize">{attr.key}</dt>
-                      <dd className="text-sm text-muted-foreground">{attr.value}</dd>
+                    <div
+                      key={attr.id}
+                      className="flex items-center justify-between border-b pb-2 last:border-0"
+                    >
+                      <dt className="text-sm font-medium capitalize">
+                        {attr.key}
+                      </dt>
+                      <dd className="text-sm text-muted-foreground">
+                        {attr.value}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -148,7 +178,9 @@ export function ProductDetailPage() {
                 <CardTitle className="text-lg">Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{product.description}</p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {product.description}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -156,9 +188,9 @@ export function ProductDetailPage() {
           {/* Documents (non-image files) */}
           {(() => {
             const documents = (product.files || []).filter(
-              (file) => !file.mimeType.startsWith('image/')
-            )
-            if (documents.length === 0) return null
+              (file) => !file.mimeType.startsWith("image/"),
+            );
+            if (documents.length === 0) return null;
             return (
               <Card>
                 <CardHeader>
@@ -167,8 +199,8 @@ export function ProductDetailPage() {
                 <CardContent>
                   <div className="space-y-2">
                     {documents.map((doc) => {
-                      const isVideo = doc.mimeType.startsWith('video/')
-                      const Icon = isVideo ? FileVideo : FileText
+                      const isVideo = doc.mimeType.startsWith("video/");
+                      const Icon = isVideo ? FileVideo : FileText;
                       return (
                         <a
                           key={doc.id}
@@ -178,15 +210,17 @@ export function ProductDetailPage() {
                           className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted transition-colors"
                         >
                           <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                          <span className="flex-1 text-sm truncate">{doc.filename}</span>
+                          <span className="flex-1 text-sm truncate">
+                            {doc.filename}
+                          </span>
                           <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         </a>
-                      )
+                      );
                     })}
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })()}
 
           {/* Reserve Button */}
@@ -199,7 +233,8 @@ export function ProductDetailPage() {
               <div className="flex items-center gap-2 rounded-lg bg-yellow-50 p-3 dark:bg-yellow-900/20">
                 <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  Vous devez valider votre caution pour pouvoir réserver du matériel.
+                  Vous devez valider votre caution pour pouvoir réserver du
+                  matériel.
                 </p>
               </div>
             </div>
@@ -207,11 +242,13 @@ export function ProductDetailPage() {
             <Button
               size="lg"
               className="w-full"
-              disabled={product.status !== 'AVAILABLE'}
+              disabled={product.status !== "AVAILABLE"}
               onClick={() => setReservationModalOpen(true)}
             >
               <Calendar className="mr-2 h-5 w-5" />
-              {product.status === 'AVAILABLE' ? 'Réserver ce produit' : 'Indisponible'}
+              {product.status === "AVAILABLE"
+                ? "Réserver ce produit"
+                : "Indisponible"}
             </Button>
           )}
         </div>
@@ -226,5 +263,5 @@ export function ProductDetailPage() {
         />
       )}
     </div>
-  )
+  );
 }

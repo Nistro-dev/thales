@@ -1,28 +1,80 @@
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
-import { ArrowDownToLine, ArrowUpFromLine, AlertTriangle, CheckCircle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
-import type { ProductMovement } from '@/api/products.api'
-import type { ProductCondition } from '@/types'
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  AlertTriangle,
+  CheckCircle,
+  Settings,
+  Wrench,
+  Package,
+  Archive,
+  Ban,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import type { ProductMovement } from "@/api/products.api";
+import type { ProductCondition } from "@/types";
 
 interface ProductMovementsListProps {
-  movements: ProductMovement[]
-  isLoading?: boolean
+  movements: ProductMovement[];
+  isLoading?: boolean;
 }
 
 const conditionConfig: Record<
   ProductCondition,
-  { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
 > = {
-  OK: { label: 'OK', variant: 'default' },
-  MINOR_DAMAGE: { label: 'Dégâts mineurs', variant: 'secondary' },
-  MAJOR_DAMAGE: { label: 'Dégâts majeurs', variant: 'destructive' },
-  MISSING_PARTS: { label: 'Pièces manquantes', variant: 'destructive' },
-  BROKEN: { label: 'Cassé', variant: 'destructive' },
+  OK: { label: "OK", variant: "default" },
+  MINOR_DAMAGE: { label: "Dégâts mineurs", variant: "secondary" },
+  MAJOR_DAMAGE: { label: "Dégâts majeurs", variant: "destructive" },
+  MISSING_PARTS: { label: "Pièces manquantes", variant: "destructive" },
+  BROKEN: { label: "Cassé", variant: "destructive" },
+};
+
+const statusLabels: Record<string, string> = {
+  AVAILABLE: "Disponible",
+  UNAVAILABLE: "Indisponible",
+  MAINTENANCE: "Maintenance",
+  ARCHIVED: "Archivé",
+};
+
+const statusIcons: Record<string, React.ElementType> = {
+  AVAILABLE: Package,
+  UNAVAILABLE: Ban,
+  MAINTENANCE: Wrench,
+  ARCHIVED: Archive,
+};
+
+const statusColors: Record<string, string> = {
+  AVAILABLE:
+    "text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-400",
+  UNAVAILABLE: "text-gray-600 bg-gray-100 dark:bg-gray-800 dark:text-gray-400",
+  MAINTENANCE:
+    "text-orange-600 bg-orange-100 dark:bg-orange-900 dark:text-orange-400",
+  ARCHIVED: "text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-400",
+};
+
+// Parse status change notes to extract old and new status
+function parseStatusChange(
+  notes: string | null | undefined,
+): { from: string; to: string } | null {
+  if (!notes) return null;
+  // Format: "Changement de statut: OLD → NEW"
+  const match = notes.match(/Changement de statut:\s*(\w+)\s*→\s*(\w+)/);
+  if (match) {
+    return { from: match[1], to: match[2] };
+  }
+  return null;
 }
 
-export function ProductMovementsList({ movements, isLoading }: ProductMovementsListProps) {
+export function ProductMovementsList({
+  movements,
+  isLoading,
+}: ProductMovementsListProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -32,7 +84,7 @@ export function ProductMovementsList({ movements, isLoading }: ProductMovementsL
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   if (movements.length === 0) {
@@ -40,69 +92,111 @@ export function ProductMovementsList({ movements, isLoading }: ProductMovementsL
       <div className="text-center py-8 text-muted-foreground">
         Aucun mouvement enregistré
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-3">
       {movements.map((movement) => {
-        const isCheckout = movement.type === 'CHECKOUT'
-        const user = movement.reservation?.user
-        const condition = movement.condition
-        const hasIssue = condition && condition !== 'OK'
+        const isCheckout = movement.type === "CHECKOUT";
+        const isReturn = movement.type === "RETURN";
+        const isStatusChange = movement.type === "STATUS_CHANGE";
+        const user = movement.reservation?.user;
+        const condition = movement.condition;
+        const hasIssue = condition && condition !== "OK" && isReturn;
+        const statusChange = isStatusChange
+          ? parseStatusChange(movement.notes)
+          : null;
+        const NewStatusIcon = statusChange
+          ? statusIcons[statusChange.to] || Settings
+          : Settings;
 
         return (
           <div
             key={movement.id}
             className={cn(
-              'flex items-start gap-4 p-4 rounded-lg border',
-              hasIssue && 'border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30'
+              "flex items-start gap-4 p-4 rounded-lg border",
+              hasIssue &&
+                "border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30",
             )}
           >
             {/* Icon */}
             <div
               className={cn(
-                'flex-shrink-0 p-2 rounded-full',
-                isCheckout
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
-                  : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400'
+                "flex-shrink-0 p-2 rounded-full",
+                isCheckout &&
+                  "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400",
+                isReturn &&
+                  "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400",
+                isStatusChange &&
+                  (statusChange
+                    ? statusColors[statusChange.to]
+                    : "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400"),
               )}
             >
-              {isCheckout ? (
-                <ArrowUpFromLine className="h-4 w-4" />
-              ) : (
-                <ArrowDownToLine className="h-4 w-4" />
-              )}
+              {isCheckout && <ArrowUpFromLine className="h-4 w-4" />}
+              {isReturn && <ArrowDownToLine className="h-4 w-4" />}
+              {isStatusChange && <NewStatusIcon className="h-4 w-4" />}
             </div>
 
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium">
-                  {isCheckout ? 'Sortie' : 'Retour'}
-                </span>
-                {!isCheckout && condition && (
-                  <Badge variant={conditionConfig[condition].variant}>
-                    {conditionConfig[condition].label}
-                  </Badge>
+                {isCheckout && <span className="font-medium">Sortie</span>}
+                {isReturn && (
+                  <>
+                    <span className="font-medium">Retour</span>
+                    {condition && (
+                      <Badge variant={conditionConfig[condition].variant}>
+                        {conditionConfig[condition].label}
+                      </Badge>
+                    )}
+                  </>
+                )}
+                {isStatusChange && statusChange && (
+                  <>
+                    <span className="font-medium">Changement de statut</span>
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Badge variant="outline" className="font-normal">
+                        {statusLabels[statusChange.from] || statusChange.from}
+                      </Badge>
+                      <span className="text-muted-foreground">→</span>
+                      <Badge
+                        variant={
+                          statusChange.to === "AVAILABLE"
+                            ? "default"
+                            : statusChange.to === "MAINTENANCE"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
+                        {statusLabels[statusChange.to] || statusChange.to}
+                      </Badge>
+                    </div>
+                  </>
                 )}
               </div>
 
               <div className="text-sm text-muted-foreground mt-1">
-                {user ? (
-                  <span>
-                    {user.firstName} {user.lastName}
-                  </span>
-                ) : (
-                  <span>Utilisateur inconnu</span>
+                {(isCheckout || isReturn) && user && (
+                  <>
+                    <span>
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="mx-2">•</span>
+                  </>
                 )}
-                <span className="mx-2">•</span>
                 <span>
-                  {format(new Date(movement.performedAt), 'dd MMM yyyy à HH:mm', { locale: fr })}
+                  {format(
+                    new Date(movement.performedAt),
+                    "dd MMM yyyy à HH:mm",
+                    { locale: fr },
+                  )}
                 </span>
               </div>
 
-              {movement.notes && (
+              {/* Show notes only for checkout/return, not for status changes (already displayed above) */}
+              {movement.notes && !isStatusChange && (
                 <p className="mt-2 text-sm bg-muted/50 p-2 rounded">
                   {movement.notes}
                 </p>
@@ -139,8 +233,8 @@ export function ProductMovementsList({ movements, isLoading }: ProductMovementsL
               )}
             </div>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

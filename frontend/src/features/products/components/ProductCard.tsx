@@ -1,18 +1,26 @@
-import { Link } from 'react-router-dom'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { AvailabilityBadge } from './AvailabilityBadge'
-import type { Product } from '@/types'
-import { ImageIcon } from 'lucide-react'
+import { Link } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { AvailabilityBadge } from "./AvailabilityBadge";
+import type { Product } from "@/types";
+import { ImageIcon } from "lucide-react";
 
 interface ProductCardProps {
-  product: Product
+  product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const thumbnailUrl = product.thumbnail?.url || product.files?.[0]?.url
+  const thumbnailUrl = product.thumbnail?.url || product.files?.[0]?.url;
 
   return (
-    <Link to={`/products/${product.id}`} className="block transition-transform hover:scale-[1.02]">
+    <Link
+      to={`/products/${product.id}`}
+      className="block transition-transform hover:scale-[1.02]"
+    >
       <Card className="h-full overflow-hidden">
         {/* Image */}
         <div className="relative aspect-video w-full overflow-hidden bg-muted">
@@ -40,7 +48,9 @@ export function ProductCard({ product }: ProductCardProps) {
             <div className="flex-1">
               <h3 className="line-clamp-1 font-semibold">{product.name}</h3>
               {product.reference && (
-                <p className="text-sm text-muted-foreground">{product.reference}</p>
+                <p className="text-sm text-muted-foreground">
+                  {product.reference}
+                </p>
               )}
             </div>
           </div>
@@ -48,13 +58,19 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <CardContent className="pb-3">
           {product.description && (
-            <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+            <p className="line-clamp-2 text-sm text-muted-foreground">
+              {product.description}
+            </p>
           )}
 
           <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="rounded-md bg-muted px-2 py-1">{product.section.name}</span>
+            <span className="rounded-md bg-muted px-2 py-1">
+              {product.section.name}
+            </span>
             {product.subSection && (
-              <span className="rounded-md bg-muted px-2 py-1">{product.subSection.name}</span>
+              <span className="rounded-md bg-muted px-2 py-1">
+                {product.subSection.name}
+              </span>
             )}
           </div>
         </CardContent>
@@ -62,20 +78,27 @@ export function ProductCard({ product }: ProductCardProps) {
         <CardFooter className="flex items-center justify-between border-t pt-4">
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground">
-              Prix{product.creditPeriod === 'WEEK' ? '/sem.' : '/jour'}
+              Prix{product.creditPeriod === "WEEK" ? "/sem." : "/jour"}
             </span>
             {product.priceCredits !== null ? (
-              <span className="text-lg font-bold">{product.priceCredits} crédits</span>
+              <span className="text-lg font-bold">
+                {product.priceCredits} crédits
+              </span>
             ) : (
-              <span className="text-sm text-muted-foreground">Caution requise</span>
+              <span className="text-sm text-muted-foreground">
+                Caution requise
+              </span>
             )}
           </div>
 
           <div className="flex flex-col items-end text-xs text-muted-foreground">
-            <span>Durée : {product.minDuration}-{product.maxDuration} jours</span>
+            <span>
+              Durée : {product.minDuration}-
+              {product.maxDuration === 0 ? "∞" : product.maxDuration} jours
+            </span>
           </div>
         </CardFooter>
       </Card>
     </Link>
-  )
+  );
 }

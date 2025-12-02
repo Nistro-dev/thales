@@ -56,6 +56,7 @@ interface CreateSectionInput {
   description?: string
   allowedDaysIn?: number[]
   allowedDaysOut?: number[]
+  refundDeadlineHours?: number
   sortOrder?: number
 }
 
@@ -70,6 +71,7 @@ export const createSection = async (
       description: data.description,
       allowedDaysIn: data.allowedDaysIn ?? [1, 2, 3, 4, 5],
       allowedDaysOut: data.allowedDaysOut ?? [1, 2, 3, 4, 5],
+      refundDeadlineHours: data.refundDeadlineHours ?? 48,
       sortOrder: data.sortOrder ?? 0,
     },
   })

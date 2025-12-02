@@ -5,6 +5,7 @@ export const createSectionSchema = z.object({
   description: z.string().max(500).optional(),
   allowedDaysIn: z.array(z.number().min(0).max(6)).optional(),
   allowedDaysOut: z.array(z.number().min(0).max(6)).optional(),
+  refundDeadlineHours: z.number().int().min(0).default(48),
   sortOrder: z.number().int().optional(),
 })
 

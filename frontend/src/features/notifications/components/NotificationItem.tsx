@@ -10,7 +10,6 @@ import {
   Clock,
   AlertTriangle,
   Coins,
-  Shield,
   Lock,
   Bell,
   X,
@@ -31,8 +30,8 @@ const typeIcons: Record<NotificationType, React.ElementType> = {
   RESERVATION_EXPIRED: AlertTriangle,
   CREDIT_ADDED: Coins,
   CREDIT_REMOVED: Coins,
-  ACCOUNT_ACTIVATED: Shield,
   PASSWORD_CHANGED: Lock,
+  SYSTEM: Bell,
 };
 
 const typeColors: Record<NotificationType, string> = {
@@ -47,8 +46,8 @@ const typeColors: Record<NotificationType, string> = {
   RESERVATION_EXPIRED: "text-gray-500",
   CREDIT_ADDED: "text-green-500",
   CREDIT_REMOVED: "text-red-500",
-  ACCOUNT_ACTIVATED: "text-green-500",
   PASSWORD_CHANGED: "text-blue-500",
+  SYSTEM: "text-gray-500",
 };
 
 interface NotificationItemProps {

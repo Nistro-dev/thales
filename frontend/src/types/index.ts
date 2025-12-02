@@ -229,15 +229,18 @@ export interface ReservationFilters {
 
 // Notification Types
 export type NotificationType =
-  | "RESERVATION_CREATED"
   | "RESERVATION_CONFIRMED"
   | "RESERVATION_CANCELLED"
-  | "RESERVATION_EXTENSION_REQUESTED"
-  | "RESERVATION_EXTENSION_APPROVED"
-  | "RESERVATION_EXTENSION_REJECTED"
+  | "RESERVATION_REFUNDED"
+  | "RESERVATION_CHECKOUT"
+  | "RESERVATION_RETURN"
   | "RESERVATION_REMINDER"
+  | "RESERVATION_EXTENDED"
   | "RESERVATION_OVERDUE"
-  | "CREDITS_UPDATED"
+  | "RESERVATION_EXPIRED"
+  | "CREDIT_ADDED"
+  | "CREDIT_REMOVED"
+  | "PASSWORD_CHANGED"
   | "SYSTEM";
 
 export interface Notification {
@@ -248,4 +251,18 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+}
+
+// Notification Preference Types
+export interface NotificationPreferenceItem {
+  notificationType: NotificationType;
+  label: string;
+  description: string;
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+}
+
+export interface UpdateNotificationPreferenceInput {
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
 }

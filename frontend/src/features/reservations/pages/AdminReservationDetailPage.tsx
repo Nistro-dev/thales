@@ -321,7 +321,7 @@ export function AdminReservationDetailPage() {
                 </div>
               </div>
 
-              {reservation.refundAmount !== null &&
+              {reservation.refundAmount != null &&
                 reservation.refundAmount > 0 && (
                   <>
                     <Separator className="my-4" />

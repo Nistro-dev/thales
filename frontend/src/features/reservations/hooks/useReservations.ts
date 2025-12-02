@@ -1,8 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { reservationsApi, reservationsAdminApi, availabilityApi } from '@/api/reservations.api'
-import { useAuthStore } from '@/stores/auth.store'
-import type { ReservationFilters, CreateReservationInput } from '@/types'
-import toast from 'react-hot-toast'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  reservationsApi,
+  reservationsAdminApi,
+  availabilityApi,
+} from "@/api/reservations.api";
+import { useAuthStore } from "@/stores/auth.store";
+import type { ReservationFilters, CreateReservationInput } from "@/types";
+import toast from "react-hot-toast";
 
 /**
  * Get my reservations list
@@ -11,21 +15,21 @@ export function useMyReservations(
   filters: ReservationFilters = {},
   page = 1,
   limit = 20,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
-    queryKey: ['my-reservations', filters, page, limit],
+    queryKey: ["my-reservations", filters, page, limit],
     queryFn: async () => {
-      const response = await reservationsApi.listMy(filters, page, limit)
+      const response = await reservationsApi.listMy(filters, page, limit);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = response.data as any
+      const data = response.data as any;
       return {
         ...data,
         pagination: data.meta?.pagination || data.pagination,
-      }
+      };
     },
     enabled,
-  })
+  });
 }
 
 /**
@@ -33,13 +37,13 @@ export function useMyReservations(
  */
 export function useMyReservation(id: string, enabled = true) {
   return useQuery({
-    queryKey: ['my-reservation', id],
+    queryKey: ["my-reservation", id],
     queryFn: async () => {
-      const response = await reservationsApi.getMy(id)
-      return response.data.data
+      const response = await reservationsApi.getMy(id);
+      return response.data.data;
     },
     enabled: !!id && enabled,
-  })
+  });
 }
 
 /**
@@ -47,68 +51,75 @@ export function useMyReservation(id: string, enabled = true) {
  */
 export function useMyReservationQR(id: string, enabled = true) {
   return useQuery({
-    queryKey: ['my-reservation-qr', id],
+    queryKey: ["my-reservation-qr", id],
     queryFn: async () => {
-      const response = await reservationsApi.getMyQR(id)
-      return response.data.data
+      const response = await reservationsApi.getMyQR(id);
+      return response.data.data;
     },
     enabled: !!id && enabled,
-  })
+  });
 }
 
 /**
  * Create a new reservation (mutation)
  */
 export function useCreateReservation() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: CreateReservationInput) => {
-      const response = await reservationsApi.create(data)
-      return response.data.data
+      const response = await reservationsApi.create(data);
+      return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['product-availability'] })
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
       // Rafraîchir les crédits utilisateur
-      useAuthStore.getState().refreshUser()
-      toast.success('Réservation créée avec succès')
+      useAuthStore.getState().refreshUser();
+      toast.success("Réservation créée avec succès");
     },
-  })
+  });
 }
 
 /**
  * Cancel my reservation (mutation)
  */
 export function useCancelMyReservation() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const response = await reservationsApi.cancelMy(id, reason)
-      return response.data.data
+      const response = await reservationsApi.cancelMy(id, reason);
+      return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['my-reservation'] })
-      toast.success('Réservation annulée')
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
+      // Rafraîchir les crédits utilisateur (remboursement automatique)
+      useAuthStore.getState().refreshUser();
+      toast.success("Réservation annulée");
     },
-  })
+  });
 }
 
 /**
  * Get product availability for a month
  */
-export function useProductAvailability(productId: string, month: string, enabled = true) {
+export function useProductAvailability(
+  productId: string,
+  month: string,
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ['product-availability', productId, month],
+    queryKey: ["product-availability", productId, month],
     queryFn: async () => {
-      const response = await availabilityApi.getMonthly(productId, month)
-      return response.data.data
+      const response = await availabilityApi.getMonthly(productId, month);
+      return response.data.data;
     },
     enabled: !!productId && !!month && enabled,
-  })
+  });
 }
 
 /**
@@ -121,14 +132,18 @@ export function useCheckAvailability() {
       startDate,
       endDate,
     }: {
-      productId: string
-      startDate: string
-      endDate: string
+      productId: string;
+      startDate: string;
+      endDate: string;
     }) => {
-      const response = await availabilityApi.check(productId, startDate, endDate)
-      return response.data.data
+      const response = await availabilityApi.check(
+        productId,
+        startDate,
+        endDate,
+      );
+      return response.data.data;
     },
-  })
+  });
 }
 
 /**
@@ -138,21 +153,21 @@ export function useAdminReservations(
   filters: ReservationFilters = {},
   page = 1,
   limit = 20,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
-    queryKey: ['admin-reservations', filters, page, limit],
+    queryKey: ["admin-reservations", filters, page, limit],
     queryFn: async () => {
-      const response = await reservationsAdminApi.listAll(filters, page, limit)
+      const response = await reservationsAdminApi.listAll(filters, page, limit);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = response.data as any
+      const data = response.data as any;
       return {
         ...data,
         pagination: data.meta?.pagination || data.pagination,
-      }
+      };
     },
     enabled,
-  })
+  });
 }
 
 /**
@@ -160,94 +175,105 @@ export function useAdminReservations(
  */
 export function useAdminReservation(id: string, enabled = true) {
   return useQuery({
-    queryKey: ['admin-reservation', id],
+    queryKey: ["admin-reservation", id],
     queryFn: async () => {
-      const response = await reservationsAdminApi.get(id)
-      return response.data.data
+      const response = await reservationsAdminApi.get(id);
+      return response.data.data;
     },
     enabled: !!id && enabled,
-  })
+  });
 }
 
 /**
  * ADMIN: Checkout reservation (mutation)
  */
 export function useCheckoutReservation() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      const response = await reservationsAdminApi.checkout(id, notes)
-      return response.data.data
+      const response = await reservationsAdminApi.checkout(id, notes);
+      return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
-      toast.success('Produit retiré avec succès')
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
+      toast.success("Produit retiré avec succès");
     },
-  })
+  });
 }
 
 /**
  * ADMIN: Return reservation (mutation)
  */
 export function useReturnReservation() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       id,
       data,
     }: {
-      id: string
+      id: string;
       data: {
-        condition?: 'OK' | 'MINOR_DAMAGE' | 'MAJOR_DAMAGE' | 'MISSING_PARTS' | 'BROKEN'
-        notes?: string
-        photos?: Array<{ s3Key: string; filename: string; mimeType: string; size: number }>
-      }
+        condition?:
+          | "OK"
+          | "MINOR_DAMAGE"
+          | "MAJOR_DAMAGE"
+          | "MISSING_PARTS"
+          | "BROKEN";
+        notes?: string;
+        photos?: Array<{
+          s3Key: string;
+          filename: string;
+          mimeType: string;
+          size: number;
+        }>;
+      };
     }) => {
-      const response = await reservationsAdminApi.return(id, data)
-      return response.data.data
+      const response = await reservationsAdminApi.return(id, data);
+      return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['product-availability'] })
-      toast.success('Produit retourné avec succès')
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
+      toast.success("Produit retourné avec succès");
     },
-  })
+  });
 }
 
 /**
  * ADMIN: Cancel reservation (mutation)
  */
 export function useCancelReservation() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const response = await reservationsAdminApi.cancel(id, reason)
-      return response.data.data
+      const response = await reservationsAdminApi.cancel(id, reason);
+      return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['product-availability'] })
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
       // Rafraîchir les crédits utilisateur (remboursement automatique)
-      useAuthStore.getState().refreshUser()
-      toast.success('Réservation annulée')
+      useAuthStore.getState().refreshUser();
+      toast.success("Réservation annulée");
     },
-  })
+  });
 }
 
 /**
  * ADMIN: Refund reservation (mutation)
  */
 export function useRefundReservation() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
@@ -255,20 +281,20 @@ export function useRefundReservation() {
       amount,
       reason,
     }: {
-      id: string
-      amount?: number
-      reason?: string
+      id: string;
+      amount?: number;
+      reason?: string;
     }) => {
-      const response = await reservationsAdminApi.refund(id, amount, reason)
-      return response.data.data
+      const response = await reservationsAdminApi.refund(id, amount, reason);
+      return response.data.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['admin-reservation'] })
-      queryClient.invalidateQueries({ queryKey: ['my-reservations'] })
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
       // Rafraîchir les crédits utilisateur
-      useAuthStore.getState().refreshUser()
-      toast.success('Réservation remboursée')
+      useAuthStore.getState().refreshUser();
+      toast.success("Réservation remboursée");
     },
-  })
+  });
 }

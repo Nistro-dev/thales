@@ -20,7 +20,7 @@ export const createProductSchema = z.object({
   priceCredits: z.number().int().min(0),
   creditPeriod: z.enum(['DAY', 'WEEK']).default('DAY'),
   minDuration: z.number().int().min(1).default(1),
-  maxDuration: z.number().int().min(1).default(14),
+  maxDuration: z.number().int().min(0).default(0), // 0 = unlimited
   sectionId: z.string().uuid(),
   subSectionId: z.string().uuid().optional(),
   attributes: z

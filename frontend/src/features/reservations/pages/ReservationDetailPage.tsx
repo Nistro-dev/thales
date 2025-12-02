@@ -1,85 +1,107 @@
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { useMyReservation, useMyReservationQR, useCancelMyReservation } from '../hooks/useReservations'
-import { useQRCode } from '@/hooks/useQRCode'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { ArrowLeft, Calendar, Package, CreditCard, FileText, AlertCircle, X, Download, Loader2 } from 'lucide-react'
-import { ReservationDetailSkeleton } from '../components/ReservationDetailSkeleton'
-import { CancelReservationDialog } from '../components/CancelReservationDialog'
-import type { ReservationStatus } from '@/types'
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import {
+  useMyReservation,
+  useMyReservationQR,
+  useCancelMyReservation,
+} from "../hooks/useReservations";
+import { useQRCode } from "@/hooks/useQRCode";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  ArrowLeft,
+  Calendar,
+  Package,
+  CreditCard,
+  FileText,
+  AlertCircle,
+  X,
+  Download,
+  Loader2,
+} from "lucide-react";
+import { ReservationDetailSkeleton } from "../components/ReservationDetailSkeleton";
+import { CancelReservationDialog } from "../components/CancelReservationDialog";
+import type { ReservationStatus } from "@/types";
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: 'Confirmée',
-  CHECKED_OUT: 'En cours',
-  RETURNED: 'Terminée',
-  CANCELLED: 'Annulée',
-  REFUNDED: 'Remboursée',
-}
+  CONFIRMED: "Confirmée",
+  CHECKED_OUT: "En cours",
+  RETURNED: "Terminée",
+  CANCELLED: "Annulée",
+  REFUNDED: "Remboursée",
+};
 
-const statusColors: Record<ReservationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  CONFIRMED: 'default',
-  CHECKED_OUT: 'default',
-  RETURNED: 'outline',
-  CANCELLED: 'destructive',
-  REFUNDED: 'outline',
-}
+const statusColors: Record<
+  ReservationStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  CONFIRMED: "default",
+  CHECKED_OUT: "default",
+  RETURNED: "outline",
+  CANCELLED: "destructive",
+  REFUNDED: "outline",
+};
 
 export function ReservationDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const { data: reservation, isLoading, isError } = useMyReservation(id!)
-  const { data: qrData } = useMyReservationQR(id!, reservation?.status === 'CONFIRMED')
-  const { qrCodeUrl, isLoading: isQRLoading } = useQRCode(qrData?.qrCode, { width: 256 })
-  const cancelReservation = useCancelMyReservation()
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const { id } = useParams<{ id: string }>();
+  const { data: reservation, isLoading, isError } = useMyReservation(id!);
+  const { data: qrData } = useMyReservationQR(
+    id!,
+    reservation?.status === "CONFIRMED",
+  );
+  const { qrCodeUrl, isLoading: isQRLoading } = useQRCode(qrData?.qrCode, {
+    width: 256,
+  });
+  const cancelReservation = useCancelMyReservation();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const handleConfirmCancel = async () => {
-    await cancelReservation.mutateAsync({ id: id! })
-  }
+    await cancelReservation.mutateAsync({ id: id! });
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const calculateDuration = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return diffDays
-  }
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
 
   const downloadQRCode = () => {
-    if (!qrCodeUrl) return
+    if (!qrCodeUrl) return;
 
-    const link = document.createElement('a')
-    link.href = qrCodeUrl
-    link.download = `reservation-${id}-qr.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+    const link = document.createElement("a");
+    link.href = qrCodeUrl;
+    link.download = `reservation-${id}-qr.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (isLoading) {
-    return <ReservationDetailSkeleton />
+    return <ReservationDetailSkeleton />;
   }
 
   if (isError || !reservation) {
@@ -89,7 +111,9 @@ export function ReservationDetailPage() {
           <div className="flex flex-col items-center gap-4 text-center">
             <AlertCircle className="h-12 w-12 text-destructive" />
             <div>
-              <p className="text-lg font-semibold text-destructive">Réservation introuvable</p>
+              <p className="text-lg font-semibold text-destructive">
+                Réservation introuvable
+              </p>
               <p className="text-sm text-muted-foreground">
                 Cette réservation n'existe pas ou vous n'y avez pas accès
               </p>
@@ -100,12 +124,12 @@ export function ReservationDetailPage() {
           </div>
         </Card>
       </div>
-    )
+    );
   }
 
-  const canCancel = reservation.status === 'CONFIRMED'
-  const showQRCode = reservation.status === 'CONFIRMED' && qrData?.qrCode
-  const hasQRImage = showQRCode && qrCodeUrl
+  const canCancel = reservation.status === "CONFIRMED";
+  const showQRCode = reservation.status === "CONFIRMED" && qrData?.qrCode;
+  const hasQRImage = showQRCode && qrCodeUrl;
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -120,10 +144,17 @@ export function ReservationDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Détail de la réservation</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground break-all">#{reservation.id}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            Détail de la réservation
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground break-all">
+            #{reservation.id}
+          </p>
         </div>
-        <Badge variant={statusColors[reservation.status]} className="text-sm sm:text-base self-start">
+        <Badge
+          variant={statusColors[reservation.status]}
+          className="text-sm sm:text-base self-start"
+        >
           {statusLabels[reservation.status]}
         </Badge>
       </div>
@@ -142,7 +173,7 @@ export function ReservationDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <h3 className="font-semibold text-lg">
-                  {reservation.product?.name || 'Produit'}
+                  {reservation.product?.name || "Produit"}
                 </h3>
                 {reservation.product?.reference && (
                   <p className="text-sm text-muted-foreground">
@@ -154,7 +185,9 @@ export function ReservationDetailPage() {
               {reservation.product?.description && (
                 <>
                   <Separator />
-                  <p className="text-sm text-muted-foreground">{reservation.product.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {reservation.product.description}
+                  </p>
                 </>
               )}
 
@@ -179,11 +212,15 @@ export function ReservationDetailPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Date de sortie</p>
-                  <p className="text-muted-foreground">{formatDate(reservation.startDate)}</p>
+                  <p className="text-muted-foreground">
+                    {formatDate(reservation.startDate)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Date de retour</p>
-                  <p className="text-muted-foreground">{formatDate(reservation.endDate)}</p>
+                  <p className="text-muted-foreground">
+                    {formatDate(reservation.endDate)}
+                  </p>
                 </div>
               </div>
 
@@ -192,7 +229,11 @@ export function ReservationDetailPage() {
               <div className="flex justify-between">
                 <span className="text-sm font-medium">Durée totale</span>
                 <span className="text-muted-foreground">
-                  {calculateDuration(reservation.startDate, reservation.endDate)} jours
+                  {calculateDuration(
+                    reservation.startDate,
+                    reservation.endDate,
+                  )}{" "}
+                  jours
                 </span>
               </div>
             </CardContent>
@@ -210,28 +251,37 @@ export function ReservationDetailPage() {
               <div className="flex items-baseline justify-between">
                 <span className="text-sm font-medium">Total</span>
                 <div className="text-right">
-                  <span className="text-2xl font-bold">{reservation.creditsCharged}</span>
+                  <span className="text-2xl font-bold">
+                    {reservation.creditsCharged}
+                  </span>
                   <span className="text-muted-foreground ml-1">crédits</span>
                 </div>
               </div>
 
-              {reservation.status === 'REFUNDED' && reservation.refundAmount !== null && (
-                <>
-                  <Separator className="my-4" />
-                  <div className="flex items-baseline justify-between text-green-600">
-                    <span className="text-sm font-medium">Montant remboursé</span>
-                    <div className="text-right">
-                      <span className="text-xl font-bold">{reservation.refundAmount}</span>
-                      <span className="ml-1">crédits</span>
+              {reservation.status === "REFUNDED" &&
+                reservation.refundAmount !== null && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="flex items-baseline justify-between text-green-600">
+                      <span className="text-sm font-medium">
+                        Montant remboursé
+                      </span>
+                      <div className="text-right">
+                        <span className="text-xl font-bold">
+                          {reservation.refundAmount}
+                        </span>
+                        <span className="ml-1">crédits</span>
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
             </CardContent>
           </Card>
 
           {/* Notes */}
-          {(reservation.notes || reservation.adminNotes || reservation.cancelReason) && (
+          {(reservation.notes ||
+            reservation.adminNotes ||
+            reservation.cancelReason) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -243,7 +293,9 @@ export function ReservationDetailPage() {
                 {reservation.notes && (
                   <div>
                     <p className="text-sm font-medium mb-1">Vos notes</p>
-                    <p className="text-sm text-muted-foreground italic">{reservation.notes}</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      {reservation.notes}
+                    </p>
                   </div>
                 )}
 
@@ -251,18 +303,28 @@ export function ReservationDetailPage() {
                   <>
                     {reservation.notes && <Separator />}
                     <div>
-                      <p className="text-sm font-medium mb-1">Notes administrateur</p>
-                      <p className="text-sm text-muted-foreground whitespace-pre-line">{reservation.adminNotes}</p>
+                      <p className="text-sm font-medium mb-1">
+                        Notes administrateur
+                      </p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {reservation.adminNotes}
+                      </p>
                     </div>
                   </>
                 )}
 
                 {reservation.cancelReason && (
                   <>
-                    {(reservation.notes || reservation.adminNotes) && <Separator />}
+                    {(reservation.notes || reservation.adminNotes) && (
+                      <Separator />
+                    )}
                     <div className="rounded-lg bg-destructive/10 p-3">
-                      <p className="text-sm font-medium text-destructive mb-1">Motif d'annulation</p>
-                      <p className="text-sm text-muted-foreground">{reservation.cancelReason}</p>
+                      <p className="text-sm font-medium text-destructive mb-1">
+                        Motif d'annulation
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {reservation.cancelReason}
+                      </p>
                     </div>
                   </>
                 )}
@@ -295,12 +357,16 @@ export function ReservationDetailPage() {
                       className="w-full max-w-[200px] h-auto"
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground">QR code non disponible</p>
+                    <p className="text-sm text-muted-foreground">
+                      QR code non disponible
+                    </p>
                   )}
                 </button>
                 <p className="text-xs text-center text-muted-foreground">
                   Présentez ce QR code lors du retrait du matériel
-                  {hasQRImage && <span className="block mt-1">Cliquez pour agrandir</span>}
+                  {hasQRImage && (
+                    <span className="block mt-1">Cliquez pour agrandir</span>
+                  )}
                 </p>
                 <Button
                   variant="outline"
@@ -324,7 +390,9 @@ export function ReservationDetailPage() {
               <div className="space-y-2 text-sm">
                 <div>
                   <p className="font-medium">Créée</p>
-                  <p className="text-muted-foreground">{formatDateTime(reservation.createdAt)}</p>
+                  <p className="text-muted-foreground">
+                    {formatDateTime(reservation.createdAt)}
+                  </p>
                 </div>
 
                 {reservation.checkedOutAt && (
@@ -332,7 +400,9 @@ export function ReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium">Retirée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.checkedOutAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.checkedOutAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -342,7 +412,9 @@ export function ReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium">Retournée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.returnedAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.returnedAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -352,7 +424,9 @@ export function ReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium text-destructive">Annulée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.cancelledAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.cancelledAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -362,7 +436,9 @@ export function ReservationDetailPage() {
                     <Separator />
                     <div>
                       <p className="font-medium text-green-600">Remboursée</p>
-                      <p className="text-muted-foreground">{formatDateTime(reservation.refundedAt)}</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.refundedAt)}
+                      </p>
                     </div>
                   </>
                 )}
@@ -391,6 +467,9 @@ export function ReservationDetailPage() {
         onConfirm={handleConfirmCancel}
         productName={reservation.product?.name}
         isLoading={cancelReservation.isPending}
+        startDate={reservation.startDate}
+        refundDeadlineHours={reservation.product?.section?.refundDeadlineHours}
+        creditsCharged={reservation.creditsCharged}
       />
 
       {/* QR Code Modal */}
@@ -418,5 +497,5 @@ export function ReservationDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

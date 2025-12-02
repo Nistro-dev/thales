@@ -55,6 +55,7 @@ enum ReservationStatus {
 enum MovementType {
   CHECKOUT
   RETURN
+  STATUS_CHANGE
 }
 
 enum ProductCondition {
@@ -283,15 +284,16 @@ model UserRole {
 // ============================================
 
 model Section {
-  id             String    @id @default(uuid())
-  name           String
-  description    String?
-  allowedDaysIn  Int[]     @default([1, 2, 3, 4, 5])
-  allowedDaysOut Int[]     @default([1, 2, 3, 4, 5])
-  sortOrder      Int       @default(0)
-  isSystem       Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  name                String
+  description         String?
+  allowedDaysIn       Int[]     @default([1, 2, 3, 4, 5])
+  allowedDaysOut      Int[]     @default([1, 2, 3, 4, 5])
+  refundDeadlineHours Int       @default(48)
+  sortOrder           Int       @default(0)
+  isSystem            Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   subSections SubSection[]
   products    Product[]

@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useState, useEffect } from "react";
+import {
+  useParams,
+  useNavigate,
+  useSearchParams,
+  Link,
+} from "react-router-dom";
 import {
   ArrowLeft,
   Edit,
@@ -14,18 +19,24 @@ import {
   XCircle,
   Wrench,
   Archive,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +46,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { ProductStatusBadge } from '../components/ProductStatusBadge'
-import { ProductForm, type ProductFormData } from '../components/ProductForm'
-import { ProductFilesList } from '../components/ProductFilesList'
-import { ImageUpload } from '../components/ImageUpload'
-import { ProductMovementsList } from '../components/ProductMovementsList'
-import { ProductGallery } from '../components/ProductGallery'
+} from "@/components/ui/alert-dialog";
+import { ProductStatusBadge } from "../components/ProductStatusBadge";
+import { ProductForm, type ProductFormData } from "../components/ProductForm";
+import { ProductFilesList } from "../components/ProductFilesList";
+import { ImageUpload } from "../components/ImageUpload";
+import { ProductMovementsList } from "../components/ProductMovementsList";
+import { ProductGallery } from "../components/ProductGallery";
 import {
   useProductAdmin,
   useProductFilesAdmin,
@@ -49,67 +60,68 @@ import {
   useUpdateProduct,
   useDeleteProduct,
   useUpdateProductStatus,
-} from '../hooks/useProductsAdmin'
-import { ROUTES } from '@/constants/routes'
-import type { ProductStatus } from '@/types'
+} from "../hooks/useProductsAdmin";
+import { ROUTES } from "@/constants/routes";
+import type { ProductStatus } from "@/types";
 
 export function AdminProductDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const isEditMode = searchParams.get('edit') === 'true'
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isEditMode = searchParams.get("edit") === "true";
 
-  const { data: product, isLoading, isError } = useProductAdmin(id)
-  const { data: files, isLoading: filesLoading } = useProductFilesAdmin(id)
-  const { data: movements, isLoading: movementsLoading } = useProductMovements(id)
+  const { data: product, isLoading, isError } = useProductAdmin(id);
+  const { data: files, isLoading: filesLoading } = useProductFilesAdmin(id);
+  const { data: movements, isLoading: movementsLoading } =
+    useProductMovements(id);
 
-  const updateProduct = useUpdateProduct()
-  const deleteProduct = useDeleteProduct()
-  const updateStatus = useUpdateProductStatus()
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+  const updateStatus = useUpdateProductStatus();
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('details')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
 
   // Switch to details tab when exiting edit mode
   useEffect(() => {
-    if (!isEditMode && activeTab === 'edit') {
-      setActiveTab('details')
+    if (!isEditMode && activeTab === "edit") {
+      setActiveTab("details");
     }
-  }, [isEditMode, activeTab])
+  }, [isEditMode, activeTab]);
 
   const handleEditClick = () => {
-    setSearchParams({ edit: 'true' })
-    setActiveTab('edit')
-  }
+    setSearchParams({ edit: "true" });
+    setActiveTab("edit");
+  };
 
   const handleCancelEdit = () => {
-    setSearchParams({})
-  }
+    setSearchParams({});
+  };
 
   const handleSubmit = async (data: ProductFormData) => {
-    if (!id) return
+    if (!id) return;
     try {
-      await updateProduct.mutateAsync({ id, data })
-      setSearchParams({})
+      await updateProduct.mutateAsync({ id, data });
+      setSearchParams({});
     } catch {
       // Error handled in hook
     }
-  }
+  };
 
   const handleStatusChange = async (status: ProductStatus) => {
-    if (!id) return
-    await updateStatus.mutateAsync({ id, status })
-  }
+    if (!id) return;
+    await updateStatus.mutateAsync({ id, status });
+  };
 
   const handleDelete = async () => {
-    if (!id) return
+    if (!id) return;
     try {
-      await deleteProduct.mutateAsync(id)
-      navigate(ROUTES.ADMIN_PRODUCTS)
+      await deleteProduct.mutateAsync(id);
+      navigate(ROUTES.ADMIN_PRODUCTS);
     } catch {
       // Error handled in hook
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -126,7 +138,7 @@ export function AdminProductDetailPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (isError || !product) {
@@ -139,7 +151,7 @@ export function AdminProductDetailPage() {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -155,11 +167,15 @@ export function AdminProductDetailPage() {
 
         {!isEditMode && (
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleEditClick} className="flex-1 sm:flex-none">
+            <Button
+              variant="outline"
+              onClick={handleEditClick}
+              className="flex-1 sm:flex-none"
+            >
               <Edit className="mr-2 h-4 w-4" />
               Modifier
             </Button>
-            {product.status !== 'ARCHIVED' && (
+            {product.status !== "ARCHIVED" && (
               <Button
                 variant="destructive"
                 onClick={() => setDeleteDialogOpen(true)}
@@ -208,29 +224,29 @@ export function AdminProductDetailPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => handleStatusChange('AVAILABLE')}
-                          disabled={product.status === 'AVAILABLE'}
+                          onClick={() => handleStatusChange("AVAILABLE")}
+                          disabled={product.status === "AVAILABLE"}
                         >
                           <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                           Disponible
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleStatusChange('UNAVAILABLE')}
-                          disabled={product.status === 'UNAVAILABLE'}
+                          onClick={() => handleStatusChange("UNAVAILABLE")}
+                          disabled={product.status === "UNAVAILABLE"}
                         >
                           <XCircle className="h-4 w-4 mr-2 text-red-600" />
                           Indisponible
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleStatusChange('MAINTENANCE')}
-                          disabled={product.status === 'MAINTENANCE'}
+                          onClick={() => handleStatusChange("MAINTENANCE")}
+                          disabled={product.status === "MAINTENANCE"}
                         >
                           <Wrench className="h-4 w-4 mr-2 text-orange-600" />
                           Maintenance
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleStatusChange('ARCHIVED')}
-                          disabled={product.status === 'ARCHIVED'}
+                          onClick={() => handleStatusChange("ARCHIVED")}
+                          disabled={product.status === "ARCHIVED"}
                         >
                           <Archive className="h-4 w-4 mr-2 text-gray-600" />
                           Archivé
@@ -244,20 +260,24 @@ export function AdminProductDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Prix</span>
                 <span className="font-medium">
-                  {product.priceCredits} crédits/{product.creditPeriod === 'WEEK' ? 'semaine' : 'jour'}
+                  {product.priceCredits} crédits/
+                  {product.creditPeriod === "WEEK" ? "semaine" : "jour"}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Durée</span>
                 <span className="text-sm">
-                  {product.minDuration} - {product.maxDuration} jours
+                  {product.minDuration} -{" "}
+                  {product.maxDuration === 0 ? "∞" : product.maxDuration} jours
                 </span>
               </div>
 
               {product.reference && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Référence</span>
+                  <span className="text-sm text-muted-foreground">
+                    Référence
+                  </span>
                   <span className="text-sm font-mono">{product.reference}</span>
                 </div>
               )}
@@ -267,13 +287,14 @@ export function AdminProductDetailPage() {
                 <div className="text-sm text-right">
                   <div>{product.section.name}</div>
                   {product.subSection && (
-                    <div className="text-muted-foreground">{product.subSection.name}</div>
+                    <div className="text-muted-foreground">
+                      {product.subSection.name}
+                    </div>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
-
         </div>
 
         {/* Right Column - Tabs */}
@@ -289,20 +310,37 @@ export function AdminProductDetailPage() {
               )}
             </CardHeader>
             <CardContent>
-              <Tabs value={isEditMode ? 'edit' : activeTab} onValueChange={setActiveTab}>
+              <Tabs
+                value={isEditMode ? "edit" : activeTab}
+                onValueChange={setActiveTab}
+              >
                 <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 mb-4">
                   <TabsList className="w-full md:w-auto">
-                    <TabsTrigger value="details" disabled={isEditMode} className="flex-1 md:flex-none">
+                    <TabsTrigger
+                      value="details"
+                      disabled={isEditMode}
+                      className="flex-1 md:flex-none"
+                    >
                       <Tag className="h-4 w-4 mr-1 md:mr-2" />
                       <span className="hidden sm:inline">Détails</span>
                       <span className="sm:hidden">Détails</span>
                     </TabsTrigger>
-                    <TabsTrigger value="files" disabled={isEditMode} className="flex-1 md:flex-none">
+                    <TabsTrigger
+                      value="files"
+                      disabled={isEditMode}
+                      className="flex-1 md:flex-none"
+                    >
                       <FileText className="h-4 w-4 mr-1 md:mr-2" />
-                      <span className="hidden sm:inline">Fichiers ({files?.length || 0})</span>
+                      <span className="hidden sm:inline">
+                        Fichiers ({files?.length || 0})
+                      </span>
                       <span className="sm:hidden">{files?.length || 0}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="movements" disabled={isEditMode} className="flex-1 md:flex-none">
+                    <TabsTrigger
+                      value="movements"
+                      disabled={isEditMode}
+                      className="flex-1 md:flex-none"
+                    >
                       <History className="h-4 w-4 mr-1 md:mr-2" />
                       <span className="hidden sm:inline">Mouvements</span>
                       <span className="sm:hidden">Mvts</span>
@@ -329,7 +367,9 @@ export function AdminProductDetailPage() {
                             key={attr.id}
                             className="flex justify-between py-2 border-b last:border-0"
                           >
-                            <span className="text-muted-foreground capitalize">{attr.key}</span>
+                            <span className="text-muted-foreground capitalize">
+                              {attr.key}
+                            </span>
                             <span className="font-medium">{attr.value}</span>
                           </div>
                         ))}
@@ -343,16 +383,23 @@ export function AdminProductDetailPage() {
                       <h3 className="font-semibold mb-3">Dernier mouvement</h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        {new Date(product.lastMovementAt).toLocaleDateString('fr-FR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {new Date(product.lastMovementAt).toLocaleDateString(
+                          "fr-FR",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                         {product.lastCondition && (
                           <Badge
-                            variant={product.lastCondition === 'OK' ? 'default' : 'destructive'}
+                            variant={
+                              product.lastCondition === "OK"
+                                ? "default"
+                                : "destructive"
+                            }
                           >
                             {product.lastCondition}
                           </Badge>
@@ -408,27 +455,30 @@ export function AdminProductDetailPage() {
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>
-                  Êtes-vous sûr de vouloir archiver{' '}
+                  Êtes-vous sûr de vouloir archiver{" "}
                   <strong className="text-foreground">{product.name}</strong> ?
                 </p>
                 <p>
-                  Le produit ne sera plus visible dans le catalogue et ne pourra plus être réservé.
+                  Le produit ne sera plus visible dans le catalogue et ne pourra
+                  plus être réservé.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteProduct.isPending}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteProduct.isPending}>
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleteProduct.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {deleteProduct.isPending ? 'Archivage...' : 'Archiver'}
+              {deleteProduct.isPending ? "Archivage..." : "Archiver"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

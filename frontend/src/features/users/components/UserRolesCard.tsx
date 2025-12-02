@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { Shield, Plus, X } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { useState } from "react";
+import { Shield, Plus, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,73 +19,81 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { useQuery } from '@tanstack/react-query'
-import { useAssignRole, useRevokeRole } from '../hooks/useUsers'
-import { rolesApi } from '@/api/roles.api'
-import type { UserRoleAssignment } from '@/api/users.api'
+} from "@/components/ui/alert-dialog";
+import { useQuery } from "@tanstack/react-query";
+import { useAssignRole, useRevokeRole } from "../hooks/useUsers";
+import { rolesApi } from "@/api/roles.api";
+import type { UserRoleAssignment } from "@/api/users.api";
 
 interface UserRolesCardProps {
-  userId: string
-  roles: UserRoleAssignment[]
-  canManageRoles: boolean
+  userId: string;
+  roles: UserRoleAssignment[];
+  canManageRoles: boolean;
 }
 
-export function UserRolesCard({ userId, roles, canManageRoles }: UserRolesCardProps) {
-  const [selectedRoleId, setSelectedRoleId] = useState<string>('')
-  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false)
-  const [roleToRevoke, setRoleToRevoke] = useState<UserRoleAssignment | null>(null)
+export function UserRolesCard({
+  userId,
+  roles,
+  canManageRoles,
+}: UserRolesCardProps) {
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [roleToRevoke, setRoleToRevoke] = useState<UserRoleAssignment | null>(
+    null,
+  );
 
   // Use rolesApi from roles.api.ts which returns Role[] directly
   const { data: allRoles = [] } = useQuery({
-    queryKey: ['roles', 'all'],
+    queryKey: ["roles", "all"],
     queryFn: () => rolesApi.getRoles(),
     staleTime: 5 * 60 * 1000,
-  })
-  const assignRole = useAssignRole()
-  const revokeRole = useRevokeRole()
+  });
+  const assignRole = useAssignRole();
+  const revokeRole = useRevokeRole();
 
   // Get available roles (not already assigned to user)
-  const assignedRoleIds = roles.map(r => r.roleId)
-  const availableRoles = allRoles.filter(r => !assignedRoleIds.includes(r.id))
+  const assignedRoleIds = roles.map((r) => r.roleId);
+  const availableRoles = allRoles.filter(
+    (r) => !assignedRoleIds.includes(r.id),
+  );
 
   const handleAssignRole = () => {
-    if (!selectedRoleId) return
+    if (!selectedRoleId) return;
 
     assignRole.mutate(
       { userId, roleId: selectedRoleId },
       {
         onSuccess: () => {
-          setSelectedRoleId('')
+          setSelectedRoleId("");
         },
-      }
-    )
-  }
+      },
+    );
+  };
 
   const handleRevokeClick = (roleAssignment: UserRoleAssignment) => {
     // Don't allow revoking the "Utilisateur" role
-    if (roleAssignment.role.name === 'Utilisateur') {
-      return
+    if (roleAssignment.role.name === "Utilisateur") {
+      return;
     }
-    setRoleToRevoke(roleAssignment)
-    setRevokeDialogOpen(true)
-  }
+    setRoleToRevoke(roleAssignment);
+    setRevokeDialogOpen(true);
+  };
 
   const handleRevokeConfirm = () => {
-    if (!roleToRevoke) return
+    if (!roleToRevoke) return;
 
     revokeRole.mutate(
       { userId, roleId: roleToRevoke.roleId },
       {
         onSuccess: () => {
-          setRevokeDialogOpen(false)
-          setRoleToRevoke(null)
+          setRevokeDialogOpen(false);
+          setRoleToRevoke(null);
         },
-      }
-    )
-  }
+      },
+    );
+  };
 
-  const isDefaultRole = (roleName: string) => roleName === 'Utilisateur'
+  const isDefaultRole = (roleName: string) => roleName === "Utilisateur";
 
   return (
     <>
@@ -102,7 +110,11 @@ export function UserRolesCard({ userId, roles, canManageRoles }: UserRolesCardPr
             {roles.map((roleAssignment) => (
               <Badge
                 key={roleAssignment.roleId}
-                variant={isDefaultRole(roleAssignment.role.name) ? 'default' : 'secondary'}
+                variant={
+                  isDefaultRole(roleAssignment.role.name)
+                    ? "default"
+                    : "secondary"
+                }
                 className="flex items-center gap-1 py-1 px-2"
               >
                 {roleAssignment.role.name}
@@ -126,17 +138,17 @@ export function UserRolesCard({ userId, roles, canManageRoles }: UserRolesCardPr
 
           {/* Add role */}
           {canManageRoles && availableRoles.length > 0 && (
-            <div className="flex items-center gap-2 pt-2 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-2 border-t">
               <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="w-full sm:flex-1">
                   <SelectValue placeholder="Ajouter un rôle..." />
                 </SelectTrigger>
                 <SelectContent>
                   {availableRoles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
-                      {role.name}
+                      <span className="truncate">{role.name}</span>
                       {role.description && (
-                        <span className="text-muted-foreground ml-2 text-xs">
+                        <span className="text-muted-foreground ml-2 text-xs truncate max-w-[150px] hidden sm:inline">
                           - {role.description}
                         </span>
                       )}
@@ -148,6 +160,7 @@ export function UserRolesCard({ userId, roles, canManageRoles }: UserRolesCardPr
                 size="sm"
                 onClick={handleAssignRole}
                 disabled={!selectedRoleId || assignRole.isPending}
+                className="w-full sm:w-auto shrink-0"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Ajouter
@@ -175,8 +188,9 @@ export function UserRolesCard({ userId, roles, canManageRoles }: UserRolesCardPr
           <AlertDialogHeader>
             <AlertDialogTitle>Révoquer le rôle</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir révoquer le rôle "{roleToRevoke?.role.name}" de cet utilisateur ?
-              Cette action peut affecter les permissions de l'utilisateur.
+              Êtes-vous sûr de vouloir révoquer le rôle "
+              {roleToRevoke?.role.name}" de cet utilisateur ? Cette action peut
+              affecter les permissions de l'utilisateur.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -191,5 +205,5 @@ export function UserRolesCard({ userId, roles, canManageRoles }: UserRolesCardPr
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

@@ -145,7 +145,8 @@ export const validateDates = async (
     }
   }
 
-  if (duration > product.maxDuration) {
+  // maxDuration = 0 means unlimited
+  if (product.maxDuration > 0 && duration > product.maxDuration) {
     return {
       valid: false,
       error: `La durée maximale de réservation est de ${product.maxDuration} jour(s)`,
@@ -297,6 +298,7 @@ export const createReservation = async (params: CreateReservationParams) => {
   const start = parseLocalDate(startDate)
   const end = parseLocalDate(endDate)
 
+  // Pre-validation (non-critical, can be bypassed by race condition)
   const userValidation = await validateUserCanReserve(userId)
   if (!userValidation.valid) {
     throw { statusCode: 403, message: userValidation.error, code: userValidation.code }
@@ -312,6 +314,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     throw { statusCode: 400, message: dateValidation.error, code: dateValidation.code }
   }
 
+  // Pre-check for conflict (will be re-checked in transaction)
   const conflictValidation = await validateNoConflict(productId, start, end)
   if (!conflictValidation.valid) {
     throw { statusCode: 409, message: conflictValidation.error, code: conflictValidation.code }
@@ -335,46 +338,94 @@ export const createReservation = async (params: CreateReservationParams) => {
     throw { statusCode: 400, message: creditValidation.error, code: creditValidation.code }
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { creditBalance: true },
-  })
+  // Use interactive transaction with serializable isolation to prevent race conditions
+  const reservation = await prisma.$transaction(
+    async (tx) => {
+      // Re-check for conflicts inside transaction (atomic check)
+      const existingConflict = await tx.reservation.findFirst({
+        where: {
+          productId,
+          status: { in: ['CONFIRMED', 'CHECKED_OUT'] },
+          startDate: { lte: end },
+          endDate: { gte: start },
+        },
+      })
 
-  const newBalance = user!.creditBalance - totalCredits
+      if (existingConflict) {
+        throw { statusCode: 409, message: 'Le produit est déjà réservé pour cette période', code: 'CONFLICT' }
+      }
 
-  const [reservation] = await prisma.$transaction([
-    prisma.reservation.create({
-      data: {
-        userId,
-        productId,
-        startDate: start,
-        endDate: end,
-        status: 'CONFIRMED',
-        creditsCharged: totalCredits,
-        notes,
-        adminNotes,
-        createdBy,
-      },
-      include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true } },
-        product: { select: { id: true, name: true, reference: true } },
-      },
-    }),
-    prisma.user.update({
-      where: { id: userId },
-      data: { creditBalance: newBalance },
-    }),
-    prisma.creditTransaction.create({
-      data: {
-        userId,
-        amount: -totalCredits,
-        balanceAfter: newBalance,
-        type: 'RESERVATION',
-        reason: `Réservation : ${product.name}`,
-        performedBy: createdBy,
-      },
-    }),
-  ])
+      // Check for duplicate reservation (same user, same product, same dates)
+      const duplicateReservation = await tx.reservation.findFirst({
+        where: {
+          userId,
+          productId,
+          startDate: start,
+          endDate: end,
+          status: { in: ['CONFIRMED', 'CHECKED_OUT'] },
+        },
+      })
+
+      if (duplicateReservation) {
+        throw { statusCode: 409, message: 'Une réservation identique existe déjà', code: 'DUPLICATE' }
+      }
+
+      // Get current user balance (with lock via transaction)
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { creditBalance: true },
+      })
+
+      if (!user || user.creditBalance < totalCredits) {
+        throw { statusCode: 400, message: 'Crédits insuffisants', code: 'VALIDATION_ERROR' }
+      }
+
+      const newBalance = user.creditBalance - totalCredits
+
+      // Create reservation
+      const newReservation = await tx.reservation.create({
+        data: {
+          userId,
+          productId,
+          startDate: start,
+          endDate: end,
+          status: 'CONFIRMED',
+          creditsCharged: totalCredits,
+          notes,
+          adminNotes,
+          createdBy,
+        },
+        include: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          product: { select: { id: true, name: true, reference: true } },
+        },
+      })
+
+      // Update user balance
+      await tx.user.update({
+        where: { id: userId },
+        data: { creditBalance: newBalance },
+      })
+
+      // Create credit transaction
+      await tx.creditTransaction.create({
+        data: {
+          userId,
+          amount: -totalCredits,
+          balanceAfter: newBalance,
+          type: 'RESERVATION',
+          reason: `Réservation : ${product.name}`,
+          performedBy: createdBy,
+        },
+      })
+
+      return newReservation
+    },
+    {
+      isolationLevel: 'Serializable', // Prevent race conditions
+      timeout: 10000, // 10 second timeout
+    }
+  )
 
   // Generate and save QR code for the reservation
   const qrCode = generateReservationQRCode(reservation.id, userId)
@@ -493,7 +544,7 @@ export const listReservations = async (params: ListReservationsParams, forUserId
             id: true,
             name: true,
             reference: true,
-            section: { select: { id: true, name: true } },
+            section: { select: { id: true, name: true, refundDeadlineHours: true } },
           },
         },
       },
@@ -524,7 +575,7 @@ export const getReservationById = async (id: string, userId?: string) => {
       user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
       product: {
         include: {
-          section: { select: { id: true, name: true } },
+          section: { select: { id: true, name: true, refundDeadlineHours: true } },
           subSection: { select: { id: true, name: true } },
         },
       },
@@ -555,7 +606,14 @@ export const cancelReservation = async (params: CancelReservationParams) => {
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    include: { product: { select: { name: true } } },
+    include: {
+      product: {
+        select: {
+          name: true,
+          section: { select: { refundDeadlineHours: true } },
+        },
+      },
+    },
   })
 
   if (!reservation) {
@@ -590,69 +648,122 @@ export const cancelReservation = async (params: CancelReservationParams) => {
     }
   }
 
+  // Check if eligible for refund based on refundDeadlineHours
+  const refundDeadlineHours = reservation.product.section.refundDeadlineHours
+  const now = new Date()
+  const startDate = new Date(reservation.startDate)
+  const hoursUntilStart = (startDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+  const isEligibleForRefund = hoursUntilStart >= refundDeadlineHours
+
   const user = await prisma.user.findUnique({
     where: { id: reservation.userId },
     select: { creditBalance: true },
   })
 
-  const newBalance = user!.creditBalance + reservation.creditsCharged
+  if (isEligibleForRefund) {
+    // Full refund
+    const newBalance = user!.creditBalance + reservation.creditsCharged
 
-  const [updatedReservation] = await prisma.$transaction([
-    prisma.reservation.update({
+    const [updatedReservation] = await prisma.$transaction([
+      prisma.reservation.update({
+        where: { id: reservationId },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelReason: reason,
+          cancelledBy: userId,
+          refundedAt: new Date(),
+          refundedBy: userId,
+          refundAmount: reservation.creditsCharged,
+        },
+        include: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          product: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.user.update({
+        where: { id: reservation.userId },
+        data: { creditBalance: newBalance },
+      }),
+      prisma.creditTransaction.create({
+        data: {
+          userId: reservation.userId,
+          amount: reservation.creditsCharged,
+          balanceAfter: newBalance,
+          type: 'REFUND',
+          reason: `Annulation : ${reservation.product.name}`,
+          performedBy: userId,
+          reservationId,
+        },
+      }),
+    ])
+
+    await logAudit({
+      userId: reservation.userId,
+      performedBy: userId,
+      action: 'RESERVATION_CANCEL',
+      targetType: 'Reservation',
+      targetId: reservationId,
+      metadata: {
+        reason,
+        refundAmount: reservation.creditsCharged,
+        previousStatus: reservation.status,
+        refunded: true,
+      },
+    })
+
+    // Send notifications
+    await notificationHelper.sendReservationCancelledNotification(
+      reservation.userId,
+      reservationId,
+      reservation.product.name,
+      reason
+    )
+
+    return { ...updatedReservation, refunded: true }
+  } else {
+    // No refund - cancellation is too late
+    const updatedReservation = await prisma.reservation.update({
       where: { id: reservationId },
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
         cancelReason: reason,
         cancelledBy: userId,
-        refundedAt: new Date(),
-        refundedBy: userId,
-        refundAmount: reservation.creditsCharged,
+        // No refund fields set
       },
       include: {
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
         product: { select: { id: true, name: true } },
       },
-    }),
-    prisma.user.update({
-      where: { id: reservation.userId },
-      data: { creditBalance: newBalance },
-    }),
-    prisma.creditTransaction.create({
-      data: {
-        userId: reservation.userId,
-        amount: reservation.creditsCharged,
-        balanceAfter: newBalance,
-        type: 'REFUND',
-        reason: `Annulation : ${reservation.product.name}`,
-        performedBy: userId,
-        reservationId,
+    })
+
+    await logAudit({
+      userId: reservation.userId,
+      performedBy: userId,
+      action: 'RESERVATION_CANCEL',
+      targetType: 'Reservation',
+      targetId: reservationId,
+      metadata: {
+        reason,
+        refundAmount: 0,
+        previousStatus: reservation.status,
+        refunded: false,
+        hoursUntilStart: Math.floor(hoursUntilStart),
+        refundDeadlineHours,
       },
-    }),
-  ])
+    })
 
-  await logAudit({
-    userId: reservation.userId,
-    performedBy: userId,
-    action: 'RESERVATION_CANCEL',
-    targetType: 'Reservation',
-    targetId: reservationId,
-    metadata: {
-      reason,
-      refundAmount: reservation.creditsCharged,
-      previousStatus: reservation.status,
-    },
-  })
+    // Send notifications (no refund version)
+    await notificationHelper.sendReservationCancelledNotification(
+      reservation.userId,
+      reservationId,
+      reservation.product.name,
+      reason
+    )
 
-  // Send notifications
-  await notificationHelper.sendReservationCancelledNotification(
-    reservation.userId,
-    reservationId,
-    reservation.product.name,
-    reason
-  )
-
-  return updatedReservation
+    return { ...updatedReservation, refunded: false }
+  }
 }
 
 // ============================================
@@ -704,11 +815,15 @@ export const refundReservation = async (params: RefundReservationParams) => {
 
   const newBalance = user!.creditBalance + refundAmount
 
+  // For CANCELLED reservations, keep status as CANCELLED
+  // For RETURNED reservations, change to REFUNDED
+  const newStatus = reservation.status === 'CANCELLED' ? 'CANCELLED' : 'REFUNDED'
+
   const [updatedReservation] = await prisma.$transaction([
     prisma.reservation.update({
       where: { id: reservationId },
       data: {
-        status: 'REFUNDED',
+        status: newStatus,
         refundedAt: new Date(),
         refundedBy: adminId,
         refundAmount,

@@ -12,7 +12,7 @@ interface MovementPhotoData {
 
 interface CreateMovementParams {
   productId: string
-  reservationId: string
+  reservationId?: string
   type: MovementType
   condition?: ProductCondition
   notes?: string

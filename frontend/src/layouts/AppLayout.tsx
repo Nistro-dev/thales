@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Home,
   Package,
@@ -15,12 +16,15 @@ import {
   Sun,
   Moon,
   User,
+  Settings,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { useAuthStore } from '@/stores/auth.store'
 import { useThemeStore } from '@/stores/theme.store'
 import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/features/notifications/components/NotificationBell'
+import { MaintenancePage } from '@/features/maintenance/pages/MaintenancePage'
+import { settingsApi } from '@/api/settings.api'
 import { ROUTES } from '@/constants/routes'
 import { PERMISSIONS, Permission } from '@/constants/permissions'
 import { cn } from '@/lib/utils'
@@ -46,6 +50,7 @@ const adminNavItems: NavItem[] = [
   { name: 'Sections', path: ROUTES.ADMIN_SECTIONS, icon: FileText, permission: PERMISSIONS.VIEW_SECTIONS },
   { name: 'Produits', path: ROUTES.ADMIN_PRODUCTS, icon: Package, permission: PERMISSIONS.MANAGE_PRODUCTS },
   { name: 'Réservations', path: ROUTES.ADMIN_RESERVATIONS, icon: Calendar, permission: PERMISSIONS.VIEW_RESERVATIONS },
+  { name: 'Paramètres', path: ROUTES.ADMIN_SETTINGS, icon: Settings, permission: PERMISSIONS.VIEW_SETTINGS },
 ]
 
 export function AppLayout() {
@@ -56,6 +61,18 @@ export function AppLayout() {
   const { theme, toggleTheme } = useThemeStore()
   const { logout } = useAuth()
 
+  const canBypassMaintenance = hasPermission(PERMISSIONS.BYPASS_MAINTENANCE)
+
+  // Check maintenance status - only if user cannot bypass
+  const { data: maintenanceData } = useQuery({
+    queryKey: ['settings', 'maintenance', 'status'],
+    queryFn: () => settingsApi.getMaintenanceStatus(),
+    refetchInterval: 30000, // Check every 30 seconds
+    retry: false, // Don't retry on error
+    staleTime: 10000, // Consider data fresh for 10 seconds
+    enabled: !canBypassMaintenance, // Skip query if user can bypass
+  })
+
   const isActive = (path: string) => location.pathname === path
 
   const hasAdminAccess = hasPermission(PERMISSIONS.VIEW_ADMIN_PANEL)
@@ -63,6 +80,14 @@ export function AppLayout() {
   const filteredAdminItems = adminNavItems.filter((item) =>
     item.permission ? hasPermission(item.permission) : true
   )
+
+  // Show maintenance page if maintenance is enabled and user doesn't have bypass permission
+  const maintenanceEnabled = maintenanceData?.data?.data?.maintenanceEnabled
+  const maintenanceMessage = maintenanceData?.data?.data?.maintenanceMessage
+
+  if (maintenanceEnabled && !canBypassMaintenance) {
+    return <MaintenancePage message={maintenanceMessage} />
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">

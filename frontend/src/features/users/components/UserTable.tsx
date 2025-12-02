@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, Eye, Ban, CheckCircle, Trash2, Coins } from 'lucide-react'
+import { MoreHorizontal, Eye, Ban, UserX, UserCheck, Coins } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -28,8 +28,8 @@ interface UserTableProps {
   users: UserListItem[]
   isLoading: boolean
   onSuspend: (user: UserListItem) => void
-  onActivate: (user: UserListItem) => void
-  onDelete: (user: UserListItem) => void
+  onDisable: (user: UserListItem) => void
+  onReactivate: (user: UserListItem) => void
   onAdjustCredits: (user: UserListItem) => void
 }
 
@@ -37,8 +37,8 @@ export function UserTable({
   users,
   isLoading,
   onSuspend,
-  onActivate,
-  onDelete,
+  onDisable,
+  onReactivate,
   onAdjustCredits,
 }: UserTableProps) {
   const navigate = useNavigate()
@@ -171,40 +171,66 @@ export function UserTable({
                       <>
                         <DropdownMenuSeparator />
 
-                        {user.status === 'ACTIVE' ? (
+                        {user.status === 'ACTIVE' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onSuspend(user)
+                              }}
+                              className="text-orange-600"
+                            >
+                              <Ban className="h-4 w-4 mr-2" />
+                              Suspendre
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDisable(user)
+                              }}
+                              className="text-red-600"
+                            >
+                              <UserX className="h-4 w-4 mr-2" />
+                              Désactiver
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {user.status === 'SUSPENDED' && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onReactivate(user)
+                              }}
+                              className="text-green-600"
+                            >
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              Réactiver
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDisable(user)
+                              }}
+                              className="text-red-600"
+                            >
+                              <UserX className="h-4 w-4 mr-2" />
+                              Désactiver
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {user.status === 'DISABLED' && (
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
-                              onSuspend(user)
-                            }}
-                            className="text-orange-600"
-                          >
-                            <Ban className="h-4 w-4 mr-2" />
-                            Suspendre
-                          </DropdownMenuItem>
-                        ) : user.status === 'SUSPENDED' ? (
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onActivate(user)
+                              onReactivate(user)
                             }}
                             className="text-green-600"
                           >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Activer
+                            <UserCheck className="h-4 w-4 mr-2" />
+                            Réactiver
                           </DropdownMenuItem>
-                        ) : null}
-
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(user)
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer
-                        </DropdownMenuItem>
+                        )}
                       </>
                     )}
                   </DropdownMenuContent>

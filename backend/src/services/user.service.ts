@@ -29,15 +29,15 @@ export const createUser = async (params: CreateUserParams) => {
 
   const hashedPassword = await hashPassword(params.password)
 
-  // Get the default "User" role
+  // Get the default "Utilisateur" role
   const userRole = await prisma.role.findUnique({
-    where: { name: 'User' },
+    where: { name: 'Utilisateur' },
   })
 
   if (!userRole) {
     throw {
       statusCode: 500,
-      message: 'Le rôle User par défaut est introuvable',
+      message: 'Le rôle Utilisateur par défaut est introuvable',
       code: 'INTERNAL_ERROR',
     }
   }
@@ -477,4 +477,155 @@ export const resetCaution = async (userId: string, performedBy: string) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password: _, ...userWithoutPassword } = updatedUser
   return userWithoutPassword
+}
+
+// Disable a user account
+export const disableUser = async (userId: string, performedBy: string, reason?: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  })
+
+  if (!user) {
+    throw {
+      statusCode: 404,
+      message: ErrorMessages.NOT_FOUND,
+      code: 'NOT_FOUND',
+      details: { resource: 'User' },
+    }
+  }
+
+  if (user.status === UserStatus.DISABLED) {
+    throw {
+      statusCode: 400,
+      message: 'L\'utilisateur est déjà désactivé',
+      code: 'ALREADY_DISABLED',
+    }
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { status: UserStatus.DISABLED },
+  })
+
+  await createAuditLog({
+    userId,
+    performedBy,
+    action: 'USER_STATUS_CHANGE',
+    targetType: 'User',
+    targetId: userId,
+    metadata: {
+      previousStatus: user.status,
+      newStatus: UserStatus.DISABLED,
+      reason: reason || 'Manual disable',
+    },
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password: _, ...userWithoutPassword } = updatedUser
+  return userWithoutPassword
+}
+
+// Reactivate a disabled user account
+export const reactivateUser = async (userId: string, performedBy: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  })
+
+  if (!user) {
+    throw {
+      statusCode: 404,
+      message: ErrorMessages.NOT_FOUND,
+      code: 'NOT_FOUND',
+      details: { resource: 'User' },
+    }
+  }
+
+  if (user.status === UserStatus.ACTIVE) {
+    throw {
+      statusCode: 400,
+      message: 'L\'utilisateur est déjà actif',
+      code: 'ALREADY_ACTIVE',
+    }
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { status: UserStatus.ACTIVE },
+  })
+
+  await createAuditLog({
+    userId,
+    performedBy,
+    action: 'USER_STATUS_CHANGE',
+    targetType: 'User',
+    targetId: userId,
+    metadata: {
+      previousStatus: user.status,
+      newStatus: UserStatus.ACTIVE,
+      reason: 'Reactivation',
+    },
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password: _, ...userWithoutPassword } = updatedUser
+  return userWithoutPassword
+}
+
+// Disable inactive users based on settings
+export const disableInactiveUsers = async () => {
+  // Import here to avoid circular dependency
+  const { getSecuritySettings } = await import('./settings.service.js')
+
+  const settings = await getSecuritySettings()
+
+  if (!settings.accountInactivityEnabled) {
+    return { disabled: 0, message: 'Account inactivity check is disabled' }
+  }
+
+  const inactivityThreshold = new Date()
+  inactivityThreshold.setDate(inactivityThreshold.getDate() - settings.accountInactivityDays)
+
+  // Find active users who haven't logged in since the threshold
+  const inactiveUsers = await prisma.user.findMany({
+    where: {
+      status: UserStatus.ACTIVE,
+      lastLoginAt: {
+        lt: inactivityThreshold,
+      },
+    },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      lastLoginAt: true,
+    },
+  })
+
+  // Disable each inactive user
+  for (const user of inactiveUsers) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { status: UserStatus.DISABLED },
+    })
+
+    await createAuditLog({
+      userId: user.id,
+      performedBy: 'SYSTEM',
+      action: 'USER_STATUS_CHANGE',
+      targetType: 'User',
+      targetId: user.id,
+      metadata: {
+        previousStatus: UserStatus.ACTIVE,
+        newStatus: UserStatus.DISABLED,
+        reason: `Automatic disable due to inactivity (${settings.accountInactivityDays} days)`,
+        lastLoginAt: user.lastLoginAt?.toISOString(),
+      },
+    })
+  }
+
+  return {
+    disabled: inactiveUsers.length,
+    users: inactiveUsers.map(u => ({ id: u.id, email: u.email })),
+  }
 }

@@ -238,3 +238,35 @@ export const updateMyProfile = async (
     createSuccessResponse(SuccessMessages.USER_UPDATED, { user })
   )
 }
+
+// Disable a user account
+export const disableUser = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const params = userIdParamSchema.parse(request.params)
+  const user = await userService.disableUser(
+    params.id,
+    request.user.userId
+  )
+
+  return reply.send(
+    createSuccessResponse('Utilisateur désactivé avec succès', { user })
+  )
+}
+
+// Reactivate a user account
+export const reactivateUser = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  const params = userIdParamSchema.parse(request.params)
+  const user = await userService.reactivateUser(
+    params.id,
+    request.user.userId
+  )
+
+  return reply.send(
+    createSuccessResponse('Utilisateur réactivé avec succès', { user })
+  )
+}

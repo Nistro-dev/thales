@@ -6,18 +6,16 @@ import {
   Mail,
   Phone,
   Calendar,
-  Shield,
   Coins,
   Edit,
   Ban,
-  CheckCircle,
-  Trash2,
+  UserX,
+  UserCheck,
   Clock,
   Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
@@ -32,15 +30,16 @@ import {
   EditUserDialog,
   CreditAdjustmentDialog,
   SuspendUserDialog,
-  DeleteUserDialog,
   UserReservationsTable,
   CreditTransactionsTable,
+  UserRolesCard,
 } from '../components'
 import {
   useUser,
   useUserReservations,
   useUserCreditTransactions,
-  useUpdateUserStatus,
+  useDisableUser,
+  useReactivateUser,
   useValidateCaution,
   useExemptCaution,
   useResetCaution,
@@ -57,6 +56,7 @@ export function AdminUserDetailPage() {
   const canManageUsers = hasPermission(PERMISSIONS.MANAGE_USERS)
   const canManageCredits = hasPermission(PERMISSIONS.MANAGE_CREDITS)
   const canManageCautions = hasPermission(PERMISSIONS.MANAGE_CAUTIONS)
+  const canManageRoles = hasPermission(PERMISSIONS.MANAGE_ROLES)
 
   // Pagination states
   const [reservationsPage, setReservationsPage] = useState(1)
@@ -78,7 +78,8 @@ export function AdminUserDetailPage() {
   )
 
   // Mutations
-  const updateStatus = useUpdateUserStatus()
+  const disableUser = useDisableUser()
+  const reactivateUser = useReactivateUser()
   const validateCaution = useValidateCaution()
   const exemptCaution = useExemptCaution()
   const resetCaution = useResetCaution()
@@ -87,7 +88,6 @@ export function AdminUserDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [creditDialogOpen, setCreditDialogOpen] = useState(false)
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const user = userData?.user
 
@@ -170,33 +170,53 @@ export function AdminUserDetailPage() {
 
                 <DropdownMenuSeparator />
 
-                {user.status === 'ACTIVE' ? (
+                {user.status === 'ACTIVE' && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => setSuspendDialogOpen(true)}
+                      className="text-orange-600"
+                    >
+                      <Ban className="h-4 w-4 mr-2" />
+                      Suspendre
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => disableUser.mutate(user.id)}
+                      className="text-red-600"
+                    >
+                      <UserX className="h-4 w-4 mr-2" />
+                      Désactiver
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {user.status === 'SUSPENDED' && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => reactivateUser.mutate(user.id)}
+                      className="text-green-600"
+                    >
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Réactiver
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => disableUser.mutate(user.id)}
+                      className="text-red-600"
+                    >
+                      <UserX className="h-4 w-4 mr-2" />
+                      Désactiver
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                {user.status === 'DISABLED' && (
                   <DropdownMenuItem
-                    onClick={() => setSuspendDialogOpen(true)}
-                    className="text-orange-600"
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Suspendre
-                  </DropdownMenuItem>
-                ) : user.status === 'SUSPENDED' ? (
-                  <DropdownMenuItem
-                    onClick={() => updateStatus.mutate({ id: user.id, status: 'ACTIVE' })}
+                    onClick={() => reactivateUser.mutate(user.id)}
                     className="text-green-600"
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Activer
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Réactiver
                   </DropdownMenuItem>
-                ) : null}
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="text-red-600"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer
-                </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -222,22 +242,6 @@ export function AdminUserDetailPage() {
             <div className="flex items-center gap-3">
               <Phone className="h-4 w-4 text-muted-foreground" />
               <span>{user.phone || <span className="text-muted-foreground italic">Non renseigné</span>}</span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              <div className="flex gap-2 flex-wrap">
-                {user.roles?.map((roleAssignment) => (
-                  <Badge key={roleAssignment.roleId} variant="secondary">
-                    {roleAssignment.role.name}
-                    {roleAssignment.section && (
-                      <span className="text-xs ml-1 opacity-70">
-                        ({roleAssignment.section.name})
-                      </span>
-                    )}
-                  </Badge>
-                ))}
-              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -319,6 +323,13 @@ export function AdminUserDetailPage() {
         </Card>
       </div>
 
+      {/* Roles Card */}
+      <UserRolesCard
+        userId={user.id}
+        roles={user.roles || []}
+        canManageRoles={canManageRoles}
+      />
+
       {/* Reservations */}
       <UserReservationsTable
         reservations={reservationsData?.reservations}
@@ -363,12 +374,6 @@ export function AdminUserDetailPage() {
       <SuspendUserDialog
         open={suspendDialogOpen}
         onOpenChange={setSuspendDialogOpen}
-        user={user}
-      />
-
-      <DeleteUserDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
         user={user}
       />
     </div>

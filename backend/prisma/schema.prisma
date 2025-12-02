@@ -156,16 +156,17 @@ model User {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  refreshTokens      RefreshToken[]
-  passwordResets     PasswordReset[]
-  invitationsSent    Invitation[]         @relation("InvitationsSent")
-  files              File[]
-  roles              UserRole[]
-  creditTransactions CreditTransaction[]
-  auditLogs          AuditLog[]           @relation("AuditUser")
-  auditLogsPerformed AuditLog[]           @relation("AuditPerformer")
-  reservations       Reservation[]
-  notifications      Notification[]
+  refreshTokens           RefreshToken[]
+  passwordResets          PasswordReset[]
+  invitationsSent         Invitation[]              @relation("InvitationsSent")
+  files                   File[]
+  roles                   UserRole[]
+  creditTransactions      CreditTransaction[]
+  auditLogs               AuditLog[]                @relation("AuditUser")
+  auditLogsPerformed      AuditLog[]                @relation("AuditPerformer")
+  reservations            Reservation[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@index([email])
   @@index([status])
@@ -533,6 +534,22 @@ model Setting {
 // NOTIFICATIONS
 // ============================================
 
+enum NotificationType {
+  RESERVATION_CONFIRMED
+  RESERVATION_CANCELLED
+  RESERVATION_REFUNDED
+  RESERVATION_CHECKOUT
+  RESERVATION_RETURN
+  RESERVATION_REMINDER
+  RESERVATION_EXTENDED
+  RESERVATION_OVERDUE
+  RESERVATION_EXPIRED
+  CREDIT_ADDED
+  CREDIT_REMOVED
+  PASSWORD_CHANGED
+  SYSTEM
+}
+
 model Notification {
   id        String   @id @default(uuid())
   userId    String
@@ -547,4 +564,18 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+}
+
+model NotificationPreference {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationType NotificationType
+  emailEnabled     Boolean          @default(true)
+  inAppEnabled     Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([userId, notificationType])
+  @@index([userId])
 }

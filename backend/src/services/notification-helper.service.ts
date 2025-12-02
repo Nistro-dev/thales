@@ -4,6 +4,22 @@ import { prisma } from '../utils/prisma.js'
 import * as notificationService from './notification.service.js'
 import * as emailService from './email.service.js'
 import { NotificationType } from './notification.service.js'
+import { isNotificationEnabled } from './notification-preference.service.js'
+import type { NotificationType as PrismaNotificationType } from '@prisma/client'
+
+/**
+ * Check if email should be sent based on user preferences
+ */
+const shouldSendEmail = async (userId: string, type: PrismaNotificationType): Promise<boolean> => {
+  return isNotificationEnabled(userId, type, 'email')
+}
+
+/**
+ * Check if in-app notification should be created based on user preferences
+ */
+const shouldSendInApp = async (userId: string, type: PrismaNotificationType): Promise<boolean> => {
+  return isNotificationEnabled(userId, type, 'inApp')
+}
 
 /**
  * Send both email and in-app notification based on user preferences
@@ -21,14 +37,15 @@ export const sendReservationConfirmedNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_CONFIRMED'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -57,13 +74,15 @@ export const sendReservationConfirmedNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_CONFIRMED,
-    title: 'Réservation confirmée',
-    message: `Votre réservation pour ${productName} du ${startDate} au ${endDate} a été confirmée.`,
-    metadata: { reservationId },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_CONFIRMED,
+      title: 'Réservation confirmée',
+      message: `Votre réservation pour ${productName} du ${startDate} au ${endDate} a été confirmée.`,
+      metadata: { reservationId },
+    })
+  }
 }
 
 export const sendReservationCancelledNotification = async (
@@ -78,14 +97,15 @@ export const sendReservationCancelledNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_CANCELLED'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -114,13 +134,15 @@ export const sendReservationCancelledNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_CANCELLED,
-    title: 'Réservation annulée',
-    message: `Votre réservation pour ${productName} a été annulée.${cancelReason ? ` Raison : ${cancelReason}` : ''}`,
-    metadata: { reservationId, cancelReason },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_CANCELLED,
+      title: 'Réservation annulée',
+      message: `Votre réservation pour ${productName} a été annulée.${cancelReason ? ` Raison : ${cancelReason}` : ''}`,
+      metadata: { reservationId, cancelReason },
+    })
+  }
 }
 
 export const sendReservationRefundedNotification = async (
@@ -136,14 +158,15 @@ export const sendReservationRefundedNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_REFUNDED'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -174,13 +197,15 @@ export const sendReservationRefundedNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_REFUNDED,
-    title: 'Réservation remboursée',
-    message: `Un remboursement de ${refundAmount} crédits a été effectué pour votre réservation de ${productName}.`,
-    metadata: { reservationId, refundAmount, newBalance },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_REFUNDED,
+      title: 'Réservation remboursée',
+      message: `Un remboursement de ${refundAmount} crédits a été effectué pour votre réservation de ${productName}.`,
+      metadata: { reservationId, refundAmount, newBalance },
+    })
+  }
 }
 
 export const sendCheckoutNotification = async (
@@ -194,14 +219,15 @@ export const sendCheckoutNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_CHECKOUT'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -231,13 +257,15 @@ export const sendCheckoutNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_CHECKOUT,
-    title: 'Matériel retiré',
-    message: `Vous avez retiré le matériel ${productName}. Bon usage !`,
-    metadata: { reservationId },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_CHECKOUT,
+      title: 'Matériel retiré',
+      message: `Vous avez retiré le matériel ${productName}. Bon usage !`,
+      metadata: { reservationId },
+    })
+  }
 }
 
 export const sendReturnNotification = async (
@@ -252,14 +280,15 @@ export const sendReturnNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_RETURN'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     const reservation = await prisma.reservation.findUnique({
       where: { id: reservationId },
       include: {
@@ -303,15 +332,17 @@ export const sendReturnNotification = async (
   }
 
   // In-app notification
-  const conditionText =
-    condition === 'OK' ? 'en excellent état' : 'avec des dommages constatés'
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_RETURN,
-    title: 'Retour enregistré',
-    message: `Le retour de ${productName} a été enregistré ${conditionText}.`,
-    metadata: { reservationId, condition },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    const conditionText =
+      condition === 'OK' ? 'en excellent état' : 'avec des dommages constatés'
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_RETURN,
+      title: 'Retour enregistré',
+      message: `Le retour de ${productName} a été enregistré ${conditionText}.`,
+      metadata: { reservationId, condition },
+    })
+  }
 }
 
 export const sendCreditAdjustmentNotification = async (
@@ -326,16 +357,16 @@ export const sendCreditAdjustmentNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
   const isAdded = amount > 0
+  const notificationType: PrismaNotificationType = isAdded ? 'CREDIT_ADDED' : 'CREDIT_REMOVED'
 
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     if (isAdded) {
       await emailService.sendCreditAddedEmail(user.email, {
         firstName: user.firstName,
@@ -356,15 +387,17 @@ export const sendCreditAdjustmentNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: isAdded ? NotificationType.CREDIT_ADDED : NotificationType.CREDIT_REMOVED,
-    title: isAdded ? 'Crédits ajoutés' : 'Crédits retirés',
-    message: isAdded
-      ? `${amount} crédits ont été ajoutés à votre compte.`
-      : `${Math.abs(amount)} crédits ont été retirés de votre compte.`,
-    metadata: { amount, newBalance, reason },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: isAdded ? NotificationType.CREDIT_ADDED : NotificationType.CREDIT_REMOVED,
+      title: isAdded ? 'Crédits ajoutés' : 'Crédits retirés',
+      message: isAdded
+        ? `${amount} crédits ont été ajoutés à votre compte.`
+        : `${Math.abs(amount)} crédits ont été retirés de votre compte.`,
+      metadata: { amount, newBalance, reason },
+    })
+  }
 }
 
 // Extension notification (automatic confirmation)
@@ -381,14 +414,15 @@ export const sendExtensionConfirmedNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_EXTENDED'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     await emailService.sendExtensionConfirmedEmail(user.email, {
       firstName: user.firstName,
       lastName: user.lastName,
@@ -400,13 +434,15 @@ export const sendExtensionConfirmedNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_EXTENDED,
-    title: 'Réservation prolongée',
-    message: `Votre réservation pour ${productName} a été prolongée jusqu'au ${newEndDate}. Coût : ${cost} crédits.`,
-    metadata: { reservationId, cost, newEndDate },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_EXTENDED,
+      title: 'Réservation prolongée',
+      message: `Votre réservation pour ${productName} a été prolongée jusqu'au ${newEndDate}. Coût : ${cost} crédits.`,
+      metadata: { reservationId, cost, newEndDate },
+    })
+  }
 }
 
 // Overdue and expired notifications
@@ -423,14 +459,15 @@ export const sendReservationOverdueNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_OVERDUE'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     await emailService.sendReservationOverdueEmail(user.email, {
       firstName: user.firstName,
       lastName: user.lastName,
@@ -442,13 +479,15 @@ export const sendReservationOverdueNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_OVERDUE,
-    title: 'Retour en retard',
-    message: `Le matériel ${productName} aurait dû être retourné le ${endDate}. Retard : ${daysOverdue} jour(s).`,
-    metadata: { reservationId, daysOverdue, endDate },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_OVERDUE,
+      title: 'Retour en retard',
+      message: `Le matériel ${productName} aurait dû être retourné le ${endDate}. Retard : ${daysOverdue} jour(s).`,
+      metadata: { reservationId, daysOverdue, endDate },
+    })
+  }
 }
 
 export const sendReservationExpiredNotification = async (
@@ -464,14 +503,15 @@ export const sendReservationExpiredNotification = async (
       email: true,
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  const notificationType: PrismaNotificationType = 'RESERVATION_EXPIRED'
+
   // Email
-  if (user.emailNotifications) {
+  if (await shouldSendEmail(userId, notificationType)) {
     await emailService.sendReservationExpiredEmail(user.email, {
       firstName: user.firstName,
       lastName: user.lastName,
@@ -483,13 +523,15 @@ export const sendReservationExpiredNotification = async (
   }
 
   // In-app notification
-  await notificationService.createNotification({
-    userId,
-    type: NotificationType.RESERVATION_EXPIRED,
-    title: 'Réservation expirée',
-    message: `Votre réservation pour ${productName} (${startDate} - ${endDate}) a expiré sans retrait.`,
-    metadata: { reservationId, startDate, endDate },
-  })
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_EXPIRED,
+      title: 'Réservation expirée',
+      message: `Votre réservation pour ${productName} (${startDate} - ${endDate}) a expiré sans retrait.`,
+      metadata: { reservationId, startDate, endDate },
+    })
+  }
 }
 
 export const sendPasswordChangedNotification = async (
@@ -501,19 +543,17 @@ export const sendPasswordChangedNotification = async (
     select: {
       firstName: true,
       lastName: true,
-      emailNotifications: true,
     },
   })
 
   if (!user) return
 
+  // Security notifications are always sent (not configurable by user)
   // Email
-  if (user.emailNotifications) {
-    await emailService.sendPasswordChangedEmail(email, {
-      firstName: user.firstName,
-      lastName: user.lastName,
-    })
-  }
+  await emailService.sendPasswordChangedEmail(email, {
+    firstName: user.firstName,
+    lastName: user.lastName,
+  })
 
   // In-app notification
   await notificationService.createNotification({
@@ -523,4 +563,53 @@ export const sendPasswordChangedNotification = async (
     message: 'Votre mot de passe a été modifié avec succès.',
     metadata: {},
   })
+}
+
+// Reminder notification (for scheduled reminders)
+export const sendReservationReminderNotification = async (
+  userId: string,
+  reservationId: string,
+  productName: string,
+  startDate: string,
+  endDate: string,
+  duration: number,
+  creditsCharged: number
+): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      firstName: true,
+      lastName: true,
+    },
+  })
+
+  if (!user) return
+
+  const notificationType: PrismaNotificationType = 'RESERVATION_REMINDER'
+
+  // Email
+  if (await shouldSendEmail(userId, notificationType)) {
+    await emailService.sendReservationReminderEmail(user.email, {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      productName,
+      startDate,
+      endDate,
+      duration,
+      creditsCharged,
+      reservationId,
+    })
+  }
+
+  // In-app notification
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_REMINDER,
+      title: 'Rappel de réservation',
+      message: `N'oubliez pas : votre réservation pour ${productName} commence le ${startDate}.`,
+      metadata: { reservationId, startDate },
+    })
+  }
 }

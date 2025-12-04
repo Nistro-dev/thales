@@ -45,6 +45,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "date-fns": "^4.1.0",
+    "es-toolkit": "^1.42.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.344.0",
     "qrcode": "^1.5.4",

@@ -21,25 +21,25 @@ ALTER TYPE "AuditAction_new" RENAME TO "AuditAction";
 DROP TYPE "AuditAction_old";
 COMMIT;
 
--- DropIndex
-DROP INDEX "Reservation_extensionRequestedAt_idx";
+-- DropIndex (if exists)
+DROP INDEX IF EXISTS "Reservation_extensionRequestedAt_idx";
 
--- AlterTable
-ALTER TABLE "ProductMovement" DROP COLUMN "photoKey";
+-- AlterTable ProductMovement (drop column if exists)
+ALTER TABLE "ProductMovement" DROP COLUMN IF EXISTS "photoKey";
 
--- AlterTable
-ALTER TABLE "Reservation" DROP COLUMN "extensionApprovedAt",
-DROP COLUMN "extensionCost",
-DROP COLUMN "extensionHandledBy",
-DROP COLUMN "extensionNewEndDate",
-DROP COLUMN "extensionReason",
-DROP COLUMN "extensionRejectedAt",
-DROP COLUMN "extensionRequestedAt",
-ADD COLUMN     "extensionCount" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "totalExtensionCost" INTEGER NOT NULL DEFAULT 0;
+-- AlterTable Reservation (drop columns if exist, add columns if not exist)
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionApprovedAt";
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionCost";
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionHandledBy";
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionNewEndDate";
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionReason";
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionRejectedAt";
+ALTER TABLE "Reservation" DROP COLUMN IF EXISTS "extensionRequestedAt";
+ALTER TABLE "Reservation" ADD COLUMN IF NOT EXISTS "extensionCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "Reservation" ADD COLUMN IF NOT EXISTS "totalExtensionCost" INTEGER NOT NULL DEFAULT 0;
 
--- CreateTable
-CREATE TABLE "Setting" (
+-- CreateTable (if not exists)
+CREATE TABLE IF NOT EXISTS "Setting" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
@@ -50,8 +50,8 @@ CREATE TABLE "Setting" (
     CONSTRAINT "Setting_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "Setting_key_key" ON "Setting"("key");
+-- CreateIndex (if not exists)
+CREATE UNIQUE INDEX IF NOT EXISTS "Setting_key_key" ON "Setting"("key");
 
--- CreateIndex
-CREATE INDEX "Setting_key_idx" ON "Setting"("key");
+-- CreateIndex (if not exists)
+CREATE INDEX IF NOT EXISTS "Setting_key_idx" ON "Setting"("key");

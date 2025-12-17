@@ -33,8 +33,11 @@ export function AvailabilityCalendar({
   minDate,
   onMonthChange,
 }: AvailabilityCalendarProps) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();

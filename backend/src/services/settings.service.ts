@@ -13,7 +13,7 @@ const ENCRYPTION_KEY = crypto
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm'
 
 // Settings that should be encrypted (sensitive data)
-const ENCRYPTED_SETTINGS = ['smtp_password']
+const _ENCRYPTED_SETTINGS = ['smtp_password']
 
 // Default SMTP settings
 const DEFAULT_SMTP_SETTINGS: SmtpSettings = {

@@ -146,9 +146,8 @@ export const checkExtensionPossible = async (params: CheckExtensionParams) => {
   if (closureCheck.hasConflict) {
     return {
       possible: false,
-      reason: `La nouvelle date de retour tombe pendant une période de fermeture (${closureCheck.closure?.reason})`,
+      reason: `La nouvelle date de retour tombe pendant une période de fermeture${closureCheck.closureReason ? ` (${closureCheck.closureReason})` : ''}`,
       code: 'CLOSURE_CONFLICT',
-      closure: closureCheck.closure,
     }
   }
 

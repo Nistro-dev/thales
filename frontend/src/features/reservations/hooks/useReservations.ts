@@ -5,7 +5,11 @@ import {
   availabilityApi,
 } from "@/api/reservations.api";
 import { useAuthStore } from "@/stores/auth.store";
-import type { ReservationFilters, CreateReservationInput } from "@/types";
+import type {
+  ReservationFilters,
+  CreateReservationInput,
+  ProductAvailability,
+} from "@/types";
 import toast from "react-hot-toast";
 
 /**
@@ -112,11 +116,11 @@ export function useProductAvailability(
   month: string,
   enabled = true,
 ) {
-  return useQuery({
+  return useQuery<ProductAvailability>({
     queryKey: ["product-availability", productId, month],
     queryFn: async () => {
       const response = await availabilityApi.getMonthly(productId, month);
-      return response.data.data;
+      return response.data.data as ProductAvailability;
     },
     enabled: !!productId && !!month && enabled,
   });

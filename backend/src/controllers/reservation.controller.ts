@@ -223,7 +223,7 @@ export const returnProduct = async (
   request: FastifyRequest<{ Params: { id: string }; Body?: { condition?: string; notes?: string } }>,
   reply: FastifyReply
 ) => {
-  let fields: Record<string, string> = {}
+  const fields: Record<string, string> = {}
   const photoFiles: Array<{ buffer: Buffer; filename: string; mimetype: string }> = []
 
   // Check if request is multipart or JSON

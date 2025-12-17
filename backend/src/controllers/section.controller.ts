@@ -3,12 +3,15 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import * as sectionService from '../services/section.service.js'
 import * as subSectionService from '../services/subsection.service.js'
+import * as closureService from '../services/section-closure.service.js'
 import { createSuccessResponse, SuccessMessages } from '../utils/response.js'
 import type {
   CreateSectionInput,
   UpdateSectionInput,
   CreateSubSectionInput,
   UpdateSubSectionInput,
+  CreateClosureInput,
+  UpdateClosureInput,
 } from '../schemas/section.js'
 
 export const list = async (
@@ -103,4 +106,74 @@ export const removeSubSection = async (
 ) => {
   await subSectionService.deleteSubSection(request.params.id, request.user.userId, request)
   return reply.send(createSuccessResponse(SuccessMessages.DELETED, null))
+}
+
+// ============================================
+// CLOSURES
+// ============================================
+
+export const listClosures = async (
+  request: FastifyRequest<{
+    Params: { id: string }
+    Querystring: { includeExpired?: string }
+  }>,
+  reply: FastifyReply
+) => {
+  const includeExpired = request.query.includeExpired !== 'false'
+  const closures = await closureService.listClosures({
+    sectionId: request.params.id,
+    includeExpired,
+  })
+  return reply.send(createSuccessResponse(SuccessMessages.RETRIEVED, closures))
+}
+
+export const getClosureById = async (
+  request: FastifyRequest<{ Params: { closureId: string } }>,
+  reply: FastifyReply
+) => {
+  const closure = await closureService.getClosureById(request.params.closureId)
+  return reply.send(createSuccessResponse(SuccessMessages.RETRIEVED, closure))
+}
+
+export const createClosure = async (
+  request: FastifyRequest<{ Params: { id: string }; Body: CreateClosureInput }>,
+  reply: FastifyReply
+) => {
+  const result = await closureService.createClosure({
+    sectionId: request.params.id,
+    ...request.body,
+    adminId: request.user.userId,
+  })
+  return reply.status(201).send(createSuccessResponse(SuccessMessages.CREATED, result))
+}
+
+export const updateClosure = async (
+  request: FastifyRequest<{ Params: { closureId: string }; Body: UpdateClosureInput }>,
+  reply: FastifyReply
+) => {
+  const result = await closureService.updateClosure({
+    closureId: request.params.closureId,
+    ...request.body,
+    adminId: request.user.userId,
+  })
+  return reply.send(createSuccessResponse(SuccessMessages.UPDATED, result))
+}
+
+export const deleteClosure = async (
+  request: FastifyRequest<{ Params: { closureId: string } }>,
+  reply: FastifyReply
+) => {
+  await closureService.deleteClosure({
+    closureId: request.params.closureId,
+    adminId: request.user.userId,
+  })
+  return reply.send(createSuccessResponse(SuccessMessages.DELETED, null))
+}
+
+export const getCurrentClosure = async (
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) => {
+  const closure = await closureService.getCurrentClosure(request.params.id)
+  return reply.send(createSuccessResponse(SuccessMessages.RETRIEVED, closure))
 }

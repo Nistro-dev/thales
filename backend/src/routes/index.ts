@@ -3,7 +3,7 @@ import { authRoutes } from './auth.routes.js'
 import { invitationRoutes } from './invitation.routes.js'
 import userRoutes from './user.routes.js'
 import roleRoutes from './role.routes.js'
-import { sectionRoutes, subSectionRoutes } from './section.routes.js'
+import { sectionRoutes, subSectionRoutes, closureRoutes } from './section.routes.js'
 import { productRoutes } from './product.routes.js'
 import {
   reservationRoutes,
@@ -25,6 +25,7 @@ export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(roleRoutes, { prefix: '/api/roles' })
   await fastify.register(sectionRoutes, { prefix: '/api/sections' })
   await fastify.register(subSectionRoutes, { prefix: '/api/subsections' })
+  await fastify.register(closureRoutes, { prefix: '/api/closures' })
   await fastify.register(productRoutes, { prefix: '/api/products' })
   await fastify.register(availabilityRoutes, { prefix: '/api/products' })
   await fastify.register(reservationRoutes, { prefix: '/api/reservations' })

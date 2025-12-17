@@ -33,6 +33,40 @@ export const sectionRoutes = async (fastify: FastifyInstance) => {
     preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
     handler: sectionController.createSubSection,
   })
+
+  // Closures
+  fastify.get('/:id/closures', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.listClosures,
+  })
+
+  fastify.get('/:id/closures/current', {
+    handler: sectionController.getCurrentClosure,
+  })
+
+  fastify.post('/:id/closures', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.createClosure,
+  })
+}
+
+export const closureRoutes = async (fastify: FastifyInstance) => {
+  fastify.addHook('preHandler', authMiddleware)
+
+  fastify.get('/:closureId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.getClosureById,
+  })
+
+  fastify.patch('/:closureId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.updateClosure,
+  })
+
+  fastify.delete('/:closureId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.deleteClosure,
+  })
 }
 
 export const subSectionRoutes = async (fastify: FastifyInstance) => {

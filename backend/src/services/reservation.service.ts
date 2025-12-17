@@ -208,14 +208,16 @@ export const validateNoConflict = async (
   const reqStart = new Date(startDate)
   reqStart.setUTCHours(0, 0, 0, 0)
   const reqEnd = new Date(endDate)
-  reqEnd.setUTCHours(23, 59, 59, 999)
+  reqEnd.setUTCHours(0, 0, 0, 0)
 
   // Check for conflicts manually to handle early checkouts
+  // IMPORTANT: The return day (endDate) is available for new reservations to start
+  // A new reservation can start on the same day another one ends (return day)
   for (const res of reservations) {
     const resStart = new Date(res.startDate)
     resStart.setUTCHours(0, 0, 0, 0)
     const resEnd = new Date(res.endDate)
-    resEnd.setUTCHours(23, 59, 59, 999)
+    resEnd.setUTCHours(0, 0, 0, 0)
 
     let effectiveStart = resStart
 
@@ -229,8 +231,10 @@ export const validateNoConflict = async (
     }
 
     // Check if there's an overlap
-    // Overlap occurs if: reqStart <= resEnd AND reqEnd >= effectiveStart
-    if (reqStart <= resEnd && reqEnd >= effectiveStart) {
+    // A reservation occupies from startDate to endDate-1 (the return day is free for new bookings)
+    // Overlap occurs if: reqStart < resEnd AND reqEnd > effectiveStart
+    // This allows: resEnd === reqStart (new reservation starts on return day of existing one)
+    if (reqStart < resEnd && reqEnd > effectiveStart) {
       return {
         valid: false,
         error: 'Le produit est déjà réservé pour cette période',
@@ -342,12 +346,14 @@ export const createReservation = async (params: CreateReservationParams) => {
   const reservation = await prisma.$transaction(
     async (tx) => {
       // Re-check for conflicts inside transaction (atomic check)
+      // A reservation occupies from startDate to endDate-1 (the return day is free for new bookings)
+      // Conflict occurs if: new.startDate < existing.endDate AND new.endDate > existing.startDate
       const existingConflict = await tx.reservation.findFirst({
         where: {
           productId,
           status: { in: ['CONFIRMED', 'CHECKED_OUT'] },
-          startDate: { lte: end },
-          endDate: { gte: start },
+          startDate: { lt: end }, // existing starts before new ends
+          endDate: { gt: start }, // existing ends after new starts
         },
       })
 
@@ -1174,6 +1180,7 @@ export const getProductAvailability = async (productId: string, month: string) =
   })
 
   // Build list of reserved dates (without exposing reservation IDs for security)
+  // IMPORTANT: The return day (endDate) is NOT blocked - it's available for new reservations to start
   const reservedDates: Array<{ date: string }> = []
   const today = new Date()
   today.setUTCHours(0, 0, 0, 0)
@@ -1188,29 +1195,30 @@ export const getProductAvailability = async (productId: string, month: string) =
       const resStart = new Date(res.startDate)
       resStart.setUTCHours(0, 0, 0, 0)
       const resEnd = new Date(res.endDate)
-      resEnd.setUTCHours(23, 59, 59, 999) // End of day to include the last day
+      resEnd.setUTCHours(0, 0, 0, 0)
 
       // For CHECKED_OUT reservations with early checkout, block from checkout date
       if (res.status === 'CHECKED_OUT' && res.checkedOutAt) {
         const checkoutDate = new Date(res.checkedOutAt)
         checkoutDate.setUTCHours(0, 0, 0, 0)
 
-        // If checked out before start date (early checkout), block from checkout date to end date
+        // If checked out before start date (early checkout), block from checkout date to end date - 1
+        // The return day (endDate) is available for new reservations
         if (checkoutDate < resStart) {
-          if (currentDate >= checkoutDate && currentDate <= resEnd) {
+          if (currentDate >= checkoutDate && currentDate < resEnd) {
             reservedDates.push({ date: dateStr })
             break
           }
         } else {
-          // Normal case: block from start to end
-          if (currentDate >= resStart && currentDate <= resEnd) {
+          // Normal case: block from start to end - 1 (return day is free)
+          if (currentDate >= resStart && currentDate < resEnd) {
             reservedDates.push({ date: dateStr })
             break
           }
         }
       } else {
-        // CONFIRMED reservations: block from start to end
-        if (currentDate >= resStart && currentDate <= resEnd) {
+        // CONFIRMED reservations: block from start to end - 1 (return day is free)
+        if (currentDate >= resStart && currentDate < resEnd) {
           reservedDates.push({ date: dateStr })
           break
         }
@@ -1235,12 +1243,14 @@ export const checkAvailability = async (
   const start = startOfDay(new Date(startDate))
   const end = startOfDay(new Date(endDate))
 
+  // A reservation occupies from startDate to endDate-1 (the return day is free for new bookings)
+  // Conflict occurs if: new.startDate < existing.endDate AND new.endDate > existing.startDate
   const conflict = await prisma.reservation.findFirst({
     where: {
       productId,
       status: { in: ['CONFIRMED', 'CHECKED_OUT'] },
-      startDate: { lte: end },
-      endDate: { gte: start },
+      startDate: { lt: end }, // existing starts before new ends
+      endDate: { gt: start }, // existing ends after new starts
     },
     select: {
       id: true,

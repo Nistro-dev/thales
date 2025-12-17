@@ -109,17 +109,16 @@ export const checkExtensionPossible = async (params: CheckExtensionParams) => {
   }
 
   // Check no conflict with other reservations
+  // A reservation occupies from startDate to endDate-1 (the return day is free for new bookings)
+  // For extension: we check if any other reservation conflicts with the extended period
+  // Conflict occurs if: other.startDate < newEnd AND other.endDate > currentEnd
   const conflicts = await prisma.reservation.findMany({
     where: {
       productId: reservation.productId,
       status: { in: ['CONFIRMED', 'CHECKED_OUT'] },
       id: { not: reservationId },
-      OR: [
-        {
-          startDate: { lte: newEnd },
-          endDate: { gte: currentEnd },
-        },
-      ],
+      startDate: { lt: newEnd }, // other starts before our new end
+      endDate: { gt: currentEnd }, // other ends after our current end
     },
   })
 

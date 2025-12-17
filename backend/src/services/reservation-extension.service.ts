@@ -3,6 +3,7 @@
 import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
 import * as notificationHelper from './notification-helper.service.js'
+import * as closureService from './section-closure.service.js'
 import { FastifyRequest } from 'fastify'
 import { calculateCredits } from './reservation.service.js'
 
@@ -33,6 +34,7 @@ export const checkExtensionPossible = async (params: CheckExtensionParams) => {
           name: true,
           priceCredits: true,
           creditPeriod: true,
+          sectionId: true,
           section: {
             select: {
               allowedDaysOut: true,
@@ -131,6 +133,22 @@ export const checkExtensionPossible = async (params: CheckExtensionParams) => {
         startDate: c.startDate,
         endDate: c.endDate,
       })),
+    }
+  }
+
+  // Check if new return date falls within a section closure
+  const closureCheck = await closureService.checkDatesForClosure(
+    reservation.product.sectionId,
+    reservation.startDate, // startDate unchanged, just for consistency
+    newEnd
+  )
+
+  if (closureCheck.hasConflict) {
+    return {
+      possible: false,
+      reason: `La nouvelle date de retour tombe pendant une période de fermeture (${closureCheck.closure?.reason})`,
+      code: 'CLOSURE_CONFLICT',
+      closure: closureCheck.closure,
     }
   }
 

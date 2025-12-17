@@ -110,6 +110,9 @@ enum AuditAction {
   SECTION_CREATE
   SECTION_UPDATE
   SECTION_DELETE
+  SECTION_CLOSURE_CREATE
+  SECTION_CLOSURE_UPDATE
+  SECTION_CLOSURE_DELETE
 
   // SubSections
   SUBSECTION_CREATE
@@ -299,8 +302,24 @@ model Section {
   subSections SubSection[]
   products    Product[]
   userRoles   UserRole[]
+  closures    SectionClosure[]
 
   @@index([isSystem])
+}
+
+model SectionClosure {
+  id        String   @id @default(uuid())
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  reason    String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([startDate, endDate])
 }
 
 model SubSection {

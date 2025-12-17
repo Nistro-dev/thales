@@ -82,6 +82,17 @@ export interface SubSection {
   updatedAt: string;
 }
 
+export interface SectionClosure {
+  id: string;
+  sectionId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Product Types
 export type ProductStatus =
   | "AVAILABLE"

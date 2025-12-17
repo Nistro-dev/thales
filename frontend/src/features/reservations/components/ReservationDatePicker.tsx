@@ -59,6 +59,28 @@ export function ReservationDatePicker({
     return [...new Set(dates)];
   }, [availabilityData, nextMonthData]);
 
+  // Combine closed dates from both months
+  const closedDates = useMemo(() => {
+    const dates: Array<{ date: string; reason: string }> = [];
+    if (availabilityData?.closedDates) {
+      dates.push(...availabilityData.closedDates);
+    }
+    if (nextMonthData?.closedDates) {
+      dates.push(...nextMonthData.closedDates);
+    }
+    // Remove duplicates by date
+    const uniqueDates = dates.reduce(
+      (acc, curr) => {
+        if (!acc.find((d) => d.date === curr.date)) {
+          acc.push(curr);
+        }
+        return acc;
+      },
+      [] as Array<{ date: string; reason: string }>,
+    );
+    return uniqueDates;
+  }, [availabilityData, nextMonthData]);
+
   // Helper: Check if a date is in the allowed days array
   const isAllowedDay = (
     date: Date,
@@ -249,6 +271,7 @@ export function ReservationDatePicker({
             onStartDateSelect={onStartDateChange}
             onEndDateSelect={onEndDateChange}
             reservedDates={reservedDates}
+            closedDates={closedDates}
             allowedDaysOut={product.section.allowedDaysOut}
             allowedDaysIn={product.section.allowedDaysIn}
             onMonthChange={handleMonthChange}

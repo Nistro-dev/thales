@@ -7,6 +7,7 @@ import { generateReservationQRCode } from '../utils/qrCode.js'
 import { FastifyRequest } from 'fastify'
 import type { ReservationStatus, ProductCondition, CreditPeriod } from '@prisma/client'
 import * as notificationHelper from './notification-helper.service.js'
+import * as closureService from './section-closure.service.js'
 
 // ============================================
 // HELPERS
@@ -246,6 +247,25 @@ export const validateNoConflict = async (
   return { valid: true }
 }
 
+export const validateNoClosureConflict = async (
+  sectionId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<ValidationResult> => {
+  const closureCheck = await closureService.checkDatesForClosure(sectionId, startDate, endDate)
+
+  if (closureCheck.hasConflict) {
+    const actionType = closureCheck.conflictType === 'checkout' ? 'de sortie' : 'de retour'
+    return {
+      valid: false,
+      error: `La date ${actionType} tombe pendant une période de fermeture : ${closureCheck.closureReason}`,
+      code: 'SECTION_CLOSED',
+    }
+  }
+
+  return { valid: true }
+}
+
 export const validateUserCredits = async (
   userId: string,
   amount: number
@@ -326,11 +346,17 @@ export const createReservation = async (params: CreateReservationParams) => {
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    select: { priceCredits: true, creditPeriod: true, name: true },
+    select: { priceCredits: true, creditPeriod: true, name: true, sectionId: true },
   })
 
   if (!product) {
     throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
+  }
+
+  // Check if checkout or return date falls within a section closure
+  const closureValidation = await validateNoClosureConflict(product.sectionId, start, end)
+  if (!closureValidation.valid) {
+    throw { statusCode: 400, message: closureValidation.error, code: closureValidation.code }
   }
 
   // Calculate total credits based on credit period (per day or per week)
@@ -976,7 +1002,7 @@ export const checkoutReservation = async (params: CheckoutParams) => {
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    include: { product: { select: { id: true, name: true, status: true } } },
+    include: { product: { select: { id: true, name: true, status: true, sectionId: true } } },
   })
 
   if (!reservation) {
@@ -991,9 +1017,19 @@ export const checkoutReservation = async (params: CheckoutParams) => {
     }
   }
 
-  // Check if this is an early checkout (before startDate)
+  // Check if today is in a section closure
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const closureCheck = await closureService.isDateInClosure(reservation.product.sectionId, today)
+  if (closureCheck.closed) {
+    throw {
+      statusCode: 400,
+      message: `Impossible d'effectuer un retrait : la section est fermée (${closureCheck.reason})`,
+      code: 'SECTION_CLOSED',
+    }
+  }
+
+  // Check if this is an early checkout (before startDate)
   const startDate = new Date(reservation.startDate)
   startDate.setHours(0, 0, 0, 0)
   const isEarlyCheckout = today < startDate
@@ -1074,7 +1110,7 @@ export const returnReservation = async (params: ReturnParams) => {
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    include: { product: { select: { id: true, name: true, status: true } } },
+    include: { product: { select: { id: true, name: true, status: true, sectionId: true } } },
   })
 
   if (!reservation) {
@@ -1086,6 +1122,18 @@ export const returnReservation = async (params: ReturnParams) => {
       statusCode: 400,
       message: 'Seules les réservations retirées peuvent être retournées',
       code: 'VALIDATION_ERROR',
+    }
+  }
+
+  // Check if today is in a section closure (admin can bypass in exceptional cases)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const closureCheck = await closureService.isDateInClosure(reservation.product.sectionId, today)
+  if (closureCheck.closed) {
+    throw {
+      statusCode: 400,
+      message: `Impossible d'effectuer un retour : la section est fermée (${closureCheck.reason})`,
+      code: 'SECTION_CLOSED',
     }
   }
 
@@ -1149,7 +1197,7 @@ export const returnReservation = async (params: ReturnParams) => {
 export const getProductAvailability = async (productId: string, month: string) => {
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    include: { section: { select: { allowedDaysIn: true, allowedDaysOut: true } } },
+    include: { section: { select: { id: true, allowedDaysIn: true, allowedDaysOut: true } } },
   })
 
   if (!product) {
@@ -1226,12 +1274,37 @@ export const getProductAvailability = async (productId: string, month: string) =
     }
   }
 
+  // Get section closures for the month
+  const closures = await closureService.getClosuresForMonth(product.section.id, month)
+  const closedDates: Array<{ date: string; reason: string }> = []
+
+  for (const closure of closures) {
+    const closureStart = new Date(closure.startDate)
+    closureStart.setUTCHours(0, 0, 0, 0)
+    const closureEnd = new Date(closure.endDate)
+    closureEnd.setUTCHours(0, 0, 0, 0)
+
+    // Iterate through each day of the closure period within this month
+    for (let day = 1; day <= endOfMonth.getDate(); day++) {
+      const currentDate = new Date(Date.UTC(year, monthNum - 1, day, 0, 0, 0, 0))
+      const dateStr = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+      if (currentDate >= closureStart && currentDate <= closureEnd) {
+        // Avoid duplicates
+        if (!closedDates.find((d) => d.date === dateStr)) {
+          closedDates.push({ date: dateStr, reason: closure.reason })
+        }
+      }
+    }
+  }
+
   return {
     productId,
     month,
     allowedDaysIn: product.section.allowedDaysIn,
     allowedDaysOut: product.section.allowedDaysOut,
     reservedDates,
+    closedDates,
   }
 }
 

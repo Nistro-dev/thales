@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 import { useProduct } from "../hooks/useProduct";
 import { ProductGallery } from "../components/ProductGallery";
 import { ProductDetailSkeleton } from "../components/ProductDetailSkeleton";
 import { AvailabilityBadge } from "../components/AvailabilityBadge";
 import { ReservationModal } from "@/features/reservations/components/ReservationModal";
+import { useCurrentClosure } from "@/features/sections/hooks/useClosures";
 import { useAuthStore } from "@/stores/auth.store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ArrowLeft,
   Calendar,
@@ -17,6 +21,7 @@ import {
   FileText,
   Download,
   FileVideo,
+  CalendarX,
 } from "lucide-react";
 
 export function ProductDetailPage() {
@@ -25,6 +30,9 @@ export function ProductDetailPage() {
   const [reservationModalOpen, setReservationModalOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const isCautionValid = user?.cautionPaid ?? false;
+
+  // Check for current closure
+  const { data: currentClosure } = useCurrentClosure(product?.sectionId);
 
   if (isLoading) {
     return <ProductDetailSkeleton />;
@@ -76,6 +84,31 @@ export function ProductDetailPage() {
               </p>
             )}
           </div>
+
+          {/* Closure Banner */}
+          {currentClosure && (
+            <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+              <CalendarX className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <AlertTitle className="text-orange-800 dark:text-orange-200">
+                Section actuellement fermée
+              </AlertTitle>
+              <AlertDescription className="text-orange-700 dark:text-orange-300">
+                {currentClosure.reason} - Du{" "}
+                {format(parseISO(currentClosure.startDate), "d MMMM", {
+                  locale: fr,
+                })}{" "}
+                au{" "}
+                {format(parseISO(currentClosure.endDate), "d MMMM yyyy", {
+                  locale: fr,
+                })}
+                <br />
+                <span className="text-sm">
+                  Les retraits et retours ne sont pas autorisés pendant cette
+                  période.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Price */}
           <Card>

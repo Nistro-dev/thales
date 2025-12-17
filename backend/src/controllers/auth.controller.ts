@@ -3,7 +3,7 @@ import * as authService from '../services/auth.service.js'
 import * as passwordResetService from '../services/password-reset.service.js'
 import { env } from '../config/env.js'
 import { createSuccessResponse, SuccessMessages, ErrorMessages } from '../utils/response.js'
-import { logger } from '../utils/logger.js'
+import { logger as _logger } from '../utils/logger.js'
 import type { LoginInput, ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from '../schemas/auth.js'
 
 const useTunnels = process.env.USE_TUNNELS === 'true'

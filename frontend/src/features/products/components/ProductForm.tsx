@@ -147,6 +147,7 @@ export function ProductForm({
           })) || [],
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id, reset]);
 
   // Reset subsection when section changes

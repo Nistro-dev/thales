@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Settings,
   Building2,
@@ -14,102 +14,107 @@ import {
   RotateCcw,
   Loader2,
   TestTube,
-} from 'lucide-react'
-import toast from 'react-hot-toast'
-import { settingsApi, SmtpSettings, SecuritySettings, MaintenanceSettings } from '@/api/settings.api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
+} from "lucide-react";
+import toast from "react-hot-toast";
+import {
+  settingsApi,
+  SmtpSettings,
+  SecuritySettings,
+  MaintenanceSettings,
+} from "@/api/settings.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { useAuthStore } from '@/stores/auth.store'
-import { PERMISSIONS } from '@/constants/permissions'
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { useAuthStore } from "@/stores/auth.store";
+import { PERMISSIONS } from "@/constants/permissions";
 
 interface SettingSection {
-  id: string
-  label: string
-  icon: React.ElementType
-  description: string
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  description: string;
 }
 
 const settingSections: SettingSection[] = [
   {
-    id: 'general',
-    label: 'Général',
+    id: "general",
+    label: "Général",
     icon: Building2,
-    description: 'Paramètres généraux de l\'application',
+    description: "Paramètres généraux de l'application",
   },
   {
-    id: 'reservations',
-    label: 'Réservations',
+    id: "reservations",
+    label: "Réservations",
     icon: Clock,
-    description: 'Configuration des réservations',
+    description: "Configuration des réservations",
   },
   {
-    id: 'credits',
-    label: 'Crédits',
+    id: "credits",
+    label: "Crédits",
     icon: CreditCard,
-    description: 'Gestion des crédits utilisateurs',
+    description: "Gestion des crédits utilisateurs",
   },
   {
-    id: 'notifications',
-    label: 'Notifications',
+    id: "notifications",
+    label: "Notifications",
     icon: Bell,
-    description: 'Paramètres des notifications',
+    description: "Paramètres des notifications",
   },
   {
-    id: 'emails',
-    label: 'Emails',
+    id: "emails",
+    label: "Emails",
     icon: Mail,
-    description: 'Configuration des emails',
+    description: "Configuration des emails",
   },
   {
-    id: 'security',
-    label: 'Sécurité',
+    id: "security",
+    label: "Sécurité",
     icon: Shield,
-    description: 'Paramètres de sécurité',
+    description: "Paramètres de sécurité",
   },
   {
-    id: 'appearance',
-    label: 'Apparence',
+    id: "appearance",
+    label: "Apparence",
     icon: Palette,
-    description: 'Personnalisation visuelle',
+    description: "Personnalisation visuelle",
   },
   {
-    id: 'advanced',
-    label: 'Avancé',
+    id: "advanced",
+    label: "Avancé",
     icon: Database,
-    description: 'Paramètres avancés',
+    description: "Paramètres avancés",
   },
-]
+];
 
 export function AdminSettingsPage() {
-  const { hasPermission } = useAuthStore()
-  const queryClient = useQueryClient()
-  const canManage = hasPermission(PERMISSIONS.MANAGE_SETTINGS)
-  const [activeTab, setActiveTab] = useState('general')
-  const [hasChanges, setHasChanges] = useState(false)
-  const [hasSmtpChanges, setHasSmtpChanges] = useState(false)
+  const { hasPermission } = useAuthStore();
+  const queryClient = useQueryClient();
+  const canManage = hasPermission(PERMISSIONS.MANAGE_SETTINGS);
+  const [activeTab, setActiveTab] = useState("general");
+  const [hasChanges, setHasChanges] = useState(false);
+  const [hasSmtpChanges, setHasSmtpChanges] = useState(false);
 
   // General settings state
   const [generalSettings, setGeneralSettings] = useState({
-    siteName: 'Thales App',
-    siteDescription: 'Application de gestion de prêt de matériel',
-    contactEmail: 'contact@thales.local',
-    supportPhone: '',
-    address: '',
-    timezone: 'Europe/Paris',
-    language: 'fr',
-  })
+    siteName: "Thales App",
+    siteDescription: "Application de gestion de prêt de matériel",
+    contactEmail: "contact@thales.local",
+    supportPhone: "",
+    address: "",
+    timezone: "Europe/Paris",
+    language: "fr",
+  });
 
   // Reservation settings state
   const [reservationSettings, setReservationSettings] = useState({
@@ -122,7 +127,7 @@ export function AdminSettingsPage() {
     reminderDaysBefore: 1,
     latePenaltyEnabled: false,
     latePenaltyPerDay: 5,
-  })
+  });
 
   // Credit settings state
   const [creditSettings, setCreditSettings] = useState({
@@ -131,7 +136,7 @@ export function AdminSettingsPage() {
     monthlyCreditsAmount: 50,
     allowNegativeBalance: false,
     maxCreditsPerUser: 1000,
-  })
+  });
 
   // Notification settings state
   const [notificationSettings, setNotificationSettings] = useState({
@@ -143,183 +148,195 @@ export function AdminSettingsPage() {
     notifyOnCancellation: true,
     notifyAdminOnNewUser: true,
     digestEnabled: false,
-    digestFrequency: 'daily',
-  })
+    digestFrequency: "daily",
+  });
 
   // Email settings state
   const [emailSettings, setEmailSettings] = useState<SmtpSettings>({
-    smtpHost: '',
+    smtpHost: "",
     smtpPort: 587,
-    smtpUser: '',
-    smtpPassword: '',
+    smtpUser: "",
+    smtpPassword: "",
     smtpSecure: true,
-    fromEmail: 'noreply@thales.local',
-    fromName: 'Thales App',
-    replyToEmail: '',
-  })
+    fromEmail: "noreply@thales.local",
+    fromName: "Thales App",
+    replyToEmail: "",
+  });
 
   // Fetch SMTP settings from API
   const { data: smtpData, isLoading: isLoadingSmtp } = useQuery({
-    queryKey: ['settings', 'smtp'],
+    queryKey: ["settings", "smtp"],
     queryFn: () => settingsApi.getSmtp(),
-  })
+  });
 
   // Update local state when SMTP data is fetched
   useEffect(() => {
     if (smtpData?.data.data) {
-      setEmailSettings(smtpData.data.data)
+      setEmailSettings(smtpData.data.data);
     }
-  }, [smtpData])
+  }, [smtpData]);
 
   // Mutation for saving SMTP settings
   const saveSmtpMutation = useMutation({
     mutationFn: (data: SmtpSettings) => settingsApi.updateSmtp(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings', 'smtp'] })
-      toast.success('Paramètres SMTP enregistrés avec succès')
-      setHasSmtpChanges(false)
+      queryClient.invalidateQueries({ queryKey: ["settings", "smtp"] });
+      toast.success("Paramètres SMTP enregistrés avec succès");
+      setHasSmtpChanges(false);
     },
     onError: () => {
-      toast.error('Erreur lors de l\'enregistrement des paramètres SMTP')
+      toast.error("Erreur lors de l'enregistrement des paramètres SMTP");
     },
-  })
+  });
 
   // Mutation for testing SMTP connection
   const testSmtpMutation = useMutation({
     mutationFn: (data: SmtpSettings) => settingsApi.testSmtp(data),
     onSuccess: () => {
-      toast.success('Connexion SMTP réussie !')
+      toast.success("Connexion SMTP réussie !");
     },
-    onError: (error: any) => {
-      const errorMessage = error?.response?.data?.error?.details || 'Échec de la connexion SMTP'
-      toast.error(errorMessage)
+    onError: (error: {
+      response?: { data?: { error?: { details?: string } } };
+    }) => {
+      const errorMessage =
+        error?.response?.data?.error?.details || "Échec de la connexion SMTP";
+      toast.error(errorMessage);
     },
-  })
+  });
 
   // Security settings state (from API)
-  const [securitySettingsApi, setSecuritySettingsApi] = useState<SecuritySettings>({
-    accountInactivityDays: 730,
-    accountInactivityEnabled: true,
-  })
-  const [hasSecurityChanges, setHasSecurityChanges] = useState(false)
+  const [securitySettingsApi, setSecuritySettingsApi] =
+    useState<SecuritySettings>({
+      accountInactivityDays: 730,
+      accountInactivityEnabled: true,
+    });
+  const [hasSecurityChanges, setHasSecurityChanges] = useState(false);
 
   // Fetch Security settings from API
   const { data: securityData, isLoading: isLoadingSecurity } = useQuery({
-    queryKey: ['settings', 'security'],
+    queryKey: ["settings", "security"],
     queryFn: () => settingsApi.getSecurity(),
-  })
+  });
 
   // Update local state when Security data is fetched
   useEffect(() => {
     if (securityData?.data.data) {
-      setSecuritySettingsApi(securityData.data.data)
+      setSecuritySettingsApi(securityData.data.data);
     }
-  }, [securityData])
+  }, [securityData]);
 
   // Mutation for saving Security settings
   const saveSecurityMutation = useMutation({
     mutationFn: (data: SecuritySettings) => settingsApi.updateSecurity(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings', 'security'] })
-      toast.success('Paramètres de sécurité enregistrés avec succès')
-      setHasSecurityChanges(false)
+      queryClient.invalidateQueries({ queryKey: ["settings", "security"] });
+      toast.success("Paramètres de sécurité enregistrés avec succès");
+      setHasSecurityChanges(false);
     },
     onError: () => {
-      toast.error('Erreur lors de l\'enregistrement des paramètres de sécurité')
+      toast.error("Erreur lors de l'enregistrement des paramètres de sécurité");
     },
-  })
-
+  });
 
   // Appearance settings state
   const [appearanceSettings, setAppearanceSettings] = useState({
-    primaryColor: '#0ea5e9',
-    logoUrl: '',
-    faviconUrl: '',
-    customCss: '',
+    primaryColor: "#0ea5e9",
+    logoUrl: "",
+    faviconUrl: "",
+    customCss: "",
     showWelcomeMessage: true,
-    welcomeMessage: 'Bienvenue sur l\'application de prêt de matériel',
-  })
+    welcomeMessage: "Bienvenue sur l'application de prêt de matériel",
+  });
 
   // Maintenance settings state (from API)
-  const [maintenanceSettingsApi, setMaintenanceSettingsApi] = useState<MaintenanceSettings>({
-    maintenanceEnabled: false,
-    maintenanceMessage: 'L\'application est en maintenance. Veuillez réessayer plus tard.',
-  })
-  const [hasMaintenanceChanges, setHasMaintenanceChanges] = useState(false)
+  const [maintenanceSettingsApi, setMaintenanceSettingsApi] =
+    useState<MaintenanceSettings>({
+      maintenanceEnabled: false,
+      maintenanceMessage:
+        "L'application est en maintenance. Veuillez réessayer plus tard.",
+    });
+  const [hasMaintenanceChanges, setHasMaintenanceChanges] = useState(false);
 
   // Fetch Maintenance settings from API
   const { data: maintenanceData, isLoading: isLoadingMaintenance } = useQuery({
-    queryKey: ['settings', 'maintenance'],
+    queryKey: ["settings", "maintenance"],
     queryFn: () => settingsApi.getMaintenance(),
-  })
+  });
 
   // Update local state when Maintenance data is fetched
   useEffect(() => {
     if (maintenanceData?.data.data) {
-      setMaintenanceSettingsApi(maintenanceData.data.data)
+      setMaintenanceSettingsApi(maintenanceData.data.data);
     }
-  }, [maintenanceData])
+  }, [maintenanceData]);
 
   // Mutation for saving Maintenance settings
   const saveMaintenanceMutation = useMutation({
-    mutationFn: (data: MaintenanceSettings) => settingsApi.updateMaintenance(data),
+    mutationFn: (data: MaintenanceSettings) =>
+      settingsApi.updateMaintenance(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settings', 'maintenance'] })
-      toast.success('Paramètres de maintenance enregistrés avec succès')
-      setHasMaintenanceChanges(false)
+      queryClient.invalidateQueries({ queryKey: ["settings", "maintenance"] });
+      toast.success("Paramètres de maintenance enregistrés avec succès");
+      setHasMaintenanceChanges(false);
     },
     onError: () => {
-      toast.error('Erreur lors de l\'enregistrement des paramètres de maintenance')
+      toast.error(
+        "Erreur lors de l'enregistrement des paramètres de maintenance",
+      );
     },
-  })
+  });
 
   const handleSave = () => {
     // TODO: Implement API call to save settings
-    toast.success('Les paramètres ont été mis à jour avec succès')
-    setHasChanges(false)
-  }
+    toast.success("Les paramètres ont été mis à jour avec succès");
+    setHasChanges(false);
+  };
 
   const handleReset = () => {
     // TODO: Reset to default values or reload from API
-    toast.success('Les paramètres ont été réinitialisés')
-    setHasChanges(false)
-  }
+    toast.success("Les paramètres ont été réinitialisés");
+    setHasChanges(false);
+  };
 
   const markAsChanged = () => {
-    if (!hasChanges) setHasChanges(true)
-  }
+    if (!hasChanges) setHasChanges(true);
+  };
 
   const markSmtpAsChanged = () => {
-    if (!hasSmtpChanges) setHasSmtpChanges(true)
-  }
+    if (!hasSmtpChanges) setHasSmtpChanges(true);
+  };
 
   const handleSaveSmtp = () => {
-    saveSmtpMutation.mutate(emailSettings)
-  }
+    saveSmtpMutation.mutate(emailSettings);
+  };
 
   const handleTestSmtp = () => {
-    testSmtpMutation.mutate(emailSettings)
-  }
+    testSmtpMutation.mutate(emailSettings);
+  };
 
   const markSecurityAsChanged = () => {
-    if (!hasSecurityChanges) setHasSecurityChanges(true)
-  }
+    if (!hasSecurityChanges) setHasSecurityChanges(true);
+  };
 
   const handleSaveSecurity = () => {
-    if (securitySettingsApi.accountInactivityEnabled && (!securitySettingsApi.accountInactivityDays || securitySettingsApi.accountInactivityDays < 1)) {
-      toast.error('La durée d\'inactivité doit être d\'au moins 1 jour')
-      return
+    if (
+      securitySettingsApi.accountInactivityEnabled &&
+      (!securitySettingsApi.accountInactivityDays ||
+        securitySettingsApi.accountInactivityDays < 1)
+    ) {
+      toast.error("La durée d'inactivité doit être d'au moins 1 jour");
+      return;
     }
-    saveSecurityMutation.mutate(securitySettingsApi)
-  }
+    saveSecurityMutation.mutate(securitySettingsApi);
+  };
 
   const markMaintenanceAsChanged = () => {
-    if (!hasMaintenanceChanges) setHasMaintenanceChanges(true)
-  }
+    if (!hasMaintenanceChanges) setHasMaintenanceChanges(true);
+  };
 
   const handleSaveMaintenance = () => {
-    saveMaintenanceMutation.mutate(maintenanceSettingsApi)
-  }
+    saveMaintenanceMutation.mutate(maintenanceSettingsApi);
+  };
 
   return (
     <div className="space-y-6">
@@ -349,10 +366,14 @@ export function AdminSettingsPage() {
       </div>
 
       {/* Settings Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
           {settingSections.map((section) => {
-            const Icon = section.icon
+            const Icon = section.icon;
             return (
               <TabsTrigger
                 key={section.id}
@@ -362,7 +383,7 @@ export function AdminSettingsPage() {
                 <Icon className="mr-2 h-4 w-4" />
                 {section.label}
               </TabsTrigger>
-            )
+            );
           })}
         </TabsList>
 
@@ -384,8 +405,11 @@ export function AdminSettingsPage() {
                   id="siteName"
                   value={generalSettings.siteName}
                   onChange={(e) => {
-                    setGeneralSettings({ ...generalSettings, siteName: e.target.value })
-                    markAsChanged()
+                    setGeneralSettings({
+                      ...generalSettings,
+                      siteName: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -398,8 +422,11 @@ export function AdminSettingsPage() {
                   type="email"
                   value={generalSettings.contactEmail}
                   onChange={(e) => {
-                    setGeneralSettings({ ...generalSettings, contactEmail: e.target.value })
-                    markAsChanged()
+                    setGeneralSettings({
+                      ...generalSettings,
+                      contactEmail: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -411,8 +438,11 @@ export function AdminSettingsPage() {
                   id="siteDescription"
                   value={generalSettings.siteDescription}
                   onChange={(e) => {
-                    setGeneralSettings({ ...generalSettings, siteDescription: e.target.value })
-                    markAsChanged()
+                    setGeneralSettings({
+                      ...generalSettings,
+                      siteDescription: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                   rows={3}
@@ -425,8 +455,11 @@ export function AdminSettingsPage() {
                   id="supportPhone"
                   value={generalSettings.supportPhone}
                   onChange={(e) => {
-                    setGeneralSettings({ ...generalSettings, supportPhone: e.target.value })
-                    markAsChanged()
+                    setGeneralSettings({
+                      ...generalSettings,
+                      supportPhone: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   placeholder="+33 1 23 45 67 89"
                   disabled={!canManage}
@@ -438,8 +471,8 @@ export function AdminSettingsPage() {
                 <Select
                   value={generalSettings.timezone}
                   onValueChange={(value) => {
-                    setGeneralSettings({ ...generalSettings, timezone: value })
-                    markAsChanged()
+                    setGeneralSettings({ ...generalSettings, timezone: value });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 >
@@ -447,10 +480,18 @@ export function AdminSettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Europe/Paris">Europe/Paris (UTC+1)</SelectItem>
-                    <SelectItem value="Europe/London">Europe/London (UTC+0)</SelectItem>
-                    <SelectItem value="America/New_York">America/New_York (UTC-5)</SelectItem>
-                    <SelectItem value="Asia/Tokyo">Asia/Tokyo (UTC+9)</SelectItem>
+                    <SelectItem value="Europe/Paris">
+                      Europe/Paris (UTC+1)
+                    </SelectItem>
+                    <SelectItem value="Europe/London">
+                      Europe/London (UTC+0)
+                    </SelectItem>
+                    <SelectItem value="America/New_York">
+                      America/New_York (UTC-5)
+                    </SelectItem>
+                    <SelectItem value="Asia/Tokyo">
+                      Asia/Tokyo (UTC+9)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -461,8 +502,11 @@ export function AdminSettingsPage() {
                   id="address"
                   value={generalSettings.address}
                   onChange={(e) => {
-                    setGeneralSettings({ ...generalSettings, address: e.target.value })
-                    markAsChanged()
+                    setGeneralSettings({
+                      ...generalSettings,
+                      address: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   placeholder="Adresse physique de l'établissement"
                   disabled={!canManage}
@@ -478,7 +522,9 @@ export function AdminSettingsPage() {
           <div className="rounded-lg border bg-card p-6">
             <div className="flex items-center gap-2 mb-4">
               <Clock className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Configuration des réservations</h2>
+              <h2 className="text-lg font-semibold">
+                Configuration des réservations
+              </h2>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               Définissez les règles et limites pour les réservations.
@@ -486,15 +532,20 @@ export function AdminSettingsPage() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="maxReservations">Réservations max par utilisateur</Label>
+                <Label htmlFor="maxReservations">
+                  Réservations max par utilisateur
+                </Label>
                 <Input
                   id="maxReservations"
                   type="number"
                   min="1"
                   value={reservationSettings.maxReservationsPerUser}
                   onChange={(e) => {
-                    setReservationSettings({ ...reservationSettings, maxReservationsPerUser: parseInt(e.target.value) })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      maxReservationsPerUser: parseInt(e.target.value),
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -511,8 +562,11 @@ export function AdminSettingsPage() {
                   min="0"
                   value={reservationSettings.reminderDaysBefore}
                   onChange={(e) => {
-                    setReservationSettings({ ...reservationSettings, reminderDaysBefore: parseInt(e.target.value) })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      reminderDaysBefore: parseInt(e.target.value),
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -522,30 +576,40 @@ export function AdminSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="defaultMinDuration">Durée min par défaut (jours)</Label>
+                <Label htmlFor="defaultMinDuration">
+                  Durée min par défaut (jours)
+                </Label>
                 <Input
                   id="defaultMinDuration"
                   type="number"
                   min="1"
                   value={reservationSettings.defaultMinDuration}
                   onChange={(e) => {
-                    setReservationSettings({ ...reservationSettings, defaultMinDuration: parseInt(e.target.value) })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      defaultMinDuration: parseInt(e.target.value),
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="defaultMaxDuration">Durée max par défaut (jours)</Label>
+                <Label htmlFor="defaultMaxDuration">
+                  Durée max par défaut (jours)
+                </Label>
                 <Input
                   id="defaultMaxDuration"
                   type="number"
                   min="1"
                   value={reservationSettings.defaultMaxDuration}
                   onChange={(e) => {
-                    setReservationSettings({ ...reservationSettings, defaultMaxDuration: parseInt(e.target.value) })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      defaultMaxDuration: parseInt(e.target.value),
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -565,8 +629,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={reservationSettings.allowSameDayReservation}
                   onCheckedChange={(checked: boolean) => {
-                    setReservationSettings({ ...reservationSettings, allowSameDayReservation: checked })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      allowSameDayReservation: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -582,8 +649,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={reservationSettings.autoConfirm}
                   onCheckedChange={(checked: boolean) => {
-                    setReservationSettings({ ...reservationSettings, autoConfirm: checked })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      autoConfirm: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -599,8 +669,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={reservationSettings.latePenaltyEnabled}
                   onCheckedChange={(checked: boolean) => {
-                    setReservationSettings({ ...reservationSettings, latePenaltyEnabled: checked })
-                    markAsChanged()
+                    setReservationSettings({
+                      ...reservationSettings,
+                      latePenaltyEnabled: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -608,15 +681,20 @@ export function AdminSettingsPage() {
 
               {reservationSettings.latePenaltyEnabled && (
                 <div className="space-y-2 ml-6">
-                  <Label htmlFor="latePenalty">Pénalité par jour de retard (crédits)</Label>
+                  <Label htmlFor="latePenalty">
+                    Pénalité par jour de retard (crédits)
+                  </Label>
                   <Input
                     id="latePenalty"
                     type="number"
                     min="0"
                     value={reservationSettings.latePenaltyPerDay}
                     onChange={(e) => {
-                      setReservationSettings({ ...reservationSettings, latePenaltyPerDay: parseInt(e.target.value) })
-                      markAsChanged()
+                      setReservationSettings({
+                        ...reservationSettings,
+                        latePenaltyPerDay: parseInt(e.target.value),
+                      });
+                      markAsChanged();
                     }}
                     className="max-w-[200px]"
                     disabled={!canManage}
@@ -640,30 +718,40 @@ export function AdminSettingsPage() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="defaultCredits">Crédits par défaut (nouveaux utilisateurs)</Label>
+                <Label htmlFor="defaultCredits">
+                  Crédits par défaut (nouveaux utilisateurs)
+                </Label>
                 <Input
                   id="defaultCredits"
                   type="number"
                   min="0"
                   value={creditSettings.defaultCreditsNewUser}
                   onChange={(e) => {
-                    setCreditSettings({ ...creditSettings, defaultCreditsNewUser: parseInt(e.target.value) })
-                    markAsChanged()
+                    setCreditSettings({
+                      ...creditSettings,
+                      defaultCreditsNewUser: parseInt(e.target.value),
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="maxCredits">Crédits maximum par utilisateur</Label>
+                <Label htmlFor="maxCredits">
+                  Crédits maximum par utilisateur
+                </Label>
                 <Input
                   id="maxCredits"
                   type="number"
                   min="0"
                   value={creditSettings.maxCreditsPerUser}
                   onChange={(e) => {
-                    setCreditSettings({ ...creditSettings, maxCreditsPerUser: parseInt(e.target.value) })
-                    markAsChanged()
+                    setCreditSettings({
+                      ...creditSettings,
+                      maxCreditsPerUser: parseInt(e.target.value),
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -683,8 +771,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={creditSettings.monthlyCreditsRefresh}
                   onCheckedChange={(checked: boolean) => {
-                    setCreditSettings({ ...creditSettings, monthlyCreditsRefresh: checked })
-                    markAsChanged()
+                    setCreditSettings({
+                      ...creditSettings,
+                      monthlyCreditsRefresh: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -692,15 +783,20 @@ export function AdminSettingsPage() {
 
               {creditSettings.monthlyCreditsRefresh && (
                 <div className="space-y-2 ml-6">
-                  <Label htmlFor="monthlyAmount">Montant mensuel (crédits)</Label>
+                  <Label htmlFor="monthlyAmount">
+                    Montant mensuel (crédits)
+                  </Label>
                   <Input
                     id="monthlyAmount"
                     type="number"
                     min="0"
                     value={creditSettings.monthlyCreditsAmount}
                     onChange={(e) => {
-                      setCreditSettings({ ...creditSettings, monthlyCreditsAmount: parseInt(e.target.value) })
-                      markAsChanged()
+                      setCreditSettings({
+                        ...creditSettings,
+                        monthlyCreditsAmount: parseInt(e.target.value),
+                      });
+                      markAsChanged();
                     }}
                     className="max-w-[200px]"
                     disabled={!canManage}
@@ -712,14 +808,18 @@ export function AdminSettingsPage() {
                 <div className="space-y-0.5">
                   <Label>Solde négatif autorisé</Label>
                   <p className="text-sm text-muted-foreground">
-                    Autoriser les utilisateurs à avoir un solde de crédits négatif
+                    Autoriser les utilisateurs à avoir un solde de crédits
+                    négatif
                   </p>
                 </div>
                 <Switch
                   checked={creditSettings.allowNegativeBalance}
                   onCheckedChange={(checked: boolean) => {
-                    setCreditSettings({ ...creditSettings, allowNegativeBalance: checked })
-                    markAsChanged()
+                    setCreditSettings({
+                      ...creditSettings,
+                      allowNegativeBalance: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -733,7 +833,9 @@ export function AdminSettingsPage() {
           <div className="rounded-lg border bg-card p-6">
             <div className="flex items-center gap-2 mb-4">
               <Bell className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Paramètres des notifications</h2>
+              <h2 className="text-lg font-semibold">
+                Paramètres des notifications
+              </h2>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
               Configurez quand et comment les notifications sont envoyées.
@@ -750,8 +852,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={notificationSettings.emailNotifications}
                   onCheckedChange={(checked: boolean) => {
-                    setNotificationSettings({ ...notificationSettings, emailNotifications: checked })
-                    markAsChanged()
+                    setNotificationSettings({
+                      ...notificationSettings,
+                      emailNotifications: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -767,8 +872,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={notificationSettings.inAppNotifications}
                   onCheckedChange={(checked: boolean) => {
-                    setNotificationSettings({ ...notificationSettings, inAppNotifications: checked })
-                    markAsChanged()
+                    setNotificationSettings({
+                      ...notificationSettings,
+                      inAppNotifications: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -783,8 +891,11 @@ export function AdminSettingsPage() {
                   <Switch
                     checked={notificationSettings.notifyOnReservation}
                     onCheckedChange={(checked: boolean) => {
-                      setNotificationSettings({ ...notificationSettings, notifyOnReservation: checked })
-                      markAsChanged()
+                      setNotificationSettings({
+                        ...notificationSettings,
+                        notifyOnReservation: checked,
+                      });
+                      markAsChanged();
                     }}
                     disabled={!canManage}
                   />
@@ -795,8 +906,11 @@ export function AdminSettingsPage() {
                   <Switch
                     checked={notificationSettings.notifyOnCheckout}
                     onCheckedChange={(checked: boolean) => {
-                      setNotificationSettings({ ...notificationSettings, notifyOnCheckout: checked })
-                      markAsChanged()
+                      setNotificationSettings({
+                        ...notificationSettings,
+                        notifyOnCheckout: checked,
+                      });
+                      markAsChanged();
                     }}
                     disabled={!canManage}
                   />
@@ -807,8 +921,11 @@ export function AdminSettingsPage() {
                   <Switch
                     checked={notificationSettings.notifyOnReturn}
                     onCheckedChange={(checked: boolean) => {
-                      setNotificationSettings({ ...notificationSettings, notifyOnReturn: checked })
-                      markAsChanged()
+                      setNotificationSettings({
+                        ...notificationSettings,
+                        notifyOnReturn: checked,
+                      });
+                      markAsChanged();
                     }}
                     disabled={!canManage}
                   />
@@ -819,8 +936,11 @@ export function AdminSettingsPage() {
                   <Switch
                     checked={notificationSettings.notifyOnCancellation}
                     onCheckedChange={(checked: boolean) => {
-                      setNotificationSettings({ ...notificationSettings, notifyOnCancellation: checked })
-                      markAsChanged()
+                      setNotificationSettings({
+                        ...notificationSettings,
+                        notifyOnCancellation: checked,
+                      });
+                      markAsChanged();
                     }}
                     disabled={!canManage}
                   />
@@ -833,14 +953,18 @@ export function AdminSettingsPage() {
                 <div className="space-y-0.5">
                   <Label>Notifier les admins des nouveaux utilisateurs</Label>
                   <p className="text-sm text-muted-foreground">
-                    Envoyer une notification aux admins lors de l'inscription d'un nouvel utilisateur
+                    Envoyer une notification aux admins lors de l'inscription
+                    d'un nouvel utilisateur
                   </p>
                 </div>
                 <Switch
                   checked={notificationSettings.notifyAdminOnNewUser}
                   onCheckedChange={(checked: boolean) => {
-                    setNotificationSettings({ ...notificationSettings, notifyAdminOnNewUser: checked })
-                    markAsChanged()
+                    setNotificationSettings({
+                      ...notificationSettings,
+                      notifyAdminOnNewUser: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -856,8 +980,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={notificationSettings.digestEnabled}
                   onCheckedChange={(checked: boolean) => {
-                    setNotificationSettings({ ...notificationSettings, digestEnabled: checked })
-                    markAsChanged()
+                    setNotificationSettings({
+                      ...notificationSettings,
+                      digestEnabled: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -869,8 +996,11 @@ export function AdminSettingsPage() {
                   <Select
                     value={notificationSettings.digestFrequency}
                     onValueChange={(value) => {
-                      setNotificationSettings({ ...notificationSettings, digestFrequency: value })
-                      markAsChanged()
+                      setNotificationSettings({
+                        ...notificationSettings,
+                        digestFrequency: value,
+                      });
+                      markAsChanged();
                     }}
                     disabled={!canManage}
                   >
@@ -897,7 +1027,10 @@ export function AdminSettingsPage() {
                 <h2 className="text-lg font-semibold">Configuration SMTP</h2>
               </div>
               {canManage && hasSmtpChanges && (
-                <Button onClick={handleSaveSmtp} disabled={saveSmtpMutation.isPending}>
+                <Button
+                  onClick={handleSaveSmtp}
+                  disabled={saveSmtpMutation.isPending}
+                >
                   {saveSmtpMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -924,8 +1057,11 @@ export function AdminSettingsPage() {
                       id="smtpHost"
                       value={emailSettings.smtpHost}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, smtpHost: e.target.value })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          smtpHost: e.target.value,
+                        });
+                        markSmtpAsChanged();
                       }}
                       placeholder="smtp.example.com"
                       disabled={!canManage}
@@ -939,8 +1075,11 @@ export function AdminSettingsPage() {
                       type="number"
                       value={emailSettings.smtpPort}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, smtpPort: parseInt(e.target.value) || 587 })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          smtpPort: parseInt(e.target.value) || 587,
+                        });
+                        markSmtpAsChanged();
                       }}
                       placeholder="587"
                       disabled={!canManage}
@@ -953,8 +1092,11 @@ export function AdminSettingsPage() {
                       id="smtpUser"
                       value={emailSettings.smtpUser}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, smtpUser: e.target.value })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          smtpUser: e.target.value,
+                        });
+                        markSmtpAsChanged();
                       }}
                       disabled={!canManage}
                     />
@@ -967,10 +1109,17 @@ export function AdminSettingsPage() {
                       type="password"
                       value={emailSettings.smtpPassword}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, smtpPassword: e.target.value })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          smtpPassword: e.target.value,
+                        });
+                        markSmtpAsChanged();
                       }}
-                      placeholder={emailSettings.smtpPassword === '••••••••' ? 'Inchangé' : ''}
+                      placeholder={
+                        emailSettings.smtpPassword === "••••••••"
+                          ? "Inchangé"
+                          : ""
+                      }
                       disabled={!canManage}
                     />
                     <p className="text-xs text-muted-foreground">
@@ -985,8 +1134,11 @@ export function AdminSettingsPage() {
                       type="email"
                       value={emailSettings.fromEmail}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, fromEmail: e.target.value })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          fromEmail: e.target.value,
+                        });
+                        markSmtpAsChanged();
                       }}
                       disabled={!canManage}
                     />
@@ -998,22 +1150,30 @@ export function AdminSettingsPage() {
                       id="fromName"
                       value={emailSettings.fromName}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, fromName: e.target.value })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          fromName: e.target.value,
+                        });
+                        markSmtpAsChanged();
                       }}
                       disabled={!canManage}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="replyToEmail">Email de réponse (optionnel)</Label>
+                    <Label htmlFor="replyToEmail">
+                      Email de réponse (optionnel)
+                    </Label>
                     <Input
                       id="replyToEmail"
                       type="email"
                       value={emailSettings.replyToEmail}
                       onChange={(e) => {
-                        setEmailSettings({ ...emailSettings, replyToEmail: e.target.value })
-                        markSmtpAsChanged()
+                        setEmailSettings({
+                          ...emailSettings,
+                          replyToEmail: e.target.value,
+                        });
+                        markSmtpAsChanged();
                       }}
                       placeholder="reply-to@example.com"
                       disabled={!canManage}
@@ -1033,8 +1193,11 @@ export function AdminSettingsPage() {
                   <Switch
                     checked={emailSettings.smtpSecure}
                     onCheckedChange={(checked: boolean) => {
-                      setEmailSettings({ ...emailSettings, smtpSecure: checked })
-                      markSmtpAsChanged()
+                      setEmailSettings({
+                        ...emailSettings,
+                        smtpSecure: checked,
+                      });
+                      markSmtpAsChanged();
                     }}
                     disabled={!canManage}
                   />
@@ -1045,7 +1208,9 @@ export function AdminSettingsPage() {
                     <Button
                       variant="outline"
                       onClick={handleTestSmtp}
-                      disabled={testSmtpMutation.isPending || !emailSettings.smtpHost}
+                      disabled={
+                        testSmtpMutation.isPending || !emailSettings.smtpHost
+                      }
                     >
                       {testSmtpMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1068,10 +1233,15 @@ export function AdminSettingsPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold">Inactivité des comptes</h2>
+                <h2 className="text-lg font-semibold">
+                  Inactivité des comptes
+                </h2>
               </div>
               {canManage && hasSecurityChanges && (
-                <Button onClick={handleSaveSecurity} disabled={saveSecurityMutation.isPending}>
+                <Button
+                  onClick={handleSaveSecurity}
+                  disabled={saveSecurityMutation.isPending}
+                >
                   {saveSecurityMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -1093,16 +1263,22 @@ export function AdminSettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Désactivation automatique des comptes inactifs</Label>
+                    <Label>
+                      Désactivation automatique des comptes inactifs
+                    </Label>
                     <p className="text-sm text-muted-foreground">
-                      Désactiver automatiquement les comptes qui n'ont pas eu d'activité depuis une certaine période
+                      Désactiver automatiquement les comptes qui n'ont pas eu
+                      d'activité depuis une certaine période
                     </p>
                   </div>
                   <Switch
                     checked={securitySettingsApi.accountInactivityEnabled}
                     onCheckedChange={(checked: boolean) => {
-                      setSecuritySettingsApi({ ...securitySettingsApi, accountInactivityEnabled: checked })
-                      markSecurityAsChanged()
+                      setSecuritySettingsApi({
+                        ...securitySettingsApi,
+                        accountInactivityEnabled: checked,
+                      });
+                      markSecurityAsChanged();
                     }}
                     disabled={!canManage}
                   />
@@ -1110,30 +1286,36 @@ export function AdminSettingsPage() {
 
                 {securitySettingsApi.accountInactivityEnabled && (
                   <div className="space-y-2 ml-6">
-                    <Label htmlFor="accountInactivityDays">Durée d'inactivité avant désactivation (jours)</Label>
+                    <Label htmlFor="accountInactivityDays">
+                      Durée d'inactivité avant désactivation (jours)
+                    </Label>
                     <Input
                       id="accountInactivityDays"
                       type="number"
                       min="1"
                       max="3650"
-                      value={securitySettingsApi.accountInactivityDays || ''}
+                      value={securitySettingsApi.accountInactivityDays || ""}
                       onChange={(e) => {
-                        const value = e.target.value === '' ? 0 : parseInt(e.target.value)
-                        setSecuritySettingsApi({ ...securitySettingsApi, accountInactivityDays: value })
-                        markSecurityAsChanged()
+                        const value =
+                          e.target.value === "" ? 0 : parseInt(e.target.value);
+                        setSecuritySettingsApi({
+                          ...securitySettingsApi,
+                          accountInactivityDays: value,
+                        });
+                        markSecurityAsChanged();
                       }}
                       className="max-w-[200px]"
                       disabled={!canManage}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Par défaut : 730 jours (2 ans). Les comptes sans connexion depuis cette période seront automatiquement désactivés.
+                      Par défaut : 730 jours (2 ans). Les comptes sans connexion
+                      depuis cette période seront automatiquement désactivés.
                     </p>
                   </div>
                 )}
               </div>
             )}
           </div>
-
         </TabsContent>
 
         {/* Appearance Settings */}
@@ -1156,8 +1338,11 @@ export function AdminSettingsPage() {
                     type="color"
                     value={appearanceSettings.primaryColor}
                     onChange={(e) => {
-                      setAppearanceSettings({ ...appearanceSettings, primaryColor: e.target.value })
-                      markAsChanged()
+                      setAppearanceSettings({
+                        ...appearanceSettings,
+                        primaryColor: e.target.value,
+                      });
+                      markAsChanged();
                     }}
                     className="w-14 h-10 p-1"
                     disabled={!canManage}
@@ -1165,8 +1350,11 @@ export function AdminSettingsPage() {
                   <Input
                     value={appearanceSettings.primaryColor}
                     onChange={(e) => {
-                      setAppearanceSettings({ ...appearanceSettings, primaryColor: e.target.value })
-                      markAsChanged()
+                      setAppearanceSettings({
+                        ...appearanceSettings,
+                        primaryColor: e.target.value,
+                      });
+                      markAsChanged();
                     }}
                     className="flex-1"
                     disabled={!canManage}
@@ -1180,8 +1368,11 @@ export function AdminSettingsPage() {
                   id="logoUrl"
                   value={appearanceSettings.logoUrl}
                   onChange={(e) => {
-                    setAppearanceSettings({ ...appearanceSettings, logoUrl: e.target.value })
-                    markAsChanged()
+                    setAppearanceSettings({
+                      ...appearanceSettings,
+                      logoUrl: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   placeholder="https://example.com/logo.png"
                   disabled={!canManage}
@@ -1202,8 +1393,11 @@ export function AdminSettingsPage() {
                 <Switch
                   checked={appearanceSettings.showWelcomeMessage}
                   onCheckedChange={(checked: boolean) => {
-                    setAppearanceSettings({ ...appearanceSettings, showWelcomeMessage: checked })
-                    markAsChanged()
+                    setAppearanceSettings({
+                      ...appearanceSettings,
+                      showWelcomeMessage: checked,
+                    });
+                    markAsChanged();
                   }}
                   disabled={!canManage}
                 />
@@ -1216,8 +1410,11 @@ export function AdminSettingsPage() {
                     id="welcomeMessage"
                     value={appearanceSettings.welcomeMessage}
                     onChange={(e) => {
-                      setAppearanceSettings({ ...appearanceSettings, welcomeMessage: e.target.value })
-                      markAsChanged()
+                      setAppearanceSettings({
+                        ...appearanceSettings,
+                        welcomeMessage: e.target.value,
+                      });
+                      markAsChanged();
                     }}
                     disabled={!canManage}
                     rows={3}
@@ -1231,8 +1428,11 @@ export function AdminSettingsPage() {
                   id="customCss"
                   value={appearanceSettings.customCss}
                   onChange={(e) => {
-                    setAppearanceSettings({ ...appearanceSettings, customCss: e.target.value })
-                    markAsChanged()
+                    setAppearanceSettings({
+                      ...appearanceSettings,
+                      customCss: e.target.value,
+                    });
+                    markAsChanged();
                   }}
                   placeholder="/* Ajoutez votre CSS personnalisé ici */"
                   disabled={!canManage}
@@ -1253,7 +1453,10 @@ export function AdminSettingsPage() {
                 <h2 className="text-lg font-semibold">Mode maintenance</h2>
               </div>
               {canManage && hasMaintenanceChanges && (
-                <Button onClick={handleSaveMaintenance} disabled={saveMaintenanceMutation.isPending}>
+                <Button
+                  onClick={handleSaveMaintenance}
+                  disabled={saveMaintenanceMutation.isPending}
+                >
                   {saveMaintenanceMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -1277,34 +1480,44 @@ export function AdminSettingsPage() {
                   <div className="space-y-0.5">
                     <Label className="text-destructive">Mode maintenance</Label>
                     <p className="text-sm text-muted-foreground">
-                      Bloquer l'accès aux utilisateurs sans permission BYPASS_MAINTENANCE
+                      Bloquer l'accès aux utilisateurs sans permission
+                      BYPASS_MAINTENANCE
                     </p>
                   </div>
                   <Switch
                     checked={maintenanceSettingsApi.maintenanceEnabled}
                     onCheckedChange={(checked: boolean) => {
-                      setMaintenanceSettingsApi({ ...maintenanceSettingsApi, maintenanceEnabled: checked })
-                      markMaintenanceAsChanged()
+                      setMaintenanceSettingsApi({
+                        ...maintenanceSettingsApi,
+                        maintenanceEnabled: checked,
+                      });
+                      markMaintenanceAsChanged();
                     }}
                     disabled={!canManage}
                   />
                 </div>
 
                 <div className="space-y-2 ml-6">
-                  <Label htmlFor="maintenanceMessage">Message de maintenance</Label>
+                  <Label htmlFor="maintenanceMessage">
+                    Message de maintenance
+                  </Label>
                   <Textarea
                     id="maintenanceMessage"
                     value={maintenanceSettingsApi.maintenanceMessage}
                     onChange={(e) => {
-                      setMaintenanceSettingsApi({ ...maintenanceSettingsApi, maintenanceMessage: e.target.value })
-                      markMaintenanceAsChanged()
+                      setMaintenanceSettingsApi({
+                        ...maintenanceSettingsApi,
+                        maintenanceMessage: e.target.value,
+                      });
+                      markMaintenanceAsChanged();
                     }}
                     disabled={!canManage}
                     rows={3}
                     placeholder="L'application est en maintenance. Veuillez réessayer plus tard."
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ce message sera affiché aux utilisateurs lorsque le mode maintenance est activé.
+                    Ce message sera affiché aux utilisateurs lorsque le mode
+                    maintenance est activé.
                   </p>
                 </div>
               </div>
@@ -1313,5 +1526,5 @@ export function AdminSettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

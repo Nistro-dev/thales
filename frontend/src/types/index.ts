@@ -277,3 +277,13 @@ export interface UpdateNotificationPreferenceInput {
   emailEnabled: boolean;
   inAppEnabled: boolean;
 }
+
+// Product Availability Types
+export interface ProductAvailability {
+  productId: string;
+  month: string;
+  allowedDaysIn: number[];
+  allowedDaysOut: number[];
+  reservedDates: Array<{ date: string }>;
+  closedDates?: Array<{ date: string; reason: string }>;
+}

@@ -1,39 +1,56 @@
-import { useEffect, useRef, useState, useId } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
-import { Button } from '@/components/ui/button'
-import { Camera, CameraOff, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState, useId, useCallback } from "react";
+import { Html5Qrcode } from "html5-qrcode";
+import { Button } from "@/components/ui/button";
+import { Camera, CameraOff, Loader2 } from "lucide-react";
 
 interface QRScannerProps {
-  onScan: (result: string) => void
-  onError?: (error: string) => void
-  isActive?: boolean
+  onScan: (result: string) => void;
+  onError?: (error: string) => void;
+  isActive?: boolean;
 }
 
-export function QRScanner({ onScan, onError, isActive = true }: QRScannerProps) {
-  const [isScanning, setIsScanning] = useState(false)
-  const [isStarting, setIsStarting] = useState(false)
-  const [cameraError, setCameraError] = useState<string | null>(null)
-  const scannerRef = useRef<Html5Qrcode | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const uniqueId = useId().replace(/:/g, '-')
-  const readerId = `qr-reader-${uniqueId}`
+export function QRScanner({
+  onScan,
+  onError,
+  isActive = true,
+}: QRScannerProps) {
+  const [isScanning, setIsScanning] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const uniqueId = useId().replace(/:/g, "-");
+  const readerId = `qr-reader-${uniqueId}`;
 
-  const startScanner = async () => {
-    if (scannerRef.current || !containerRef.current) return
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current.clear();
+      } catch {
+        // Ignore stop errors
+      }
+      scannerRef.current = null;
+      setIsScanning(false);
+    }
+  }, []);
 
-    setIsStarting(true)
-    setCameraError(null)
+  const startScanner = useCallback(async () => {
+    if (scannerRef.current || !containerRef.current) return;
+
+    setIsStarting(true);
+    setCameraError(null);
 
     try {
-      const scanner = new Html5Qrcode(readerId)
-      scannerRef.current = scanner
+      const scanner = new Html5Qrcode(readerId);
+      scannerRef.current = scanner;
 
       // Get container size for square QR box
-      const containerSize = Math.min(containerRef.current.offsetWidth, 280)
-      const qrboxSize = Math.floor(containerSize * 0.7)
+      const containerSize = Math.min(containerRef.current.offsetWidth, 280);
+      const qrboxSize = Math.floor(containerSize * 0.7);
 
       await scanner.start(
-        { facingMode: 'environment' },
+        { facingMode: "environment" },
         {
           fps: 10,
           qrbox: qrboxSize, // Single value for square box
@@ -41,59 +58,46 @@ export function QRScanner({ onScan, onError, isActive = true }: QRScannerProps) 
           disableFlip: false,
         },
         (decodedText) => {
-          onScan(decodedText)
-          stopScanner()
+          onScan(decodedText);
+          stopScanner();
         },
         () => {
           // Ignore scan errors (no QR code found)
-        }
-      )
+        },
+      );
 
-      setIsScanning(true)
+      setIsScanning(true);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur caméra'
-      setCameraError(errorMessage)
-      onError?.(errorMessage)
-      scannerRef.current = null
+      const errorMessage = err instanceof Error ? err.message : "Erreur caméra";
+      setCameraError(errorMessage);
+      onError?.(errorMessage);
+      scannerRef.current = null;
     } finally {
-      setIsStarting(false)
+      setIsStarting(false);
     }
-  }
-
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop()
-        scannerRef.current.clear()
-      } catch {
-        // Ignore stop errors
-      }
-      scannerRef.current = null
-      setIsScanning(false)
-    }
-  }
+  }, [readerId, onScan, onError, stopScanner]);
 
   useEffect(() => {
     if (isActive && !isScanning && !isStarting) {
       // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
-        startScanner()
-      }, 100)
-      return () => clearTimeout(timer)
+        startScanner();
+      }, 100);
+      return () => clearTimeout(timer);
     }
 
     return () => {
-      stopScanner()
-    }
-  }, [isActive])
+      stopScanner();
+    };
+  }, [isActive, isScanning, isStarting, startScanner, stopScanner]);
 
   const toggleScanner = () => {
     if (isScanning) {
-      stopScanner()
+      stopScanner();
     } else {
-      startScanner()
+      startScanner();
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -106,9 +110,9 @@ export function QRScanner({ onScan, onError, isActive = true }: QRScannerProps) 
           className="w-full h-full [&_video]:!w-full [&_video]:!h-full [&_video]:!object-cover [&>div]:!border-none"
           style={{
             // Force square video display
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         />
 
@@ -116,7 +120,7 @@ export function QRScanner({ onScan, onError, isActive = true }: QRScannerProps) 
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-muted">
             <Camera className="h-12 w-12 text-muted-foreground" />
             <p className="text-sm text-muted-foreground text-center px-4">
-              {cameraError || 'Cliquez pour activer la caméra'}
+              {cameraError || "Cliquez pour activer la caméra"}
             </p>
           </div>
         )}
@@ -131,7 +135,7 @@ export function QRScanner({ onScan, onError, isActive = true }: QRScannerProps) 
 
       <div className="flex justify-center">
         <Button
-          variant={isScanning ? 'destructive' : 'default'}
+          variant={isScanning ? "destructive" : "default"}
           onClick={toggleScanner}
           disabled={isStarting}
           className="w-full max-w-[280px]"
@@ -156,5 +160,5 @@ export function QRScanner({ onScan, onError, isActive = true }: QRScannerProps) 
         </Button>
       </div>
     </div>
-  )
+  );
 }

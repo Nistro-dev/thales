@@ -36,8 +36,16 @@ export function TimeSlotPicker({
   const availableSlots = useMemo(() => {
     if (!selectedDate) return [];
     const dayOfWeek = selectedDate.getDay();
-    return slots.filter((slot) => slot.dayOfWeek === dayOfWeek);
-  }, [slots, selectedDate]);
+    const filtered = slots.filter((slot) => slot.dayOfWeek === dayOfWeek);
+    console.log("[DEBUG] TimeSlotPicker availableSlots:", {
+      label,
+      dayOfWeek,
+      selectedDate,
+      slots,
+      filtered,
+    });
+    return filtered;
+  }, [slots, selectedDate, label]);
 
   // Check if selected time is in a valid slot
   const isTimeValid = useMemo(() => {
@@ -98,7 +106,10 @@ export function TimeSlotPicker({
       <Input
         type="time"
         value={selectedTime || ""}
-        onChange={(e) => onTimeChange(e.target.value || undefined)}
+        onChange={(e) => {
+          console.log("[DEBUG] TimeSlotPicker onTimeChange:", e.target.value);
+          onTimeChange(e.target.value || undefined);
+        }}
         disabled={disabled}
         className={`h-8 text-sm ${
           !isTimeValid

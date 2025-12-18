@@ -77,6 +77,14 @@ export function ReservationModal({
     const endDateStr = formatDateLocal(endDate);
 
     try {
+      console.log("[DEBUG] Creating reservation with:", {
+        productId: product.id,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        startTime,
+        endTime,
+        notes: notes.trim() || undefined,
+      });
       await createReservation.mutateAsync({
         productId: product.id,
         startDate: startDateStr,

@@ -6,6 +6,7 @@ interface CreateRoleParams {
   name: string
   description?: string
   permissionKeys: string[]
+  sectionIds?: string[]
   performedBy: string
 }
 
@@ -46,6 +47,21 @@ export const createRole = async (params: CreateRoleParams) => {
 
   const permissionIds = permissions.map(p => p.id)
 
+  // Validate section IDs if provided
+  if (params.sectionIds && params.sectionIds.length > 0) {
+    const sections = await prisma.section.findMany({
+      where: { id: { in: params.sectionIds } },
+      select: { id: true },
+    })
+    if (sections.length !== params.sectionIds.length) {
+      throw {
+        statusCode: 400,
+        message: 'Certaines sections sont invalides',
+        code: 'VALIDATION_ERROR',
+      }
+    }
+  }
+
   const role = await prisma.role.create({
     data: {
       name: params.name,
@@ -56,11 +72,23 @@ export const createRole = async (params: CreateRoleParams) => {
           permissionId,
         })),
       },
+      ...(params.sectionIds && params.sectionIds.length > 0 && {
+        sections: {
+          create: params.sectionIds.map((sectionId) => ({
+            sectionId,
+          })),
+        },
+      }),
     },
     include: {
       permissions: {
         include: {
           permission: true,
+        },
+      },
+      sections: {
+        include: {
+          section: true,
         },
       },
     },
@@ -74,6 +102,7 @@ export const createRole = async (params: CreateRoleParams) => {
     metadata: {
       name: role.name,
       permissionKeys: params.permissionKeys,
+      sectionIds: params.sectionIds,
     },
   })
 
@@ -85,6 +114,7 @@ interface UpdateRoleParams {
   name?: string
   description?: string
   permissionKeys?: string[]
+  sectionIds?: string[]
   performedBy: string
 }
 
@@ -151,6 +181,21 @@ export const updateRole = async (params: UpdateRoleParams) => {
     permissionIds = permissions.map(p => p.id)
   }
 
+  // Validate section IDs if provided
+  if (params.sectionIds !== undefined && params.sectionIds.length > 0) {
+    const sections = await prisma.section.findMany({
+      where: { id: { in: params.sectionIds } },
+      select: { id: true },
+    })
+    if (sections.length !== params.sectionIds.length) {
+      throw {
+        statusCode: 400,
+        message: 'Certaines sections sont invalides',
+        code: 'VALIDATION_ERROR',
+      }
+    }
+  }
+
   const updatedRole = await prisma.role.update({
     where: { id: params.roleId },
     data: {
@@ -164,11 +209,26 @@ export const updateRole = async (params: UpdateRoleParams) => {
           })),
         },
       }),
+      ...(params.sectionIds !== undefined && {
+        sections: {
+          deleteMany: {},
+          ...(params.sectionIds.length > 0 && {
+            create: params.sectionIds.map((sectionId) => ({
+              sectionId,
+            })),
+          }),
+        },
+      }),
     },
     include: {
       permissions: {
         include: {
           permission: true,
+        },
+      },
+      sections: {
+        include: {
+          section: true,
         },
       },
     },
@@ -184,6 +244,7 @@ export const updateRole = async (params: UpdateRoleParams) => {
         name: params.name,
         description: params.description,
         permissionKeys: params.permissionKeys,
+        sectionIds: params.sectionIds,
       },
     },
   })
@@ -250,6 +311,11 @@ export const getRoles = async (includeSystem: boolean = true) => {
           permission: true,
         },
       },
+      sections: {
+        include: {
+          section: true,
+        },
+      },
       users: {
         select: {
           userId: true,
@@ -266,6 +332,11 @@ export const getRoleById = async (roleId: string) => {
       permissions: {
         include: {
           permission: true,
+        },
+      },
+      sections: {
+        include: {
+          section: true,
         },
       },
       users: {

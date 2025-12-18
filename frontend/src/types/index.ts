@@ -47,12 +47,19 @@ export interface User {
   updatedAt: string;
 }
 
+export interface RoleSection {
+  roleId: string;
+  sectionId: string;
+  section: Section;
+}
+
 export interface Role {
   id: string;
   name: string;
   description: string | null;
   isSystem: boolean;
   permissions: Permission[];
+  sections?: RoleSection[];
   createdAt: string;
   updatedAt: string;
 }

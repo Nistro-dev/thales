@@ -143,6 +143,9 @@ enum AuditAction {
   RESERVATION_REFUND
   RESERVATION_UPDATE
   RESERVATION_EXTEND
+
+  // System
+  DATABASE_BACKUP
 }
 
 // ============================================
@@ -178,6 +181,7 @@ model User {
   reservations            Reservation[]
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
+  legalPagesEdited        LegalPage[]
 
   @@index([email])
   @@index([status])
@@ -249,6 +253,19 @@ model Role {
 
   permissions RolePermission[]
   users       UserRole[]
+  sections    RoleSection[]
+}
+
+model RoleSection {
+  roleId    String
+  sectionId String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([roleId, sectionId])
+  @@index([roleId])
+  @@index([sectionId])
 }
 
 model Permission {
@@ -307,11 +324,12 @@ model Section {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  subSections SubSection[]
-  products    Product[]
-  userRoles   UserRole[]
-  closures    SectionClosure[]
-  timeSlots   TimeSlot[]
+  subSections  SubSection[]
+  products     Product[]
+  userRoles    UserRole[]
+  closures     SectionClosure[]
+  timeSlots    TimeSlot[]
+  roleSections RoleSection[]
 
   @@index([isSystem])
 }
@@ -623,4 +641,28 @@ model NotificationPreference {
 
   @@unique([userId, notificationType])
   @@index([userId])
+}
+
+// ============================================
+// LEGAL PAGES
+// ============================================
+
+enum LegalPageType {
+  TERMS           // CGU - Conditions générales d'utilisation
+  PRIVACY         // RGPD - Politique de confidentialité
+  LEGAL_NOTICE    // Mentions légales
+}
+
+model LegalPage {
+  id        String        @id @default(uuid())
+  type      LegalPageType @unique
+  title     String
+  content   String        @db.Text
+  version   String        @default("1.0")
+  updatedBy String?
+  editor    User?         @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([type])
 }

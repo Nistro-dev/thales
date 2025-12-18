@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Plus, ArrowLeft, Shield } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Plus, ArrowLeft, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,110 +19,128 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { RoleTable } from '../components/RoleTable'
-import { RoleForm } from '../components/RoleForm'
-import { RoleDetail } from '../components/RoleDetail'
-import { useRoles, useRole, useCreateRole, useUpdateRole, useDeleteRole } from '../hooks/useRoles'
-import type { Role } from '@/api/roles.api'
-import { ROUTES } from '@/constants/routes'
+} from "@/components/ui/alert-dialog";
+import { RoleTable } from "../components/RoleTable";
+import { RoleForm } from "../components/RoleForm";
+import { RoleDetail } from "../components/RoleDetail";
+import {
+  useRoles,
+  useRole,
+  useCreateRole,
+  useUpdateRole,
+  useDeleteRole,
+} from "../hooks/useRoles";
+import type { Role } from "@/api/roles.api";
+import { ROUTES } from "@/constants/routes";
 
-type ViewMode = 'list' | 'detail' | 'edit'
+type ViewMode = "list" | "detail" | "edit";
 
 export function AdminRolesPage() {
-  const navigate = useNavigate()
-  const { id: roleId } = useParams<{ id: string }>()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate();
+  const { id: roleId } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const isCreateMode = searchParams.get('create') === 'true'
-  const isEditMode = searchParams.get('edit') === 'true'
+  const isCreateMode = searchParams.get("create") === "true";
+  const isEditMode = searchParams.get("edit") === "true";
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
 
   // Queries
-  const { data: roles, isLoading: rolesLoading } = useRoles()
-  const { data: roleDetail, isLoading: roleDetailLoading } = useRole(roleId)
+  const { data: roles, isLoading: rolesLoading } = useRoles();
+  const { data: roleDetail, isLoading: roleDetailLoading } = useRole(roleId);
 
   // Mutations
-  const createRole = useCreateRole()
-  const updateRole = useUpdateRole()
-  const deleteRole = useDeleteRole()
+  const createRole = useCreateRole();
+  const updateRole = useUpdateRole();
+  const deleteRole = useDeleteRole();
 
   // Determine current view mode
   // Note: isCreateMode is handled as a dialog overlay on list view
   const getViewMode = (): ViewMode => {
-    if (roleId && isEditMode) return 'edit'
-    if (roleId) return 'detail'
-    return 'list'
-  }
+    if (roleId && isEditMode) return "edit";
+    if (roleId) return "detail";
+    return "list";
+  };
 
-  const viewMode = getViewMode()
+  const viewMode = getViewMode();
 
   // Navigation handlers
   const handleViewRole = (role: Role) => {
-    navigate(ROUTES.ADMIN_ROLE_DETAIL.replace(':id', role.id))
-  }
+    navigate(ROUTES.ADMIN_ROLE_DETAIL.replace(":id", role.id));
+  };
 
   const handleEditRole = (role: Role) => {
-    navigate(`${ROUTES.ADMIN_ROLE_DETAIL.replace(':id', role.id)}?edit=true`)
-  }
+    navigate(`${ROUTES.ADMIN_ROLE_DETAIL.replace(":id", role.id)}?edit=true`);
+  };
 
   const handleCreateClick = () => {
-    setSearchParams({ create: 'true' })
-  }
+    setSearchParams({ create: "true" });
+  };
 
   const handleBackToList = () => {
-    navigate(ROUTES.ADMIN_ROLES)
-  }
+    navigate(ROUTES.ADMIN_ROLES);
+  };
 
   const handleCancelEdit = () => {
     if (roleId) {
-      navigate(ROUTES.ADMIN_ROLE_DETAIL.replace(':id', roleId))
+      navigate(ROUTES.ADMIN_ROLE_DETAIL.replace(":id", roleId));
     } else {
-      handleBackToList()
+      handleBackToList();
     }
-  }
+  };
 
   // Form handlers
-  const handleCreateSubmit = async (data: { name: string; description?: string; permissions: string[] }) => {
+  const handleCreateSubmit = async (data: {
+    name: string;
+    description?: string;
+    permissions: string[];
+    sectionIds?: string[];
+  }) => {
     await createRole.mutateAsync({
       name: data.name,
       description: data.description,
       permissionKeys: data.permissions,
-    })
-    handleBackToList()
-  }
+      sectionIds: data.sectionIds,
+    });
+    handleBackToList();
+  };
 
-  const handleUpdateSubmit = async (data: { name: string; description?: string; permissions: string[] }) => {
-    if (!roleId) return
+  const handleUpdateSubmit = async (data: {
+    name: string;
+    description?: string;
+    permissions: string[];
+    sectionIds?: string[];
+  }) => {
+    if (!roleId) return;
     await updateRole.mutateAsync({
       id: roleId,
       data: {
         name: data.name,
         description: data.description,
         permissionKeys: data.permissions,
+        sectionIds: data.sectionIds,
       },
-    })
-    navigate(ROUTES.ADMIN_ROLE_DETAIL.replace(':id', roleId))
-  }
+    });
+    navigate(ROUTES.ADMIN_ROLE_DETAIL.replace(":id", roleId));
+  };
 
   // Delete handlers
   const handleDeleteClick = (role: Role) => {
-    setRoleToDelete(role)
-    setDeleteDialogOpen(true)
-  }
+    setRoleToDelete(role);
+    setDeleteDialogOpen(true);
+  };
 
   const handleDeleteConfirm = async () => {
-    if (!roleToDelete) return
-    await deleteRole.mutateAsync(roleToDelete.id)
-    setDeleteDialogOpen(false)
-    setRoleToDelete(null)
-    handleBackToList()
-  }
+    if (!roleToDelete) return;
+    await deleteRole.mutateAsync(roleToDelete.id);
+    setDeleteDialogOpen(false);
+    setRoleToDelete(null);
+    handleBackToList();
+  };
 
   // Render list view
-  if (viewMode === 'list') {
+  if (viewMode === "list") {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -176,8 +194,8 @@ export function AdminRolesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer le rôle "{roleToDelete?.name}" ?
-                Cette action est irréversible.
+                Êtes-vous sûr de vouloir supprimer le rôle "{roleToDelete?.name}
+                " ? Cette action est irréversible.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -186,17 +204,17 @@ export function AdminRolesPage() {
                 onClick={handleDeleteConfirm}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteRole.isPending ? 'Suppression...' : 'Supprimer'}
+                {deleteRole.isPending ? "Suppression..." : "Supprimer"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    )
+    );
   }
 
   // Render detail view
-  if (viewMode === 'detail') {
+  if (viewMode === "detail") {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
@@ -219,8 +237,8 @@ export function AdminRolesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir supprimer le rôle "{roleToDelete?.name}" ?
-                Cette action est irréversible.
+                Êtes-vous sûr de vouloir supprimer le rôle "{roleToDelete?.name}
+                " ? Cette action est irréversible.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -229,17 +247,17 @@ export function AdminRolesPage() {
                 onClick={handleDeleteConfirm}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteRole.isPending ? 'Suppression...' : 'Supprimer'}
+                {deleteRole.isPending ? "Suppression..." : "Supprimer"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    )
+    );
   }
 
   // Render edit view
-  if (viewMode === 'edit') {
+  if (viewMode === "edit") {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
@@ -273,8 +291,8 @@ export function AdminRolesPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  return null
+  return null;
 }

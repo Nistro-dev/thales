@@ -4,6 +4,7 @@ export const createRoleSchema = z.object({
   name: z.string().min(1, 'Le nom est requis'),
   description: z.string().optional(),
   permissionKeys: z.array(z.string().min(1, 'Clé de permission invalide')),
+  sectionIds: z.array(z.string().uuid('ID de section invalide')).optional(),
 })
 
 export type CreateRoleInput = z.infer<typeof createRoleSchema>
@@ -12,6 +13,7 @@ export const updateRoleSchema = z.object({
   name: z.string().min(1, 'Le nom est requis').optional(),
   description: z.string().optional(),
   permissionKeys: z.array(z.string().min(1, 'Clé de permission invalide')).optional(),
+  sectionIds: z.array(z.string().uuid('ID de section invalide')).optional(),
 })
 
 export type UpdateRoleInput = z.infer<typeof updateRoleSchema>

@@ -5,6 +5,7 @@ import { prisma } from '../utils/prisma.js'
 import { logger } from '../utils/logger.js'
 import { sendInvitationEmail } from './email.service.js'
 import { ErrorMessages } from '../utils/response.js'
+import { getCurrentTermsVersion } from './legal-page.service.js'
 
 const INVITATION_EXPIRY_DAYS = 7
 
@@ -108,9 +109,11 @@ export const completeRegistration = async (
   }
 
   const { hashPassword } = await import('../utils/password.js')
-  const { env } = await import('../config/env.js')
 
   const hashedPassword = await hashPassword(data.password)
+
+  // Get the current CGU version from the database
+  const currentTermsVersion = await getCurrentTermsVersion()
 
   const [user] = await prisma.$transaction([
     prisma.user.create({
@@ -121,7 +124,7 @@ export const completeRegistration = async (
         lastName: data.lastName,
         status: 'ACTIVE',
         gdprConsentAt: new Date(),
-        gdprVersion: env.GDPR_VERSION,
+        gdprVersion: currentTermsVersion,
       },
       select: {
         id: true,

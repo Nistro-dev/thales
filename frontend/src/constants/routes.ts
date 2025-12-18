@@ -6,6 +6,7 @@ export const ROUTES = {
   COMPLETE_REGISTRATION: "/complete-registration",
   TERMS_OF_SERVICE: "/terms",
   PRIVACY_POLICY: "/privacy",
+  LEGAL_NOTICE: "/legal-notice",
 
   // App
   HOME: "/",
@@ -38,6 +39,7 @@ export const ROUTES = {
   ADMIN_AUDIT: "/admin/audit",
   ADMIN_FILES: "/admin/files",
   ADMIN_SETTINGS: "/admin/settings",
+  ADMIN_LEGAL_PAGES: "/admin/legal-pages",
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];

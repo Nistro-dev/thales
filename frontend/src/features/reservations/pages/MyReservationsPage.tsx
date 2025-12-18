@@ -25,6 +25,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   SlidersHorizontal,
+  Clock,
 } from "lucide-react";
 import { ReservationCardSkeleton } from "../components/ReservationCardSkeleton";
 import { CancelReservationDialog } from "../components/CancelReservationDialog";
@@ -337,6 +338,12 @@ export function MyReservationsPage() {
                           <p className="font-medium">
                             {formatDate(reservation.startDate)}
                           </p>
+                          {reservation.startTime && (
+                            <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3 w-3" />
+                              {reservation.startTime}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <p className="text-muted-foreground">
@@ -345,6 +352,12 @@ export function MyReservationsPage() {
                           <p className="font-medium">
                             {formatDate(reservation.endDate)}
                           </p>
+                          {reservation.endTime && (
+                            <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3 w-3" />
+                              {reservation.endTime}
+                            </p>
+                          )}
                         </div>
                       </div>
 

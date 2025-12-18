@@ -24,6 +24,7 @@ import {
   X,
   RefreshCcw,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { ReservationDetailSkeleton } from "../components/ReservationDetailSkeleton";
 import { CheckoutDialog } from "../components/CheckoutDialog";
@@ -278,12 +279,28 @@ export function AdminReservationDetailPage() {
                   <p className="text-muted-foreground">
                     {formatDate(reservation.startDate)}
                   </p>
+                  {reservation.startTime && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm text-primary font-medium">
+                        {reservation.startTime}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-medium">Date de retour</p>
                   <p className="text-muted-foreground">
                     {formatDate(reservation.endDate)}
                   </p>
+                  {reservation.endTime && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm text-primary font-medium">
+                        {reservation.endTime}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -406,6 +406,23 @@ export function ReservationDatePicker({
       </Card>
 
       {/* Time Slot Pickers */}
+      {/* DEBUG: Show slot info */}
+      {(startDate || endDate) && (
+        <div className="text-xs bg-yellow-100 p-2 rounded">
+          <p>
+            DEBUG: checkoutSlots={checkoutTimeSlots.length}, returnSlots=
+            {returnTimeSlots.length}
+          </p>
+          <p>
+            startDate={startDate?.toISOString()}, endDate=
+            {endDate?.toISOString()}
+          </p>
+          <p>
+            onStartTimeChange={onStartTimeChange ? "yes" : "no"},
+            onEndTimeChange={onEndTimeChange ? "yes" : "no"}
+          </p>
+        </div>
+      )}
       {(hasCheckoutTimeSlots || hasReturnTimeSlots) &&
         (startDate || endDate) && (
           <Card className="p-2.5">

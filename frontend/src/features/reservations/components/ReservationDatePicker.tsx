@@ -319,6 +319,25 @@ export function ReservationDatePicker({
     }
   }, [isValid, onValidationChange]);
 
+  // Debug: log time slot picker render conditions
+  useEffect(() => {
+    console.log("[DEBUG] TimeSlotPicker render check:", {
+      hasCheckoutTimeSlots,
+      hasReturnTimeSlots,
+      startDate,
+      endDate,
+      onStartTimeChange: !!onStartTimeChange,
+      onEndTimeChange: !!onEndTimeChange,
+    });
+  }, [
+    hasCheckoutTimeSlots,
+    hasReturnTimeSlots,
+    startDate,
+    endDate,
+    onStartTimeChange,
+    onEndTimeChange,
+  ]);
+
   // Handle month change in calendar
   const handleMonthChange = (year: number, month: number) => {
     setCurrentMonth(`${year}-${String(month).padStart(2, "0")}`);
@@ -387,14 +406,6 @@ export function ReservationDatePicker({
       </Card>
 
       {/* Time Slot Pickers */}
-      {console.log("[DEBUG] TimeSlotPicker render check:", {
-        hasCheckoutTimeSlots,
-        hasReturnTimeSlots,
-        startDate,
-        endDate,
-        onStartTimeChange: !!onStartTimeChange,
-        onEndTimeChange: !!onEndTimeChange,
-      })}
       {(hasCheckoutTimeSlots || hasReturnTimeSlots) &&
         (startDate || endDate) && (
           <Card className="p-2.5">

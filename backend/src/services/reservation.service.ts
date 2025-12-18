@@ -9,6 +9,7 @@ import type { ReservationStatus, ProductCondition, CreditPeriod } from '@prisma/
 import * as notificationHelper from './notification-helper.service.js'
 import * as closureService from './section-closure.service.js'
 import * as timeSlotService from './time-slot.service.js'
+import { logger } from '../utils/logger.js'
 
 // ============================================
 // HELPERS
@@ -359,6 +360,15 @@ export const createReservation = async (params: CreateReservationParams) => {
     request: _request,
   } = params
 
+  logger.info({
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    productId,
+    userId
+  }, '[RESERVATION CREATE] Params received')
+
   const start = parseLocalDate(startDate)
   const end = parseLocalDate(endDate)
 
@@ -500,6 +510,12 @@ export const createReservation = async (params: CreateReservationParams) => {
       timeout: 10000, // 10 second timeout
     }
   )
+
+  logger.info({
+    reservationId: reservation.id,
+    startTime: reservation.startTime,
+    endTime: reservation.endTime,
+  }, '[RESERVATION CREATE] Created reservation with times')
 
   // Generate and save QR code for the reservation
   const qrCode = generateReservationQRCode(reservation.id, userId)
@@ -661,6 +677,12 @@ export const getReservationById = async (id: string, userId?: string) => {
   if (!reservation) {
     throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
   }
+
+  logger.info({
+    reservationId: reservation.id,
+    startTime: reservation.startTime,
+    endTime: reservation.endTime,
+  }, '[RESERVATION GET] Retrieved reservation with times')
 
   return reservation
 }

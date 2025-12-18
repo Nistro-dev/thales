@@ -1,210 +1,312 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useAdminReservations, useCheckoutReservation, useReturnReservation, useCancelReservation } from '../hooks/useReservations'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, AlertCircle, Loader2, Eye, CheckCircle, RotateCcw, X, UserCircle, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, SlidersHorizontal, Clock, QrCode } from 'lucide-react'
-import { ReservationCardSkeleton } from '../components/ReservationCardSkeleton'
-import { ReservationFiltersSkeleton } from '../components/ReservationFiltersSkeleton'
-import { CheckoutDialog } from '../components/CheckoutDialog'
-import { ReturnDialog } from '../components/ReturnDialog'
-import { AdminCancelDialog } from '../components/AdminCancelDialog'
-import { QRScannerDialog } from '../components/QRScannerDialog'
-import type { ReservationStatus, ReservationFilters, Reservation, ProductCondition } from '@/types'
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  useAdminReservations,
+  useCheckoutReservation,
+  useReturnReservation,
+  useCancelReservation,
+} from "../hooks/useReservations";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Calendar,
+  AlertCircle,
+  Loader2,
+  Eye,
+  CheckCircle,
+  RotateCcw,
+  X,
+  UserCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  SlidersHorizontal,
+  Clock,
+  QrCode,
+} from "lucide-react";
+import { ReservationCardSkeleton } from "../components/ReservationCardSkeleton";
+import { ReservationFiltersSkeleton } from "../components/ReservationFiltersSkeleton";
+import { CheckoutDialog } from "../components/CheckoutDialog";
+import { ReturnDialog } from "../components/ReturnDialog";
+import { AdminCancelDialog } from "../components/AdminCancelDialog";
+import { QRScannerDialog } from "../components/QRScannerDialog";
+import type {
+  ReservationStatus,
+  ReservationFilters,
+  Reservation,
+  ProductCondition,
+} from "@/types";
 
 const statusLabels: Record<ReservationStatus, string> = {
-  CONFIRMED: 'Confirmée',
-  CHECKED_OUT: 'En cours',
-  RETURNED: 'Terminée',
-  CANCELLED: 'Annulée',
-  REFUNDED: 'Remboursée',
-}
+  CONFIRMED: "Confirmée",
+  CHECKED_OUT: "En cours",
+  RETURNED: "Terminée",
+  CANCELLED: "Annulée",
+  REFUNDED: "Remboursée",
+};
 
-const statusColors: Record<ReservationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  CONFIRMED: 'default',
-  CHECKED_OUT: 'default',
-  RETURNED: 'outline',
-  CANCELLED: 'destructive',
-  REFUNDED: 'outline',
-}
+const statusColors: Record<
+  ReservationStatus,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
+  CONFIRMED: "default",
+  CHECKED_OUT: "default",
+  RETURNED: "outline",
+  CANCELLED: "destructive",
+  REFUNDED: "outline",
+};
 
 interface DialogState {
-  type: 'checkout' | 'return' | 'cancel' | null
-  reservation: Reservation | null
+  type: "checkout" | "return" | "cancel" | null;
+  reservation: Reservation | null;
 }
 
 export function AdminReservationsPage() {
-  const [activeTab, setActiveTab] = useState<'all' | 'checkouts' | 'returns' | 'overdue'>('all')
-  const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'all'>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState<'startDate' | 'createdAt' | 'endDate'>('startDate')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
-  const [showFilters, setShowFilters] = useState(false)
-  const [dialogState, setDialogState] = useState<DialogState>({ type: null, reservation: null })
-  const [qrScannerOpen, setQrScannerOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<
+    "all" | "checkouts" | "returns" | "overdue"
+  >("all");
+  const [statusFilter, setStatusFilter] = useState<ReservationStatus | "all">(
+    "all",
+  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"startDate" | "createdAt" | "endDate">(
+    "startDate",
+  );
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [showFilters, setShowFilters] = useState(false);
+  const [dialogState, setDialogState] = useState<DialogState>({
+    type: null,
+    reservation: null,
+  });
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toISOString().split("T")[0];
 
-  const [overdueType, setOverdueType] = useState<'checkouts' | 'returns'>('checkouts')
+  const [overdueType, setOverdueType] = useState<"checkouts" | "returns">(
+    "checkouts",
+  );
 
   const getFilters = (): ReservationFilters => {
     const baseFilters: ReservationFilters = {
-      ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      ...(statusFilter !== "all" ? { status: statusFilter } : {}),
       sortBy,
       sortOrder,
-    }
+    };
 
-    if (activeTab === 'checkouts') {
+    if (activeTab === "checkouts") {
       return {
         ...baseFilters,
-        status: 'CONFIRMED',
+        status: "CONFIRMED",
         startDateFrom: today,
         startDateTo: today,
-      }
+      };
     }
 
-    if (activeTab === 'returns') {
+    if (activeTab === "returns") {
       return {
         ...baseFilters,
-        status: 'CHECKED_OUT',
+        status: "CHECKED_OUT",
         startDateFrom: today,
         startDateTo: today,
-      }
+      };
     }
 
-    if (activeTab === 'overdue') {
+    if (activeTab === "overdue") {
       return {
         sortBy,
         sortOrder,
         overdue: overdueType,
-      }
+      };
     }
 
-    return baseFilters
-  }
+    return baseFilters;
+  };
 
-  const { data, isLoading, isError } = useAdminReservations(getFilters(), page, limit)
-  const checkoutMutation = useCheckoutReservation()
-  const returnMutation = useReturnReservation()
-  const cancelMutation = useCancelReservation()
+  const { data, isLoading, isError } = useAdminReservations(
+    getFilters(),
+    page,
+    limit,
+  );
+  const checkoutMutation = useCheckoutReservation();
+  const returnMutation = useReturnReservation();
+  const cancelMutation = useCancelReservation();
 
-  const openDialog = (type: 'checkout' | 'return' | 'cancel', reservation: Reservation) => {
-    setDialogState({ type, reservation })
-  }
+  const openDialog = (
+    type: "checkout" | "return" | "cancel",
+    reservation: Reservation,
+  ) => {
+    setDialogState({ type, reservation });
+  };
 
   const closeDialog = () => {
-    setDialogState({ type: null, reservation: null })
-  }
+    setDialogState({ type: null, reservation: null });
+  };
 
   const handleCheckout = async (notes?: string) => {
-    if (!dialogState.reservation) return
+    if (!dialogState.reservation) return;
     try {
-      await checkoutMutation.mutateAsync({ id: dialogState.reservation.id, notes })
-      closeDialog()
+      await checkoutMutation.mutateAsync({
+        id: dialogState.reservation.id,
+        notes,
+      });
+      closeDialog();
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const handleReturn = async (condition: ProductCondition, notes?: string) => {
-    if (!dialogState.reservation) return
+    if (!dialogState.reservation) return;
     try {
       await returnMutation.mutateAsync({
         id: dialogState.reservation.id,
         data: { condition, notes },
-      })
-      closeDialog()
+      });
+      closeDialog();
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const handleCancel = async (reason?: string) => {
-    if (!dialogState.reservation) return
+    if (!dialogState.reservation) return;
     try {
-      await cancelMutation.mutateAsync({ id: dialogState.reservation.id, reason })
-      closeDialog()
+      await cancelMutation.mutateAsync({
+        id: dialogState.reservation.id,
+        reason,
+      });
+      closeDialog();
     } catch {
       // Error handled by mutation onError
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  }
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   const calculateDuration = (startDate: string, endDate: string) => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-    return diffDays
-  }
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
 
-  const isActionPending = checkoutMutation.isPending || returnMutation.isPending || cancelMutation.isPending
+  const isActionPending =
+    checkoutMutation.isPending ||
+    returnMutation.isPending ||
+    cancelMutation.isPending;
 
   const resetFilters = () => {
-    setStatusFilter('all')
-    setSearchQuery('')
-    setSortBy('startDate')
-    setSortOrder('desc')
-    setPage(1)
-  }
+    setStatusFilter("all");
+    setSearchQuery("");
+    setSortBy("startDate");
+    setSortOrder("desc");
+    setPage(1);
+  };
 
-  const hasActiveFilters = statusFilter !== 'all' || searchQuery !== '' || sortBy !== 'startDate' || sortOrder !== 'desc'
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    searchQuery !== "" ||
+    sortBy !== "startDate" ||
+    sortOrder !== "desc";
 
-  const totalPages = data?.pagination?.totalPages || 1
-  const currentPage = data?.pagination?.page || page
-  const totalItems = data?.pagination?.total || 0
+  const totalPages = data?.pagination?.totalPages || 1;
+  const currentPage = data?.pagination?.page || page;
+  const totalItems = data?.pagination?.total || 0;
 
   const goToPage = (newPage: number) => {
-    setPage(Math.max(1, Math.min(newPage, totalPages)))
-  }
+    setPage(Math.max(1, Math.min(newPage, totalPages)));
+  };
 
-  const filteredReservations: Reservation[] = data?.data.filter((reservation: Reservation) => {
-    if (!searchQuery.trim()) return true
-    const query = searchQuery.toLowerCase()
-    const productName = reservation.product?.name?.toLowerCase() || ''
-    const productRef = reservation.product?.reference?.toLowerCase() || ''
-    const userName = `${reservation.user?.firstName || ''} ${reservation.user?.lastName || ''}`.toLowerCase()
-    const userEmail = reservation.user?.email?.toLowerCase() || ''
-    return productName.includes(query) || productRef.includes(query) || userName.includes(query) || userEmail.includes(query)
-  }) || []
+  const filteredReservations: Reservation[] =
+    data?.data.filter((reservation: Reservation) => {
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      const productName = reservation.product?.name?.toLowerCase() || "";
+      const productRef = reservation.product?.reference?.toLowerCase() || "";
+      const userName =
+        `${reservation.user?.firstName || ""} ${reservation.user?.lastName || ""}`.toLowerCase();
+      const userEmail = reservation.user?.email?.toLowerCase() || "";
+      return (
+        productName.includes(query) ||
+        productRef.includes(query) ||
+        userName.includes(query) ||
+        userEmail.includes(query)
+      );
+    }) || [];
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Gestion des réservations</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Gérez les réservations et les mouvements de matériel</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            Gestion des réservations
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Gérez les réservations et les mouvements de matériel
+          </p>
         </div>
-        <Button onClick={() => setQrScannerOpen(true)} className="w-full sm:w-auto">
+        <Button
+          onClick={() => setQrScannerOpen(true)}
+          className="w-full sm:w-auto"
+        >
           <QrCode className="mr-2 h-4 w-4" />
           Scanner QR
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => {
-        setActiveTab(v as typeof activeTab)
-        setPage(1)
-        setStatusFilter('all')
-      }}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => {
+          setActiveTab(v as typeof activeTab);
+          setPage(1);
+          setStatusFilter("all");
+        }}
+      >
         <TabsList className="flex w-full overflow-x-auto">
-          <TabsTrigger value="all" className="flex-1 min-w-fit px-3 text-xs sm:text-sm">Toutes</TabsTrigger>
-          <TabsTrigger value="checkouts" className="flex-1 min-w-fit px-3 text-xs sm:text-sm">Sorties du jour</TabsTrigger>
-          <TabsTrigger value="returns" className="flex-1 min-w-fit px-3 text-sm sm:text-sm">Retours du jour</TabsTrigger>
-          <TabsTrigger value="overdue" className="flex-1 min-w-fit px-3 text-xs sm:text-sm text-destructive data-[state=active]:text-destructive">
+          <TabsTrigger
+            value="all"
+            className="flex-1 min-w-fit px-3 text-xs sm:text-sm"
+          >
+            Toutes
+          </TabsTrigger>
+          <TabsTrigger
+            value="checkouts"
+            className="flex-1 min-w-fit px-3 text-xs sm:text-sm"
+          >
+            Sorties du jour
+          </TabsTrigger>
+          <TabsTrigger
+            value="returns"
+            className="flex-1 min-w-fit px-3 text-sm sm:text-sm"
+          >
+            Retours du jour
+          </TabsTrigger>
+          <TabsTrigger
+            value="overdue"
+            className="flex-1 min-w-fit px-3 text-xs sm:text-sm text-destructive data-[state=active]:text-destructive"
+          >
             <Clock className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
             En retard
           </TabsTrigger>
@@ -212,15 +314,15 @@ export function AdminReservationsPage() {
 
         <TabsContent value={activeTab} className="space-y-6">
           {/* Overdue Type Filter */}
-          {activeTab === 'overdue' && (
+          {activeTab === "overdue" && (
             <Card className="p-4">
               <div className="flex items-center gap-4">
                 <Label>Type de retard :</Label>
                 <Select
                   value={overdueType}
                   onValueChange={(value) => {
-                    setOverdueType(value as 'checkouts' | 'returns')
-                    setPage(1)
+                    setOverdueType(value as "checkouts" | "returns");
+                    setPage(1);
                   }}
                 >
                   <SelectTrigger className="w-[200px]">
@@ -236,8 +338,8 @@ export function AdminReservationsPage() {
           )}
 
           {/* Filters */}
-          {activeTab === 'all' && (
-            isLoading ? (
+          {activeTab === "all" &&
+            (isLoading ? (
               <ReservationFiltersSkeleton />
             ) : (
               <Card className="p-4">
@@ -258,8 +360,8 @@ export function AdminReservationsPage() {
                       <Select
                         value={statusFilter}
                         onValueChange={(value) => {
-                          setStatusFilter(value as ReservationStatus | 'all')
-                          setPage(1)
+                          setStatusFilter(value as ReservationStatus | "all");
+                          setPage(1);
                         }}
                       >
                         <SelectTrigger>
@@ -286,7 +388,11 @@ export function AdminReservationsPage() {
                     </Button>
 
                     {hasActiveFilters && (
-                      <Button variant="ghost" onClick={resetFilters} className="sm:w-auto">
+                      <Button
+                        variant="ghost"
+                        onClick={resetFilters}
+                        className="sm:w-auto"
+                      >
                         Réinitialiser
                       </Button>
                     )}
@@ -299,17 +405,23 @@ export function AdminReservationsPage() {
                         <Select
                           value={sortBy}
                           onValueChange={(value) => {
-                            setSortBy(value as typeof sortBy)
-                            setPage(1)
+                            setSortBy(value as typeof sortBy);
+                            setPage(1);
                           }}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="startDate">Date de sortie</SelectItem>
-                            <SelectItem value="endDate">Date de retour</SelectItem>
-                            <SelectItem value="createdAt">Date de création</SelectItem>
+                            <SelectItem value="startDate">
+                              Date de sortie
+                            </SelectItem>
+                            <SelectItem value="endDate">
+                              Date de retour
+                            </SelectItem>
+                            <SelectItem value="createdAt">
+                              Date de création
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -319,16 +431,20 @@ export function AdminReservationsPage() {
                         <Select
                           value={sortOrder}
                           onValueChange={(value) => {
-                            setSortOrder(value as typeof sortOrder)
-                            setPage(1)
+                            setSortOrder(value as typeof sortOrder);
+                            setPage(1);
                           }}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="desc">Plus récent d'abord</SelectItem>
-                            <SelectItem value="asc">Plus ancien d'abord</SelectItem>
+                            <SelectItem value="desc">
+                              Plus récent d'abord
+                            </SelectItem>
+                            <SelectItem value="asc">
+                              Plus ancien d'abord
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -338,8 +454,8 @@ export function AdminReservationsPage() {
                         <Select
                           value={limit.toString()}
                           onValueChange={(value) => {
-                            setLimit(Number(value))
-                            setPage(1)
+                            setLimit(Number(value));
+                            setPage(1);
                           }}
                         >
                           <SelectTrigger>
@@ -357,8 +473,7 @@ export function AdminReservationsPage() {
                   )}
                 </div>
               </Card>
-            )
-          )}
+            ))}
 
           {/* Loading State */}
           {isLoading && (
@@ -375,7 +490,9 @@ export function AdminReservationsPage() {
               <div className="flex flex-col items-center gap-4 text-center">
                 <AlertCircle className="h-12 w-12 text-destructive" />
                 <div>
-                  <p className="text-lg font-semibold text-destructive">Erreur de chargement</p>
+                  <p className="text-lg font-semibold text-destructive">
+                    Erreur de chargement
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Impossible de charger les réservations
                   </p>
@@ -387,9 +504,10 @@ export function AdminReservationsPage() {
           {/* Reservations List */}
           {!isLoading && !isError && data && (
             <>
-              {data.pagination && activeTab === 'all' && (
+              {data.pagination && activeTab === "all" && (
                 <div className="text-sm text-muted-foreground">
-                  {totalItems} réservation{totalItems > 1 ? 's' : ''} trouvée{totalItems > 1 ? 's' : ''}
+                  {totalItems} réservation{totalItems > 1 ? "s" : ""} trouvée
+                  {totalItems > 1 ? "s" : ""}
                   {searchQuery && ` pour "${searchQuery}"`}
                 </div>
               )}
@@ -397,26 +515,34 @@ export function AdminReservationsPage() {
               {filteredReservations.length === 0 ? (
                 <Card className="p-12">
                   <div className="flex flex-col items-center gap-4 text-center">
-                    {activeTab === 'overdue' ? (
+                    {activeTab === "overdue" ? (
                       <CheckCircle className="h-16 w-16 text-green-500" />
                     ) : (
                       <Calendar className="h-16 w-16 text-muted-foreground" />
                     )}
                     <div>
                       <p className="text-lg font-semibold">
-                        {activeTab === 'overdue' ? 'Aucun retard' : 'Aucune réservation'}
+                        {activeTab === "overdue"
+                          ? "Aucun retard"
+                          : "Aucune réservation"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {activeTab === 'checkouts' && "Aucune sortie prévue aujourd'hui"}
-                        {activeTab === 'returns' && "Aucun retour prévu aujourd'hui"}
-                        {activeTab === 'overdue' && overdueType === 'checkouts' && "Aucune sortie en retard"}
-                        {activeTab === 'overdue' && overdueType === 'returns' && "Aucun retour en retard"}
-                        {activeTab === 'all' && hasActiveFilters
+                        {activeTab === "checkouts" &&
+                          "Aucune sortie prévue aujourd'hui"}
+                        {activeTab === "returns" &&
+                          "Aucun retour prévu aujourd'hui"}
+                        {activeTab === "overdue" &&
+                          overdueType === "checkouts" &&
+                          "Aucune sortie en retard"}
+                        {activeTab === "overdue" &&
+                          overdueType === "returns" &&
+                          "Aucun retour en retard"}
+                        {activeTab === "all" && hasActiveFilters
                           ? "Aucune réservation ne correspond à vos filtres"
-                          : activeTab === 'all' && "Aucune réservation trouvée"}
+                          : activeTab === "all" && "Aucune réservation trouvée"}
                       </p>
                     </div>
-                    {hasActiveFilters && activeTab === 'all' && (
+                    {hasActiveFilters && activeTab === "all" && (
                       <Button variant="outline" onClick={resetFilters}>
                         Réinitialiser les filtres
                       </Button>
@@ -433,7 +559,7 @@ export function AdminReservationsPage() {
                           <div className="flex items-start justify-between gap-4">
                             <div>
                               <h3 className="font-semibold text-lg">
-                                {reservation.product?.name || 'Produit'}
+                                {reservation.product?.name || "Produit"}
                               </h3>
                               {reservation.product?.reference && (
                                 <p className="text-sm text-muted-foreground">
@@ -451,7 +577,8 @@ export function AdminReservationsPage() {
                             <div className="flex items-center gap-2 text-sm">
                               <UserCircle className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium">
-                                {reservation.user.firstName} {reservation.user.lastName}
+                                {reservation.user.firstName}{" "}
+                                {reservation.user.lastName}
                               </span>
                               <span className="text-muted-foreground">
                                 ({reservation.user.email})
@@ -462,26 +589,56 @@ export function AdminReservationsPage() {
                           {/* Dates */}
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <p className="text-muted-foreground">Date de sortie</p>
-                              <p className="font-medium">{formatDate(reservation.startDate)}</p>
+                              <p className="text-muted-foreground">
+                                Date de sortie
+                              </p>
+                              <p className="font-medium">
+                                {formatDate(reservation.startDate)}
+                              </p>
+                              {reservation.startTime && (
+                                <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                                  <Clock className="h-3 w-3" />
+                                  {reservation.startTime}
+                                </p>
+                              )}
                             </div>
                             <div>
-                              <p className="text-muted-foreground">Date de retour</p>
-                              <p className="font-medium">{formatDate(reservation.endDate)}</p>
+                              <p className="text-muted-foreground">
+                                Date de retour
+                              </p>
+                              <p className="font-medium">
+                                {formatDate(reservation.endDate)}
+                              </p>
+                              {reservation.endTime && (
+                                <p className="text-xs text-primary font-medium flex items-center gap-1 mt-0.5">
+                                  <Clock className="h-3 w-3" />
+                                  {reservation.endTime}
+                                </p>
+                              )}
                             </div>
                           </div>
 
                           {/* Duration & Cost */}
                           <div className="flex gap-6 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Durée: </span>
+                              <span className="text-muted-foreground">
+                                Durée:{" "}
+                              </span>
                               <span className="font-medium">
-                                {calculateDuration(reservation.startDate, reservation.endDate)} jours
+                                {calculateDuration(
+                                  reservation.startDate,
+                                  reservation.endDate,
+                                )}{" "}
+                                jours
                               </span>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Coût: </span>
-                              <span className="font-medium">{reservation.creditsCharged} crédits</span>
+                              <span className="text-muted-foreground">
+                                Coût:{" "}
+                              </span>
+                              <span className="font-medium">
+                                {reservation.creditsCharged} crédits
+                              </span>
                             </div>
                           </div>
 
@@ -490,44 +647,60 @@ export function AdminReservationsPage() {
                             <div className="text-sm space-y-1">
                               {reservation.notes && (
                                 <div>
-                                  <p className="text-muted-foreground">Notes utilisateur:</p>
+                                  <p className="text-muted-foreground">
+                                    Notes utilisateur:
+                                  </p>
                                   <p className="italic">{reservation.notes}</p>
                                 </div>
                               )}
                               {reservation.adminNotes && (
                                 <div>
-                                  <p className="text-muted-foreground">Notes admin:</p>
-                                  <p className="font-medium whitespace-pre-line">{reservation.adminNotes}</p>
+                                  <p className="text-muted-foreground">
+                                    Notes admin:
+                                  </p>
+                                  <p className="font-medium whitespace-pre-line">
+                                    {reservation.adminNotes}
+                                  </p>
                                 </div>
                               )}
                             </div>
                           )}
 
-                          {reservation.status === 'CANCELLED' && reservation.cancelReason && (
-                            <div className="text-sm">
-                              <p className="text-muted-foreground">Motif d'annulation:</p>
-                              <p>{reservation.cancelReason}</p>
-                            </div>
-                          )}
+                          {reservation.status === "CANCELLED" &&
+                            reservation.cancelReason && (
+                              <div className="text-sm">
+                                <p className="text-muted-foreground">
+                                  Motif d'annulation:
+                                </p>
+                                <p>{reservation.cancelReason}</p>
+                              </div>
+                            )}
                         </div>
 
                         {/* Actions */}
                         <div className="flex flex-row lg:flex-col gap-2 lg:min-w-[160px]">
-                          <Button asChild variant="outline" className="flex-1 lg:flex-none">
+                          <Button
+                            asChild
+                            variant="outline"
+                            className="flex-1 lg:flex-none"
+                          >
                             <Link to={`/admin/reservations/${reservation.id}`}>
                               <Eye className="mr-2 h-4 w-4" />
                               Détails
                             </Link>
                           </Button>
 
-                          {reservation.status === 'CONFIRMED' && (
+                          {reservation.status === "CONFIRMED" && (
                             <Button
                               variant="default"
                               className="flex-1 lg:flex-none"
-                              onClick={() => openDialog('checkout', reservation)}
+                              onClick={() =>
+                                openDialog("checkout", reservation)
+                              }
                               disabled={isActionPending}
                             >
-                              {checkoutMutation.isPending && dialogState.reservation?.id === reservation.id ? (
+                              {checkoutMutation.isPending &&
+                              dialogState.reservation?.id === reservation.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : (
                                 <CheckCircle className="mr-2 h-4 w-4" />
@@ -536,14 +709,15 @@ export function AdminReservationsPage() {
                             </Button>
                           )}
 
-                          {reservation.status === 'CHECKED_OUT' && (
+                          {reservation.status === "CHECKED_OUT" && (
                             <Button
                               variant="default"
                               className="flex-1 lg:flex-none"
-                              onClick={() => openDialog('return', reservation)}
+                              onClick={() => openDialog("return", reservation)}
                               disabled={isActionPending}
                             >
-                              {returnMutation.isPending && dialogState.reservation?.id === reservation.id ? (
+                              {returnMutation.isPending &&
+                              dialogState.reservation?.id === reservation.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : (
                                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -552,14 +726,15 @@ export function AdminReservationsPage() {
                             </Button>
                           )}
 
-                          {reservation.status === 'CONFIRMED' && (
+                          {reservation.status === "CONFIRMED" && (
                             <Button
                               variant="destructive"
                               className="flex-1 lg:flex-none"
-                              onClick={() => openDialog('cancel', reservation)}
+                              onClick={() => openDialog("cancel", reservation)}
                               disabled={isActionPending}
                             >
-                              {cancelMutation.isPending && dialogState.reservation?.id === reservation.id ? (
+                              {cancelMutation.isPending &&
+                              dialogState.reservation?.id === reservation.id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : (
                                 <X className="mr-2 h-4 w-4" />
@@ -578,7 +753,8 @@ export function AdminReservationsPage() {
               {data.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="text-sm text-muted-foreground">
-                    Page {currentPage} sur {totalPages} ({totalItems} résultat{totalItems > 1 ? 's' : ''})
+                    Page {currentPage} sur {totalPages} ({totalItems} résultat
+                    {totalItems > 1 ? "s" : ""})
                   </div>
                   {totalPages > 1 && (
                     <div className="flex items-center gap-1">
@@ -600,29 +776,36 @@ export function AdminReservationsPage() {
                       </Button>
 
                       <div className="flex items-center gap-1 mx-2">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum: number
-                          if (totalPages <= 5) {
-                            pageNum = i + 1
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1
-                          } else if (currentPage >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i
-                          } else {
-                            pageNum = currentPage - 2 + i
-                          }
-                          return (
-                            <Button
-                              key={pageNum}
-                              variant={currentPage === pageNum ? 'default' : 'outline'}
-                              size="icon"
-                              onClick={() => goToPage(pageNum)}
-                              className="w-9 h-9"
-                            >
-                              {pageNum}
-                            </Button>
-                          )
-                        })}
+                        {Array.from(
+                          { length: Math.min(5, totalPages) },
+                          (_, i) => {
+                            let pageNum: number;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                            return (
+                              <Button
+                                key={pageNum}
+                                variant={
+                                  currentPage === pageNum
+                                    ? "default"
+                                    : "outline"
+                                }
+                                size="icon"
+                                onClick={() => goToPage(pageNum)}
+                                className="w-9 h-9"
+                              >
+                                {pageNum}
+                              </Button>
+                            );
+                          },
+                        )}
                       </div>
 
                       <Button
@@ -652,7 +835,7 @@ export function AdminReservationsPage() {
 
       {/* Dialogs */}
       <CheckoutDialog
-        open={dialogState.type === 'checkout'}
+        open={dialogState.type === "checkout"}
         onOpenChange={(open) => !open && closeDialog()}
         onConfirm={handleCheckout}
         productName={dialogState.reservation?.product?.name}
@@ -665,7 +848,7 @@ export function AdminReservationsPage() {
       />
 
       <ReturnDialog
-        open={dialogState.type === 'return'}
+        open={dialogState.type === "return"}
         onOpenChange={(open) => !open && closeDialog()}
         onConfirm={handleReturn}
         productName={dialogState.reservation?.product?.name}
@@ -678,7 +861,7 @@ export function AdminReservationsPage() {
       />
 
       <AdminCancelDialog
-        open={dialogState.type === 'cancel'}
+        open={dialogState.type === "cancel"}
         onOpenChange={(open) => !open && closeDialog()}
         onConfirm={handleCancel}
         productName={dialogState.reservation?.product?.name}
@@ -690,10 +873,7 @@ export function AdminReservationsPage() {
         isLoading={cancelMutation.isPending}
       />
 
-      <QRScannerDialog
-        open={qrScannerOpen}
-        onOpenChange={setQrScannerOpen}
-      />
+      <QRScannerDialog open={qrScannerOpen} onOpenChange={setQrScannerOpen} />
     </div>
-  )
+  );
 }

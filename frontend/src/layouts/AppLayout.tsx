@@ -16,7 +16,6 @@ import {
   Moon,
   User,
   Settings,
-  Scale,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/stores/auth.store";
@@ -89,12 +88,6 @@ const adminNavItems: NavItem[] = [
     name: "Paramètres",
     path: ROUTES.ADMIN_SETTINGS,
     icon: Settings,
-    permission: PERMISSIONS.VIEW_SETTINGS,
-  },
-  {
-    name: "Pages légales",
-    path: ROUTES.ADMIN_LEGAL_PAGES,
-    icon: Scale,
     permission: PERMISSIONS.VIEW_SETTINGS,
   },
 ];

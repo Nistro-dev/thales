@@ -36,6 +36,13 @@ export function TimeSlotPicker({
   const availableSlots = useMemo(() => {
     if (!selectedDate) return [];
     const dayOfWeek = selectedDate.getDay();
+    console.log("[DEBUG TimeSlotPicker] selectedDate:", selectedDate);
+    console.log("[DEBUG TimeSlotPicker] dayOfWeek (JS getDay):", dayOfWeek);
+    console.log("[DEBUG TimeSlotPicker] all slots received:", slots);
+    console.log(
+      "[DEBUG TimeSlotPicker] slots with matching dayOfWeek:",
+      slots.filter((slot) => slot.dayOfWeek === dayOfWeek),
+    );
     return slots.filter((slot) => slot.dayOfWeek === dayOfWeek);
   }, [slots, selectedDate]);
 

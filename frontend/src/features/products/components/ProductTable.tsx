@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Eye, Edit, Archive, MoreHorizontal, Package } from 'lucide-react'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Eye, Edit, Archive, MoreHorizontal, Package } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -8,33 +8,37 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ProductStatusBadge } from './ProductStatusBadge'
-import { ROUTES } from '@/constants/routes'
-import type { Product } from '@/types'
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProductStatusBadge } from "./ProductStatusBadge";
+import { ROUTES } from "@/constants/routes";
+import type { Product } from "@/types";
 
 interface ProductTableProps {
-  products: Product[]
-  isLoading?: boolean
-  onArchive?: (product: Product) => void
+  products: Product[];
+  isLoading?: boolean;
+  onArchive?: (product: Product) => void;
 }
 
-export function ProductTable({ products, isLoading, onArchive }: ProductTableProps) {
-  const navigate = useNavigate()
-  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
+export function ProductTable({
+  products,
+  isLoading,
+  onArchive,
+}: ProductTableProps) {
+  const navigate = useNavigate();
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const handleImageError = (productId: string) => {
-    setImageErrors((prev) => new Set(prev).add(productId))
-  }
+    setImageErrors((prev) => new Set(prev).add(productId));
+  };
 
   if (isLoading) {
     return (
@@ -80,7 +84,7 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
           </TableBody>
         </Table>
       </div>
-    )
+    );
   }
 
   if (products.length === 0) {
@@ -92,7 +96,7 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
           Aucun produit ne correspond à vos critères de recherche.
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -114,7 +118,9 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
             <TableRow
               key={product.id}
               className="cursor-pointer"
-              onClick={() => navigate(ROUTES.ADMIN_PRODUCT_DETAIL.replace(':id', product.id))}
+              onClick={() =>
+                navigate(ROUTES.ADMIN_PRODUCT_DETAIL.replace(":id", product.id))
+              }
             >
               <TableCell onClick={(e) => e.stopPropagation()}>
                 {product.thumbnail?.url && !imageErrors.has(product.id) ? (
@@ -131,12 +137,20 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
                 )}
               </TableCell>
               <TableCell className="font-medium">{product.name}</TableCell>
-              <TableCell className="text-muted-foreground">{product.reference || '-'}</TableCell>
+              <TableCell className="text-muted-foreground">
+                {product.reference || "-"}
+              </TableCell>
               <TableCell>
                 <div className="flex flex-col">
                   <span>{product.section.name}</span>
-                  {product.subSection && (
-                    <span className="text-xs text-muted-foreground">{product.subSection.name}</span>
+                  {product.subSection ? (
+                    <span className="text-xs text-muted-foreground">
+                      {product.subSection.name}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      Sans catégorie
+                    </span>
                   )}
                 </div>
               </TableCell>
@@ -146,9 +160,12 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
               <TableCell className="text-right">
                 {product.priceCredits !== null ? (
                   <span>
-                    {product.priceCredits}/{product.creditPeriod === 'WEEK' ? 'sem.' : 'j'}
+                    {product.priceCredits}/
+                    {product.creditPeriod === "WEEK" ? "sem." : "j"}
                   </span>
-                ) : '-'}
+                ) : (
+                  "-"
+                )}
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
@@ -160,7 +177,12 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() =>
-                        navigate(ROUTES.ADMIN_PRODUCT_DETAIL.replace(':id', product.id))
+                        navigate(
+                          ROUTES.ADMIN_PRODUCT_DETAIL.replace(
+                            ":id",
+                            product.id,
+                          ),
+                        )
                       }
                     >
                       <Eye className="mr-2 h-4 w-4" />
@@ -168,13 +190,15 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
-                        navigate(`${ROUTES.ADMIN_PRODUCT_DETAIL.replace(':id', product.id)}?edit=true`)
+                        navigate(
+                          `${ROUTES.ADMIN_PRODUCT_DETAIL.replace(":id", product.id)}?edit=true`,
+                        )
                       }
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       Modifier
                     </DropdownMenuItem>
-                    {product.status !== 'ARCHIVED' && (
+                    {product.status !== "ARCHIVED" && (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -194,5 +218,5 @@ export function ProductTable({ products, isLoading, onArchive }: ProductTablePro
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

@@ -1,127 +1,148 @@
-import { get, post, put, del } from './client'
-import type { Permission } from '@/constants/permissions'
+import { get, post, put, del } from "./client";
+import type { Permission } from "@/constants/permissions";
 
 // Types
 export interface RolePermission {
-  id: string
-  key: string
-  name: string
-  description: string | null
-  category: string
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  category: string;
 }
 
 export interface RoleUser {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  sectionId: string | null
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  sectionId: string | null;
   section?: {
-    id: string
-    name: string
-  } | null
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface RoleSectionRef {
+  sectionId: string;
+  section: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Role {
-  id: string
-  name: string
-  description: string | null
-  isSystem: boolean
-  permissions: Permission[]
-  userCount?: number
-  createdAt: string
-  updatedAt: string
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+  permissions: Permission[];
+  sections?: RoleSectionRef[];
+  userCount?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RoleDetail extends Role {
-  users: RoleUser[]
+  users: RoleUser[];
 }
 
 export interface PermissionItem {
-  id: string
-  key: string
-  name: string
-  description: string | null
-  category: string
-  parentId: string | null
-  children?: PermissionItem[]
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  category: string;
+  parentId: string | null;
+  children?: PermissionItem[];
 }
 
 export interface UserRole {
-  roleId: string
-  sectionId: string | null
-  role: Role
+  roleId: string;
+  sectionId: string | null;
+  role: Role;
   section?: {
-    id: string
-    name: string
-  } | null
+    id: string;
+    name: string;
+  } | null;
 }
 
 // Request types
 export interface CreateRoleRequest {
-  name: string
-  description?: string
-  permissionKeys: string[]
+  name: string;
+  description?: string;
+  permissionKeys: string[];
+  sectionIds?: string[];
 }
 
 export interface UpdateRoleRequest {
-  name?: string
-  description?: string
-  permissionKeys?: string[]
+  name?: string;
+  description?: string;
+  permissionKeys?: string[];
+  sectionIds?: string[];
 }
 
 export interface AssignRoleRequest {
-  roleId: string
-  sectionId?: string
+  roleId: string;
+  sectionId?: string;
 }
 
 export interface RevokeRoleRequest {
-  roleId: string
+  roleId: string;
 }
 
 // Raw API response types (what the backend actually returns)
 interface RawRolePermission {
-  roleId: string
-  permissionId: string
-  createdAt: string
+  roleId: string;
+  permissionId: string;
+  createdAt: string;
   permission: {
-    id: string
-    key: string
-    name: string
-    description: string | null
-    category: string
-    parentId: string | null
-    createdAt: string
-  }
+    id: string;
+    key: string;
+    name: string;
+    description: string | null;
+    category: string;
+    parentId: string | null;
+    createdAt: string;
+  };
+}
+
+interface RawRoleSection {
+  roleId: string;
+  sectionId: string;
+  section: {
+    id: string;
+    name: string;
+  };
 }
 
 interface RawRole {
-  id: string
-  name: string
-  description: string | null
-  isSystem: boolean
-  createdAt: string
-  updatedAt: string
-  permissions: RawRolePermission[]
-  users: { userId: string }[]
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+  createdAt: string;
+  updatedAt: string;
+  permissions: RawRolePermission[];
+  sections?: RawRoleSection[];
+  users: { userId: string }[];
 }
 
 interface RawRoleUser {
-  userId: string
+  userId: string;
   user: {
-    id: string
-    email: string
-    firstName: string
-    lastName: string
-  }
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
   section?: {
-    id: string
-    name: string
-  } | null
+    id: string;
+    name: string;
+  } | null;
 }
 
-interface RawRoleDetail extends Omit<RawRole, 'users'> {
-  users: RawRoleUser[]
+interface RawRoleDetail extends Omit<RawRole, "users"> {
+  users: RawRoleUser[];
 }
 
 // Transform raw role to our Role type
@@ -134,8 +155,12 @@ function transformRole(raw: RawRole): Role {
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     permissions: raw.permissions.map((p) => p.permission.key as Permission),
+    sections: raw.sections?.map((s) => ({
+      sectionId: s.sectionId,
+      section: s.section,
+    })),
     userCount: raw.users.length,
-  }
+  };
 }
 
 function transformRoleDetail(raw: RawRoleDetail): RoleDetail {
@@ -147,6 +172,10 @@ function transformRoleDetail(raw: RawRoleDetail): RoleDetail {
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     permissions: raw.permissions.map((p) => p.permission.key as Permission),
+    sections: raw.sections?.map((s) => ({
+      sectionId: s.sectionId,
+      section: s.section,
+    })),
     userCount: raw.users.length,
     users: raw.users.map((u) => ({
       id: u.user.id,
@@ -156,70 +185,76 @@ function transformRoleDetail(raw: RawRoleDetail): RoleDetail {
       sectionId: u.section?.id ?? null,
       section: u.section,
     })),
-  }
+  };
 }
 
 // API functions
 export const rolesApi = {
   // Get all roles
   getRoles: async (includeSystem = true) => {
-    const response = await get<{ roles: RawRole[] }>('/roles', { includeSystem })
-    const roles = response.data?.roles ?? []
-    return roles.map(transformRole)
+    const response = await get<{ roles: RawRole[] }>("/roles", {
+      includeSystem,
+    });
+    const roles = response.data?.roles ?? [];
+    return roles.map(transformRole);
   },
 
   // Get role by ID
   getRole: async (id: string) => {
-    const response = await get<{ role: RawRoleDetail }>(`/roles/${id}`)
-    if (!response.data?.role) return undefined
-    return transformRoleDetail(response.data.role)
+    const response = await get<{ role: RawRoleDetail }>(`/roles/${id}`);
+    if (!response.data?.role) return undefined;
+    return transformRoleDetail(response.data.role);
   },
 
   // Create role
   createRole: async (data: CreateRoleRequest) => {
-    const response = await post<Role>('/roles', data)
-    return response.data
+    const response = await post<Role>("/roles", data);
+    return response.data;
   },
 
   // Update role
   updateRole: async (id: string, data: UpdateRoleRequest) => {
-    const response = await put<Role>(`/roles/${id}`, data)
-    return response.data
+    const response = await put<Role>(`/roles/${id}`, data);
+    return response.data;
   },
 
   // Delete role
   deleteRole: async (id: string) => {
-    const response = await del<void>(`/roles/${id}`)
-    return response
+    const response = await del<void>(`/roles/${id}`);
+    return response;
   },
 
   // Assign role to user
   assignRole: async (userId: string, data: AssignRoleRequest) => {
-    const response = await post<void>(`/roles/users/${userId}/assign`, data)
-    return response
+    const response = await post<void>(`/roles/users/${userId}/assign`, data);
+    return response;
   },
 
   // Revoke role from user
   revokeRole: async (userId: string, data: RevokeRoleRequest) => {
-    const response = await post<void>(`/roles/users/${userId}/revoke`, data)
-    return response
+    const response = await post<void>(`/roles/users/${userId}/revoke`, data);
+    return response;
   },
 
   // Get user's roles
   getUserRoles: async (userId: string) => {
-    const response = await get<UserRole[]>(`/roles/users/${userId}/roles`)
-    return response.data ?? []
+    const response = await get<UserRole[]>(`/roles/users/${userId}/roles`);
+    return response.data ?? [];
   },
 
   // Get all permissions
   getPermissions: async () => {
-    const response = await get<{ permissions: PermissionItem[] }>('/roles/permissions')
-    return response.data?.permissions ?? []
+    const response = await get<{ permissions: PermissionItem[] }>(
+      "/roles/permissions",
+    );
+    return response.data?.permissions ?? [];
   },
 
   // Get permissions by category
   getPermissionsByCategory: async (category: string) => {
-    const response = await get<{ permissions: PermissionItem[] }>(`/roles/permissions/${category}`)
-    return response.data?.permissions ?? []
+    const response = await get<{ permissions: PermissionItem[] }>(
+      `/roles/permissions/${category}`,
+    );
+    return response.data?.permissions ?? [];
   },
-}
+};

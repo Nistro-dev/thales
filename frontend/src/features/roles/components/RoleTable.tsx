@@ -1,5 +1,15 @@
-import { useState } from 'react'
-import { MoreHorizontal, Edit, Trash2, Eye, Shield, Crown, User } from 'lucide-react'
+import { useState } from "react";
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  Shield,
+  Crown,
+  User,
+  Globe,
+  FolderTree,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -7,15 +17,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,40 +35,46 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import type { Role } from '@/api/roles.api'
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Role } from "@/api/roles.api";
 
 interface RoleTableProps {
-  roles: Role[]
-  isLoading?: boolean
-  onView?: (role: Role) => void
-  onEdit?: (role: Role) => void
-  onDelete?: (role: Role) => void
+  roles: Role[];
+  isLoading?: boolean;
+  onView?: (role: Role) => void;
+  onEdit?: (role: Role) => void;
+  onDelete?: (role: Role) => void;
 }
 
 function getRoleIcon(role: Role) {
-  if (role.name === 'Super Admin') return Crown
-  if (role.isSystem) return Shield
-  return User
+  if (role.name === "Super Admin") return Crown;
+  if (role.isSystem) return Shield;
+  return User;
 }
 
-export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTableProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null)
+export function RoleTable({
+  roles,
+  isLoading,
+  onView,
+  onEdit,
+  onDelete,
+}: RoleTableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
   const handleDeleteClick = (role: Role) => {
-    setSelectedRole(role)
-    setDeleteDialogOpen(true)
-  }
+    setSelectedRole(role);
+    setDeleteDialogOpen(true);
+  };
 
   const handleDeleteConfirm = () => {
     if (selectedRole && onDelete) {
-      onDelete(selectedRole)
+      onDelete(selectedRole);
     }
-    setDeleteDialogOpen(false)
-    setSelectedRole(null)
-  }
+    setDeleteDialogOpen(false);
+    setSelectedRole(null);
+  };
 
   if (isLoading) {
     return (
@@ -67,7 +83,7 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
           <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
-    )
+    );
   }
 
   if (!roles.length) {
@@ -75,7 +91,7 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
       <div className="text-center py-8 text-muted-foreground">
         Aucun rôle trouvé
       </div>
-    )
+    );
   }
 
   return (
@@ -86,14 +102,17 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
             <TableHead>Rôle</TableHead>
             <TableHead className="text-center">Utilisateurs</TableHead>
             <TableHead className="text-center">Permissions</TableHead>
+            <TableHead className="text-center hidden sm:table-cell">
+              Sections
+            </TableHead>
             <TableHead className="w-[80px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {roles.map((role) => {
-            const RoleIcon = getRoleIcon(role)
-            const canEdit = !role.isSystem
-            const canDelete = !role.isSystem && (role.userCount ?? 0) === 0
+            const RoleIcon = getRoleIcon(role);
+            const canEdit = !role.isSystem;
+            const canDelete = !role.isSystem && (role.userCount ?? 0) === 0;
 
             return (
               <TableRow
@@ -128,8 +147,23 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge variant="secondary">
-                    {role.permissions.length === 23 ? 'Toutes' : role.permissions.length}
+                    {role.permissions.length === 23
+                      ? "Toutes"
+                      : role.permissions.length}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-center hidden sm:table-cell">
+                  {!role.sections || role.sections.length === 0 ? (
+                    <Badge variant="outline" className="gap-1">
+                      <Globe className="h-3 w-3" />
+                      Global
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="gap-1">
+                      <FolderTree className="h-3 w-3" />
+                      {role.sections.length}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
@@ -163,7 +197,7 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            )
+            );
           })}
         </TableBody>
       </Table>
@@ -173,8 +207,8 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer le rôle "{selectedRole?.name}" ?
-              Cette action est irréversible.
+              Êtes-vous sûr de vouloir supprimer le rôle "{selectedRole?.name}"
+              ? Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -189,5 +223,5 @@ export function RoleTable({ roles, isLoading, onView, onEdit, onDelete }: RoleTa
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

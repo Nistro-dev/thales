@@ -17,6 +17,8 @@ import { fileRoutes } from './file.routes.js'
 import notificationRoutes from './notification.routes.js'
 import { statisticsRoutes } from './statistics.routes.js'
 import { settingsRoutes } from './settings.routes.js'
+import { backupRoutes } from './backup.routes.js'
+import { legalPagePublicRoutes, legalPageAdminRoutes } from './legal-page.routes.js'
 
 export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(authRoutes, { prefix: '/api/auth' })
@@ -38,4 +40,7 @@ export const registerRoutes = async (fastify: FastifyInstance) => {
   await fastify.register(notificationRoutes, { prefix: '/api/notifications' })
   await fastify.register(statisticsRoutes, { prefix: '/api' })
   await fastify.register(settingsRoutes, { prefix: '/api/settings' })
+  await fastify.register(backupRoutes, { prefix: '/api/backup' })
+  await fastify.register(legalPagePublicRoutes, { prefix: '/api/legal' })
+  await fastify.register(legalPageAdminRoutes, { prefix: '/api/admin/legal' })
 }

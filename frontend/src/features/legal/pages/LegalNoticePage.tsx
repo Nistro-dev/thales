@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/constants/routes";
 import { legalApi } from "@/api/legal.api";
 
-export function TermsOfServicePage() {
+export function LegalNoticePage() {
   const { data: page, isLoading } = useQuery({
-    queryKey: ["legal", "TERMS"],
-    queryFn: () => legalApi.getPage("TERMS"),
+    queryKey: ["legal", "LEGAL_NOTICE"],
+    queryFn: () => legalApi.getPage("LEGAL_NOTICE"),
   });
 
   return (
@@ -33,7 +33,7 @@ export function TermsOfServicePage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-2xl">
-                    {page?.title || "Conditions Générales d'Utilisation"}
+                    {page?.title || "Mentions Légales"}
                   </CardTitle>
                   <Badge variant="outline">
                     Version {page?.version || "1.0"}

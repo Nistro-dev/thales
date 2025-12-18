@@ -14,6 +14,8 @@ import {
   RotateCcw,
   Loader2,
   TestTube,
+  Download,
+  HardDrive,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -22,6 +24,7 @@ import {
   SecuritySettings,
   MaintenanceSettings,
 } from "@/api/settings.api";
+import { backupApi } from "@/api/backup.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,31 +49,84 @@ interface SettingSection {
   description: string;
 }
 
+// Database Backup Section Component
+function DatabaseBackupSection() {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadBackup = async () => {
+    setIsDownloading(true);
+    try {
+      await backupApi.downloadDatabase();
+      toast.success("Sauvegarde téléchargée avec succès");
+    } catch {
+      toast.error("Erreur lors du téléchargement de la sauvegarde");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border bg-card p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <HardDrive className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">
+          Sauvegarde de la base de données
+        </h2>
+      </div>
+      <p className="text-sm text-muted-foreground mb-6">
+        Téléchargez une sauvegarde complète de la base de données au format SQL.
+        Cette sauvegarde peut être utilisée pour restaurer les données en cas de
+        problème.
+      </p>
+
+      <div className="flex items-center gap-4">
+        <Button onClick={handleDownloadBackup} disabled={isDownloading}>
+          {isDownloading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          {isDownloading
+            ? "Génération en cours..."
+            : "Télécharger la sauvegarde"}
+        </Button>
+      </div>
+
+      <p className="text-xs text-muted-foreground mt-4">
+        La sauvegarde contient toutes les données de l'application
+        (utilisateurs, produits, réservations, etc.). Conservez ce fichier en
+        lieu sûr.
+      </p>
+    </div>
+  );
+}
+
 const settingSections: SettingSection[] = [
-  {
-    id: "general",
-    label: "Général",
-    icon: Building2,
-    description: "Paramètres généraux de l'application",
-  },
-  {
-    id: "reservations",
-    label: "Réservations",
-    icon: Clock,
-    description: "Configuration des réservations",
-  },
-  {
-    id: "credits",
-    label: "Crédits",
-    icon: CreditCard,
-    description: "Gestion des crédits utilisateurs",
-  },
-  {
-    id: "notifications",
-    label: "Notifications",
-    icon: Bell,
-    description: "Paramètres des notifications",
-  },
+  // NOTE: Les sections commentées ne sont pas encore implémentées côté backend
+  // {
+  //   id: "general",
+  //   label: "Général",
+  //   icon: Building2,
+  //   description: "Paramètres généraux de l'application",
+  // },
+  // {
+  //   id: "reservations",
+  //   label: "Réservations",
+  //   icon: Clock,
+  //   description: "Configuration des réservations",
+  // },
+  // {
+  //   id: "credits",
+  //   label: "Crédits",
+  //   icon: CreditCard,
+  //   description: "Gestion des crédits utilisateurs",
+  // },
+  // {
+  //   id: "notifications",
+  //   label: "Notifications",
+  //   icon: Bell,
+  //   description: "Paramètres des notifications",
+  // },
   {
     id: "emails",
     label: "Emails",
@@ -83,12 +139,12 @@ const settingSections: SettingSection[] = [
     icon: Shield,
     description: "Paramètres de sécurité",
   },
-  {
-    id: "appearance",
-    label: "Apparence",
-    icon: Palette,
-    description: "Personnalisation visuelle",
-  },
+  // {
+  //   id: "appearance",
+  //   label: "Apparence",
+  //   icon: Palette,
+  //   description: "Personnalisation visuelle",
+  // },
   {
     id: "advanced",
     label: "Avancé",
@@ -101,7 +157,7 @@ export function AdminSettingsPage() {
   const { hasPermission } = useAuthStore();
   const queryClient = useQueryClient();
   const canManage = hasPermission(PERMISSIONS.MANAGE_SETTINGS);
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("emails");
   const [hasChanges, setHasChanges] = useState(false);
   const [hasSmtpChanges, setHasSmtpChanges] = useState(false);
 
@@ -1523,6 +1579,11 @@ export function AdminSettingsPage() {
               </div>
             )}
           </div>
+
+          {/* Database Backup Section */}
+          {hasPermission(PERMISSIONS.BACKUP_DATABASE) && (
+            <DatabaseBackupSection />
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -8,7 +8,11 @@ import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { ForgotPasswordPage } from "@/features/auth/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/features/auth/pages/ResetPasswordPage";
 import { CompleteRegistrationPage } from "@/features/auth/pages/CompleteRegistrationPage";
-import { TermsOfServicePage, PrivacyPolicyPage } from "@/features/legal/pages";
+import {
+  TermsOfServicePage,
+  PrivacyPolicyPage,
+  LegalNoticePage,
+} from "@/features/legal/pages";
 import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
 import { LazyPage } from "@/components/common/LazyPage";
 import { ROUTES } from "@/constants/routes";
@@ -19,7 +23,6 @@ import { MyReservationsPage } from "@/features/reservations/pages/MyReservations
 import { ReservationDetailPage } from "@/features/reservations/pages/ReservationDetailPage";
 import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 import { NotificationsPage } from "@/features/notifications/pages/NotificationsPage";
-import { HomePage } from "./placeholders";
 
 // Lazy loaded admin pages for better code splitting
 const AdminUsersPage = lazy(() =>
@@ -91,6 +94,13 @@ const AdminSettingsPage = lazy(() =>
   import("@/features/settings").then((m) => ({ default: m.AdminSettingsPage })),
 );
 
+// Legal pages admin
+const AdminLegalPagesPage = lazy(() =>
+  import("@/features/legal/pages").then((m) => ({
+    default: m.AdminLegalPagesPage,
+  })),
+);
+
 export const router = createBrowserRouter([
   {
     errorElement: <RouteErrorBoundary />,
@@ -123,6 +133,10 @@ export const router = createBrowserRouter([
             path: ROUTES.PRIVACY_POLICY,
             element: <PrivacyPolicyPage />,
           },
+          {
+            path: ROUTES.LEGAL_NOTICE,
+            element: <LegalNoticePage />,
+          },
         ],
       },
     ],
@@ -136,7 +150,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: ROUTES.HOME,
-            element: <HomePage />,
+            element: <Navigate to={ROUTES.PRODUCTS} replace />,
           },
           {
             path: ROUTES.PRODUCTS,
@@ -329,6 +343,14 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <AdminSettingsPage />
+                  </LazyPage>
+                ),
+              },
+              {
+                path: ROUTES.ADMIN_LEGAL_PAGES,
+                element: (
+                  <LazyPage>
+                    <AdminLegalPagesPage />
                   </LazyPage>
                 ),
               },

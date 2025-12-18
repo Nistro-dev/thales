@@ -51,6 +51,7 @@ export const PERMISSIONS = {
 
   // Maintenance
   BYPASS_MAINTENANCE: 'BYPASS_MAINTENANCE',
+  BACKUP_DATABASE: 'BACKUP_DATABASE',
 } as const
 
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS]
@@ -126,5 +127,5 @@ export const PERMISSIONS_BY_CATEGORY: Record<PermissionCategory, PermissionKey[]
   reservations: ['VIEW_RESERVATIONS', 'MANAGE_RESERVATIONS'],
   statistics: ['VIEW_STATISTICS'],
   settings: ['VIEW_SETTINGS', 'MANAGE_SETTINGS'],
-  maintenance: ['BYPASS_MAINTENANCE'],
+  maintenance: ['BYPASS_MAINTENANCE', 'BACKUP_DATABASE'],
 }

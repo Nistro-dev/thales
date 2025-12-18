@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Clock, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -36,13 +36,6 @@ export function TimeSlotPicker({
   const availableSlots = useMemo(() => {
     if (!selectedDate) return [];
     const dayOfWeek = selectedDate.getDay();
-    console.log("[DEBUG TimeSlotPicker] selectedDate:", selectedDate);
-    console.log("[DEBUG TimeSlotPicker] dayOfWeek (JS getDay):", dayOfWeek);
-    console.log("[DEBUG TimeSlotPicker] all slots received:", slots);
-    console.log(
-      "[DEBUG TimeSlotPicker] slots with matching dayOfWeek:",
-      slots.filter((slot) => slot.dayOfWeek === dayOfWeek),
-    );
     return slots.filter((slot) => slot.dayOfWeek === dayOfWeek);
   }, [slots, selectedDate]);
 
@@ -54,6 +47,10 @@ export function TimeSlotPicker({
     );
   }, [selectedTime, availableSlots]);
 
+  // Check if time is required but not provided
+  const isTimeRequired = availableSlots.length > 0;
+  const isTimeMissing = isTimeRequired && !selectedTime;
+
   // If no slots defined, don't show the picker
   if (slots.length === 0) {
     return null;
@@ -64,35 +61,35 @@ export function TimeSlotPicker({
     return null;
   }
 
-  // If no slots for this specific day
+  // If no slots for this specific day - show warning
   if (availableSlots.length === 0) {
     return (
-      <div className="space-y-2">
-        <Label className="text-xs text-muted-foreground">{label}</Label>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <AlertCircle className="h-3 w-3" />
-          <span>
-            Aucun créneau défini le {DAY_NAMES[selectedDate.getDay()]}
-          </span>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-medium">{label}</Label>
+        <div className="rounded-md border border-orange-200 bg-orange-50 p-2">
+          <div className="flex items-center gap-2 text-xs text-orange-700">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <span>Aucun créneau le {DAY_NAMES[selectedDate.getDay()]}</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-      <Label className="text-xs">{label}</Label>
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium">{label}</Label>
 
       {/* Available slots display */}
-      <div className="flex flex-wrap gap-1.5 mb-2">
+      <div className="flex flex-wrap gap-1">
         {availableSlots.map((slot) => (
           <Badge
             key={slot.id}
             variant="outline"
-            className="text-[10px] px-2 py-0.5"
+            className="text-[10px] px-1.5 py-0.5 bg-background"
           >
             <Clock className="h-2.5 w-2.5 mr-1" />
-            {slot.startTime} - {slot.endTime}
+            {slot.startTime}-{slot.endTime}
           </Badge>
         ))}
       </div>
@@ -103,14 +100,35 @@ export function TimeSlotPicker({
         value={selectedTime || ""}
         onChange={(e) => onTimeChange(e.target.value || undefined)}
         disabled={disabled}
-        className={`h-8 text-sm ${!isTimeValid ? "border-destructive" : ""}`}
+        className={`h-8 text-sm ${
+          !isTimeValid
+            ? "border-destructive focus-visible:ring-destructive"
+            : selectedTime && isTimeValid
+              ? "border-green-500 focus-visible:ring-green-500"
+              : ""
+        }`}
       />
 
-      {/* Validation message */}
+      {/* Status messages */}
+      {selectedTime && isTimeValid && (
+        <p className="text-[10px] text-green-600 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Horaire valide
+        </p>
+      )}
+
       {selectedTime && !isTimeValid && (
-        <p className="text-[10px] text-destructive flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          L'heure doit être dans un créneau autorisé
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-1.5">
+          <p className="text-[10px] text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            Choisissez une heure dans un créneau ci-dessus
+          </p>
+        </div>
+      )}
+
+      {isTimeMissing && (
+        <p className="text-[10px] text-muted-foreground">
+          Sélectionnez une heure
         </p>
       )}
     </div>

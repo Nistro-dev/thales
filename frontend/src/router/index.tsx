@@ -94,13 +94,6 @@ const AdminSettingsPage = lazy(() =>
   import("@/features/settings").then((m) => ({ default: m.AdminSettingsPage })),
 );
 
-// Legal pages admin
-const AdminLegalPagesPage = lazy(() =>
-  import("@/features/legal/pages").then((m) => ({
-    default: m.AdminLegalPagesPage,
-  })),
-);
-
 export const router = createBrowserRouter([
   // Public legal pages - accessible to everyone (logged in or not)
   {
@@ -350,14 +343,6 @@ export const router = createBrowserRouter([
                 element: (
                   <LazyPage>
                     <AdminSettingsPage />
-                  </LazyPage>
-                ),
-              },
-              {
-                path: ROUTES.ADMIN_LEGAL_PAGES,
-                element: (
-                  <LazyPage>
-                    <AdminLegalPagesPage />
                   </LazyPage>
                 ),
               },

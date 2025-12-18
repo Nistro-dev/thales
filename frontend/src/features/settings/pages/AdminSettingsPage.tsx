@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
   Settings,
   Building2,
@@ -16,6 +17,9 @@ import {
   TestTube,
   Download,
   HardDrive,
+  Scale,
+  Edit,
+  Eye,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -25,6 +29,13 @@ import {
   MaintenanceSettings,
 } from "@/api/settings.api";
 import { backupApi } from "@/api/backup.api";
+import {
+  legalApi,
+  type LegalPage,
+  type LegalPageType,
+  getLegalPageTypeName,
+  getLegalPageTypeShortName,
+} from "@/api/legal.api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +50,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { useAuthStore } from "@/stores/auth.store";
 import { PERMISSIONS } from "@/constants/permissions";
+import { ROUTES } from "@/constants/routes";
 
 interface SettingSection {
   id: string;
@@ -151,6 +180,12 @@ const settingSections: SettingSection[] = [
     icon: Database,
     description: "Paramètres avancés",
   },
+  {
+    id: "legal",
+    label: "Pages légales",
+    icon: Scale,
+    description: "CGU, RGPD, Mentions légales",
+  },
 ];
 
 export function AdminSettingsPage() {
@@ -160,6 +195,11 @@ export function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("emails");
   const [hasChanges, setHasChanges] = useState(false);
   const [hasSmtpChanges, setHasSmtpChanges] = useState(false);
+
+  // Legal pages state
+  const [editingPage, setEditingPage] = useState<LegalPage | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
 
   // General settings state
   const [generalSettings, setGeneralSettings] = useState({
@@ -341,6 +381,55 @@ export function AdminSettingsPage() {
       );
     },
   });
+
+  // Fetch legal pages
+  const { data: legalPages, isLoading: isLoadingLegal } = useQuery({
+    queryKey: ["admin", "legal-pages"],
+    queryFn: () => legalApi.getAllPages(),
+  });
+
+  // Update legal page mutation
+  const updateLegalMutation = useMutation({
+    mutationFn: (data: {
+      type: LegalPageType;
+      title: string;
+      content: string;
+    }) =>
+      legalApi.updatePage(data.type, {
+        title: data.title,
+        content: data.content,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "legal-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["legal"] });
+      toast.success("Page légale mise à jour avec succès");
+      setEditingPage(null);
+    },
+    onError: () => {
+      toast.error("Erreur lors de la mise à jour");
+    },
+  });
+
+  const handleEditLegal = (page: LegalPage) => {
+    setEditingPage(page);
+    setEditTitle(page.title);
+    setEditContent(page.content);
+  };
+
+  const handleSaveLegal = () => {
+    if (!editingPage) return;
+    updateLegalMutation.mutate({
+      type: editingPage.type,
+      title: editTitle,
+      content: editContent,
+    });
+  };
+
+  const handleCloseLegalDialog = () => {
+    setEditingPage(null);
+    setEditTitle("");
+    setEditContent("");
+  };
 
   const handleSave = () => {
     // TODO: Implement API call to save settings
@@ -1585,7 +1674,145 @@ export function AdminSettingsPage() {
             <DatabaseBackupSection />
           )}
         </TabsContent>
+
+        {/* Legal Pages Settings */}
+        <TabsContent value="legal" className="space-y-6">
+          <div className="rounded-lg border bg-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Scale className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Pages légales</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              Gérez le contenu des CGU, politique de confidentialité et mentions
+              légales.
+            </p>
+
+            {isLoadingLegal ? (
+              <div className="grid gap-4 md:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-48" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                {legalPages?.map((page) => (
+                  <Card key={page.type}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-lg">
+                            {getLegalPageTypeShortName(page.type)}
+                          </CardTitle>
+                          <CardDescription>
+                            {getLegalPageTypeName(page.type)}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={page.id ? "default" : "secondary"}>
+                          {page.id ? `v${page.version}` : "Par défaut"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          {page.title}
+                        </p>
+
+                        {page.editor && (
+                          <p className="text-xs text-muted-foreground">
+                            Modifié par {page.editor.firstName}{" "}
+                            {page.editor.lastName}
+                          </p>
+                        )}
+
+                        <div className="flex gap-2">
+                          {canManage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditLegal(page)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Modifier
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link
+                              to={
+                                page.type === "TERMS"
+                                  ? ROUTES.TERMS_OF_SERVICE
+                                  : page.type === "PRIVACY"
+                                    ? ROUTES.PRIVACY_POLICY
+                                    : ROUTES.LEGAL_NOTICE
+                              }
+                              target="_blank"
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Voir
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
+
+      {/* Legal Page Edit Dialog */}
+      <Dialog
+        open={!!editingPage}
+        onOpenChange={(open) => !open && handleCloseLegalDialog()}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Modifier {editingPage && getLegalPageTypeName(editingPage.type)}
+            </DialogTitle>
+            <DialogDescription>
+              Modifiez le contenu de cette page légale. Les modifications seront
+              immédiatement visibles.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="legalTitle">Titre</Label>
+              <Input
+                id="legalTitle"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Titre de la page"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Contenu</Label>
+              <RichTextEditor content={editContent} onChange={setEditContent} />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={handleCloseLegalDialog}>
+                Annuler
+              </Button>
+              <Button
+                onClick={handleSaveLegal}
+                disabled={updateLegalMutation.isPending}
+              >
+                {updateLegalMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Enregistrer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

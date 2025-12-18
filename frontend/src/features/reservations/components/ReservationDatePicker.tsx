@@ -92,16 +92,26 @@ export function ReservationDatePicker({
 
   // Get time slots from availability data
   const checkoutTimeSlots: TimeSlot[] = useMemo(() => {
-    return availabilityData?.timeSlots?.checkout || [];
+    const slots = availabilityData?.timeSlots?.checkout || [];
+    console.log("[DEBUG] checkoutTimeSlots:", slots);
+    return slots;
   }, [availabilityData]);
 
   const returnTimeSlots: TimeSlot[] = useMemo(() => {
-    return availabilityData?.timeSlots?.return || [];
+    const slots = availabilityData?.timeSlots?.return || [];
+    console.log("[DEBUG] returnTimeSlots:", slots);
+    return slots;
   }, [availabilityData]);
 
   // Check if time slots are defined for the section
   const hasCheckoutTimeSlots = checkoutTimeSlots.length > 0;
   const hasReturnTimeSlots = returnTimeSlots.length > 0;
+  console.log(
+    "[DEBUG] hasCheckoutTimeSlots:",
+    hasCheckoutTimeSlots,
+    "hasReturnTimeSlots:",
+    hasReturnTimeSlots,
+  );
 
   // Helper: Check if a date is in the allowed days array
   const isAllowedDay = (
@@ -377,6 +387,14 @@ export function ReservationDatePicker({
       </Card>
 
       {/* Time Slot Pickers */}
+      {console.log("[DEBUG] TimeSlotPicker render check:", {
+        hasCheckoutTimeSlots,
+        hasReturnTimeSlots,
+        startDate,
+        endDate,
+        onStartTimeChange: !!onStartTimeChange,
+        onEndTimeChange: !!onEndTimeChange,
+      })}
       {(hasCheckoutTimeSlots || hasReturnTimeSlots) &&
         (startDate || endDate) && (
           <Card className="p-2.5">

@@ -1,0 +1,1 @@
+à chaque fois que l'utilisateur demande une fonctionnalité, pose plein de questions pour définir correctement la fonctionnalité, récapitule tout, analyse tout et qu'une fois que tu sais comment t'y prendre et que tu as toutes les infos, attends le GO de l'utilisateur pour coder ok ?

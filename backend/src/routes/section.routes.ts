@@ -48,6 +48,22 @@ export const sectionRoutes = async (fastify: FastifyInstance) => {
     preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
     handler: sectionController.createClosure,
   })
+
+  // Time Slots
+  fastify.get('/:id/timeslots', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.listTimeSlots,
+  })
+
+  fastify.get('/:id/timeslots/grouped', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.getTimeSlotsGroupedByDay,
+  })
+
+  fastify.post('/:id/timeslots', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.createTimeSlot,
+  })
 }
 
 export const closureRoutes = async (fastify: FastifyInstance) => {
@@ -87,5 +103,24 @@ export const subSectionRoutes = async (fastify: FastifyInstance) => {
   fastify.delete('/:id', {
     preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
     handler: sectionController.removeSubSection,
+  })
+}
+
+export const timeSlotRoutes = async (fastify: FastifyInstance) => {
+  fastify.addHook('preHandler', authMiddleware)
+
+  fastify.get('/:slotId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.getTimeSlotById,
+  })
+
+  fastify.patch('/:slotId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.updateTimeSlot,
+  })
+
+  fastify.delete('/:slotId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_SECTIONS),
+    handler: sectionController.deleteTimeSlot,
   })
 }

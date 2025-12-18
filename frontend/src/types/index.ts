@@ -93,6 +93,34 @@ export interface SectionClosure {
   updatedAt: string;
 }
 
+// Time Slot Types
+export type SlotType = "CHECKOUT" | "RETURN";
+
+export interface TimeSlot {
+  id: string;
+  sectionId: string;
+  type: SlotType;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTimeSlotInput {
+  type: SlotType;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface UpdateTimeSlotInput {
+  type?: SlotType;
+  dayOfWeek?: number;
+  startTime?: string;
+  endTime?: string;
+}
+
 // Product Types
 export type ProductStatus =
   | "AVAILABLE"
@@ -201,6 +229,8 @@ export interface Reservation {
   product?: Product;
   startDate: string;
   endDate: string;
+  startTime?: string | null;
+  endTime?: string | null;
   status: ReservationStatus;
   creditsCharged: number;
   notes?: string | null;
@@ -224,6 +254,8 @@ export interface CreateReservationInput {
   productId: string;
   startDate: string;
   endDate: string;
+  startTime?: string;
+  endTime?: string;
   notes?: string;
 }
 
@@ -286,4 +318,8 @@ export interface ProductAvailability {
   allowedDaysOut: number[];
   reservedDates: Array<{ date: string }>;
   closedDates?: Array<{ date: string; reason: string }>;
+  timeSlots?: {
+    checkout: TimeSlot[];
+    return: TimeSlot[];
+  };
 }

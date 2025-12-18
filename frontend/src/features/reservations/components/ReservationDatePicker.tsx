@@ -4,15 +4,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
+import { TimeSlotPicker } from "./TimeSlotPicker";
 import { useProductAvailability } from "../hooks/useReservations";
-import type { Product } from "@/types";
+import type { Product, TimeSlot } from "@/types";
 
 interface ReservationDatePickerProps {
   product: Product;
   startDate: Date | undefined;
   endDate: Date | undefined;
+  startTime?: string;
+  endTime?: string;
   onStartDateChange: (date: Date | undefined) => void;
   onEndDateChange: (date: Date | undefined) => void;
+  onStartTimeChange?: (time: string | undefined) => void;
+  onEndTimeChange?: (time: string | undefined) => void;
   onValidationChange?: (isValid: boolean) => void;
 }
 
@@ -20,8 +25,12 @@ export function ReservationDatePicker({
   product,
   startDate,
   endDate,
+  startTime,
+  endTime,
   onStartDateChange,
   onEndDateChange,
+  onStartTimeChange,
+  onEndTimeChange,
   onValidationChange,
 }: ReservationDatePickerProps) {
   // Current month for fetching availability
@@ -80,6 +89,19 @@ export function ReservationDatePicker({
     );
     return uniqueDates;
   }, [availabilityData, nextMonthData]);
+
+  // Get time slots from availability data
+  const checkoutTimeSlots: TimeSlot[] = useMemo(() => {
+    return availabilityData?.timeSlots?.checkout || [];
+  }, [availabilityData]);
+
+  const returnTimeSlots: TimeSlot[] = useMemo(() => {
+    return availabilityData?.timeSlots?.return || [];
+  }, [availabilityData]);
+
+  // Check if time slots are defined for the section
+  const hasCheckoutTimeSlots = checkoutTimeSlots.length > 0;
+  const hasReturnTimeSlots = returnTimeSlots.length > 0;
 
   // Helper: Check if a date is in the allowed days array
   const isAllowedDay = (
@@ -177,9 +199,52 @@ export function ReservationDatePicker({
       }
     }
 
+    // Validate start time if time slots are defined
+    if (startDate && hasCheckoutTimeSlots && startTime) {
+      const dayOfWeek = startDate.getDay();
+      const slotsForDay = checkoutTimeSlots.filter(
+        (s) => s.dayOfWeek === dayOfWeek,
+      );
+      if (slotsForDay.length > 0) {
+        const isInSlot = slotsForDay.some(
+          (s) => startTime >= s.startTime && startTime <= s.endTime,
+        );
+        if (!isInSlot) {
+          errors.push("L'heure de retrait n'est pas dans un créneau autorisé");
+        }
+      }
+    }
+
+    // Validate end time if time slots are defined
+    if (endDate && hasReturnTimeSlots && endTime) {
+      const dayOfWeek = endDate.getDay();
+      const slotsForDay = returnTimeSlots.filter(
+        (s) => s.dayOfWeek === dayOfWeek,
+      );
+      if (slotsForDay.length > 0) {
+        const isInSlot = slotsForDay.some(
+          (s) => endTime >= s.startTime && endTime <= s.endTime,
+        );
+        if (!isInSlot) {
+          errors.push("L'heure de retour n'est pas dans un créneau autorisé");
+        }
+      }
+    }
+
     return errors;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, product, reservedDates]);
+  }, [
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    product,
+    reservedDates,
+    hasCheckoutTimeSlots,
+    hasReturnTimeSlots,
+    checkoutTimeSlots,
+    returnTimeSlots,
+  ]);
 
   // Calculate duration and cost (inclusive: startDate to endDate)
   const duration = useMemo(() => {
@@ -202,8 +267,40 @@ export function ReservationDatePicker({
 
   // Check if form is valid
   const isValid = useMemo(() => {
-    return !!startDate && !!endDate && validationErrors.length === 0;
-  }, [startDate, endDate, validationErrors]);
+    // Basic date validation
+    if (!startDate || !endDate || validationErrors.length > 0) return false;
+
+    // If time slots are defined, times must be provided and valid
+    if (hasCheckoutTimeSlots && startDate) {
+      const dayOfWeek = startDate.getDay();
+      const slotsForDay = checkoutTimeSlots.filter(
+        (s) => s.dayOfWeek === dayOfWeek,
+      );
+      // If there are slots for this day, time is required
+      if (slotsForDay.length > 0 && !startTime) return false;
+    }
+
+    if (hasReturnTimeSlots && endDate) {
+      const dayOfWeek = endDate.getDay();
+      const slotsForDay = returnTimeSlots.filter(
+        (s) => s.dayOfWeek === dayOfWeek,
+      );
+      // If there are slots for this day, time is required
+      if (slotsForDay.length > 0 && !endTime) return false;
+    }
+
+    return true;
+  }, [
+    startDate,
+    endDate,
+    startTime,
+    endTime,
+    validationErrors,
+    hasCheckoutTimeSlots,
+    hasReturnTimeSlots,
+    checkoutTimeSlots,
+    returnTimeSlots,
+  ]);
 
   // Notify parent of validation state changes
   useEffect(() => {
@@ -279,16 +376,49 @@ export function ReservationDatePicker({
         )}
       </Card>
 
+      {/* Time Slot Pickers */}
+      {(hasCheckoutTimeSlots || hasReturnTimeSlots) &&
+        (startDate || endDate) && (
+          <Card className="p-2.5">
+            <div className="grid grid-cols-2 gap-4">
+              {hasCheckoutTimeSlots && onStartTimeChange && (
+                <TimeSlotPicker
+                  slots={checkoutTimeSlots}
+                  selectedDate={startDate}
+                  selectedTime={startTime}
+                  onTimeChange={onStartTimeChange}
+                  label="Heure de retrait"
+                />
+              )}
+              {hasReturnTimeSlots && onEndTimeChange && (
+                <TimeSlotPicker
+                  slots={returnTimeSlots}
+                  selectedDate={endDate}
+                  selectedTime={endTime}
+                  onTimeChange={onEndTimeChange}
+                  label="Heure de retour"
+                />
+              )}
+            </div>
+          </Card>
+        )}
+
       {/* Selected dates display */}
       {(startDate || endDate) && (
         <div className="flex justify-between items-center px-1 text-xs">
           <div>
             <span className="text-muted-foreground">Sortie: </span>
-            <span className="font-medium">{formatDate(startDate)}</span>
+            <span className="font-medium">
+              {formatDate(startDate)}
+              {startTime && ` à ${startTime}`}
+            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Retour: </span>
-            <span className="font-medium">{formatDate(endDate)}</span>
+            <span className="font-medium">
+              {formatDate(endDate)}
+              {endTime && ` à ${endTime}`}
+            </span>
           </div>
         </div>
       )}

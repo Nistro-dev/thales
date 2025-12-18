@@ -71,6 +71,11 @@ enum CreditPeriod {
   WEEK
 }
 
+enum SlotType {
+  CHECKOUT
+  RETURN
+}
+
 enum AuditAction {
   // Auth
   LOGIN
@@ -113,6 +118,9 @@ enum AuditAction {
   SECTION_CLOSURE_CREATE
   SECTION_CLOSURE_UPDATE
   SECTION_CLOSURE_DELETE
+  SECTION_TIMESLOT_CREATE
+  SECTION_TIMESLOT_UPDATE
+  SECTION_TIMESLOT_DELETE
 
   // SubSections
   SUBSECTION_CREATE
@@ -303,6 +311,7 @@ model Section {
   products    Product[]
   userRoles   UserRole[]
   closures    SectionClosure[]
+  timeSlots   TimeSlot[]
 
   @@index([isSystem])
 }
@@ -320,6 +329,21 @@ model SectionClosure {
 
   @@index([sectionId])
   @@index([startDate, endDate])
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  type      SlotType
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([sectionId, type, dayOfWeek])
 }
 
 model SubSection {
@@ -448,6 +472,8 @@ model Reservation {
 
   startDate      DateTime          @db.Date
   endDate        DateTime          @db.Date
+  startTime      String?
+  endTime        String?
 
   status         ReservationStatus @default(CONFIRMED)
   creditsCharged Int

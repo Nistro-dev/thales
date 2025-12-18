@@ -92,26 +92,16 @@ export function ReservationDatePicker({
 
   // Get time slots from availability data
   const checkoutTimeSlots: TimeSlot[] = useMemo(() => {
-    const slots = availabilityData?.timeSlots?.checkout || [];
-    console.log("[DEBUG] checkoutTimeSlots:", slots);
-    return slots;
+    return availabilityData?.timeSlots?.checkout || [];
   }, [availabilityData]);
 
   const returnTimeSlots: TimeSlot[] = useMemo(() => {
-    const slots = availabilityData?.timeSlots?.return || [];
-    console.log("[DEBUG] returnTimeSlots:", slots);
-    return slots;
+    return availabilityData?.timeSlots?.return || [];
   }, [availabilityData]);
 
   // Check if time slots are defined for the section
   const hasCheckoutTimeSlots = checkoutTimeSlots.length > 0;
   const hasReturnTimeSlots = returnTimeSlots.length > 0;
-  console.log(
-    "[DEBUG] hasCheckoutTimeSlots:",
-    hasCheckoutTimeSlots,
-    "hasReturnTimeSlots:",
-    hasReturnTimeSlots,
-  );
 
   // Helper: Check if a date is in the allowed days array
   const isAllowedDay = (
@@ -319,25 +309,6 @@ export function ReservationDatePicker({
     }
   }, [isValid, onValidationChange]);
 
-  // Debug: log time slot picker render conditions
-  useEffect(() => {
-    console.log("[DEBUG] TimeSlotPicker render check:", {
-      hasCheckoutTimeSlots,
-      hasReturnTimeSlots,
-      startDate,
-      endDate,
-      onStartTimeChange: !!onStartTimeChange,
-      onEndTimeChange: !!onEndTimeChange,
-    });
-  }, [
-    hasCheckoutTimeSlots,
-    hasReturnTimeSlots,
-    startDate,
-    endDate,
-    onStartTimeChange,
-    onEndTimeChange,
-  ]);
-
   // Handle month change in calendar
   const handleMonthChange = (year: number, month: number) => {
     setCurrentMonth(`${year}-${String(month).padStart(2, "0")}`);
@@ -406,23 +377,6 @@ export function ReservationDatePicker({
       </Card>
 
       {/* Time Slot Pickers */}
-      {/* DEBUG: Show slot info */}
-      {(startDate || endDate) && (
-        <div className="text-xs bg-yellow-100 p-2 rounded">
-          <p>
-            DEBUG: checkoutSlots={checkoutTimeSlots.length}, returnSlots=
-            {returnTimeSlots.length}
-          </p>
-          <p>
-            startDate={startDate?.toISOString()}, endDate=
-            {endDate?.toISOString()}
-          </p>
-          <p>
-            onStartTimeChange={onStartTimeChange ? "yes" : "no"},
-            onEndTimeChange={onEndTimeChange ? "yes" : "no"}
-          </p>
-        </div>
-      )}
       {(hasCheckoutTimeSlots || hasReturnTimeSlots) &&
         (startDate || endDate) && (
           <Card className="p-2.5">

@@ -8,6 +8,7 @@ import { FastifyRequest } from 'fastify'
 import type { ReservationStatus, ProductCondition, CreditPeriod } from '@prisma/client'
 import * as notificationHelper from './notification-helper.service.js'
 import * as closureService from './section-closure.service.js'
+import * as timeSlotService from './time-slot.service.js'
 
 // ============================================
 // HELPERS
@@ -114,7 +115,9 @@ export const validateDates = async (
   productId: string,
   startDate: Date,
   endDate: Date,
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
+  startTime?: string,
+  endTime?: string
 ): Promise<ValidationResult> => {
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -173,6 +176,39 @@ export const validateDates = async (
       valid: false,
       error: `Le retour n'est pas autorisé le ${dayNames[endDayOfWeek]} pour ce produit`,
       code: 'VALIDATION_ERROR',
+    }
+  }
+
+  // Validate time slots if provided
+  if (startTime) {
+    const timeValidation = await timeSlotService.validateTimeInSlot({
+      sectionId: product.section.id,
+      type: 'CHECKOUT',
+      dayOfWeek: startDayOfWeek,
+      time: startTime,
+    })
+    if (!timeValidation.valid) {
+      return {
+        valid: false,
+        error: timeValidation.error,
+        code: 'INVALID_TIME_SLOT',
+      }
+    }
+  }
+
+  if (endTime) {
+    const timeValidation = await timeSlotService.validateTimeInSlot({
+      sectionId: product.section.id,
+      type: 'RETURN',
+      dayOfWeek: endDayOfWeek,
+      time: endTime,
+    })
+    if (!timeValidation.valid) {
+      return {
+        valid: false,
+        error: timeValidation.error,
+        code: 'INVALID_TIME_SLOT',
+      }
     }
   }
 
@@ -299,6 +335,8 @@ interface CreateReservationParams {
   productId: string
   startDate: string
   endDate: string
+  startTime?: string
+  endTime?: string
   notes?: string
   adminNotes?: string
   createdBy: string
@@ -312,6 +350,8 @@ export const createReservation = async (params: CreateReservationParams) => {
     productId,
     startDate,
     endDate,
+    startTime,
+    endTime,
     notes,
     adminNotes,
     createdBy,
@@ -333,7 +373,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     throw { statusCode: 400, message: productValidation.error, code: productValidation.code }
   }
 
-  const dateValidation = await validateDates(productId, start, end, isAdmin)
+  const dateValidation = await validateDates(productId, start, end, isAdmin, startTime, endTime)
   if (!dateValidation.valid) {
     throw { statusCode: 400, message: dateValidation.error, code: dateValidation.code }
   }
@@ -421,6 +461,8 @@ export const createReservation = async (params: CreateReservationParams) => {
           productId,
           startDate: start,
           endDate: end,
+          startTime,
+          endTime,
           status: 'CONFIRMED',
           creditsCharged: totalCredits,
           notes,
@@ -481,6 +523,8 @@ export const createReservation = async (params: CreateReservationParams) => {
       productName: product.name,
       startDate: start.toISOString(),
       endDate: end.toISOString(),
+      startTime,
+      endTime,
       durationDays,
       pricePerDay: product.priceCredits,
       creditsCharged: totalCredits,
@@ -1278,6 +1322,9 @@ export const getProductAvailability = async (productId: string, month: string) =
   const closures = await closureService.getClosuresForMonth(product.section.id, month)
   const closedDates: Array<{ date: string; reason: string }> = []
 
+  // Get time slots for the section
+  const timeSlots = await timeSlotService.listTimeSlots({ sectionId: product.section.id })
+
   for (const closure of closures) {
     const closureStart = new Date(closure.startDate)
     closureStart.setUTCHours(0, 0, 0, 0)
@@ -1305,6 +1352,10 @@ export const getProductAvailability = async (productId: string, month: string) =
     allowedDaysOut: product.section.allowedDaysOut,
     reservedDates,
     closedDates,
+    timeSlots: {
+      checkout: timeSlots.filter((ts) => ts.type === 'CHECKOUT'),
+      return: timeSlots.filter((ts) => ts.type === 'RETURN'),
+    },
   }
 }
 

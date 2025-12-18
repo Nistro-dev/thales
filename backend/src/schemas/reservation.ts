@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/
+
 export const createReservationSchema = z.object({
   productId: z.string().uuid(),
   startDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
@@ -8,6 +10,8 @@ export const createReservationSchema = z.object({
   endDate: z.string().refine((date) => !isNaN(Date.parse(date)), {
     message: 'Format de date invalide',
   }),
+  startTime: z.string().regex(timeRegex, 'Format HH:mm requis').optional(),
+  endTime: z.string().regex(timeRegex, 'Format HH:mm requis').optional(),
   notes: z.string().max(500).optional(),
 })
 

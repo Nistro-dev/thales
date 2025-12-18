@@ -56,6 +56,7 @@ import {
   useUpdateClosure,
   useDeleteClosure,
 } from "../hooks/useClosures";
+import { TimeSlotManager } from "../components/TimeSlotManager";
 import type { SectionClosure } from "@/types";
 
 // ============================================
@@ -670,6 +671,9 @@ export function AdminSectionDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Time Slots */}
+      {id && <TimeSlotManager sectionId={id} />}
 
       {/* Closure Dialog */}
       {id && (

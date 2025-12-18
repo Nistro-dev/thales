@@ -1,5 +1,13 @@
 import { apiClient } from "./client";
-import type { Section, SubSection, SectionClosure } from "@/types";
+import type {
+  Section,
+  SubSection,
+  SectionClosure,
+  TimeSlot,
+  CreateTimeSlotInput,
+  UpdateTimeSlotInput,
+  SlotType,
+} from "@/types";
 import type { ApiResponse } from "@/types";
 
 // ============================================
@@ -216,5 +224,62 @@ export const closuresApi = {
    */
   delete: (closureId: string) => {
     return apiClient.delete<ApiResponse<void>>(`/closures/${closureId}`);
+  },
+};
+
+// ============================================
+// TIME SLOTS API
+// ============================================
+
+export const timeSlotsApi = {
+  /**
+   * Get all time slots for a section
+   */
+  list: (sectionId: string, type?: SlotType) => {
+    const params = type ? `?type=${type}` : "";
+    return apiClient.get<ApiResponse<TimeSlot[]>>(
+      `/sections/${sectionId}/timeslots${params}`,
+    );
+  },
+
+  /**
+   * Get time slots grouped by day for a section
+   */
+  listGrouped: (sectionId: string, type?: SlotType) => {
+    const params = type ? `?type=${type}` : "";
+    return apiClient.get<ApiResponse<Record<number, TimeSlot[]>>>(
+      `/sections/${sectionId}/timeslots/grouped${params}`,
+    );
+  },
+
+  /**
+   * Get time slot by ID
+   */
+  get: (slotId: string) => {
+    return apiClient.get<ApiResponse<TimeSlot>>(`/timeslots/${slotId}`);
+  },
+
+  /**
+   * Create time slot for a section (admin)
+   */
+  create: (sectionId: string, data: CreateTimeSlotInput) => {
+    return apiClient.post<ApiResponse<TimeSlot>>(
+      `/sections/${sectionId}/timeslots`,
+      data,
+    );
+  },
+
+  /**
+   * Update time slot (admin)
+   */
+  update: (slotId: string, data: UpdateTimeSlotInput) => {
+    return apiClient.patch<ApiResponse<TimeSlot>>(`/timeslots/${slotId}`, data);
+  },
+
+  /**
+   * Delete time slot (admin)
+   */
+  delete: (slotId: string) => {
+    return apiClient.delete<ApiResponse<void>>(`/timeslots/${slotId}`);
   },
 };

@@ -102,6 +102,25 @@ const AdminLegalPagesPage = lazy(() =>
 );
 
 export const router = createBrowserRouter([
+  // Public legal pages - accessible to everyone (logged in or not)
+  {
+    errorElement: <RouteErrorBoundary />,
+    children: [
+      {
+        path: ROUTES.TERMS_OF_SERVICE,
+        element: <TermsOfServicePage />,
+      },
+      {
+        path: ROUTES.PRIVACY_POLICY,
+        element: <PrivacyPolicyPage />,
+      },
+      {
+        path: ROUTES.LEGAL_NOTICE,
+        element: <LegalNoticePage />,
+      },
+    ],
+  },
+  // Guest-only pages (login, register, etc.)
   {
     errorElement: <RouteErrorBoundary />,
     element: <RequireGuest />,
@@ -124,18 +143,6 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.COMPLETE_REGISTRATION,
             element: <CompleteRegistrationPage />,
-          },
-          {
-            path: ROUTES.TERMS_OF_SERVICE,
-            element: <TermsOfServicePage />,
-          },
-          {
-            path: ROUTES.PRIVACY_POLICY,
-            element: <PrivacyPolicyPage />,
-          },
-          {
-            path: ROUTES.LEGAL_NOTICE,
-            element: <LegalNoticePage />,
           },
         ],
       },

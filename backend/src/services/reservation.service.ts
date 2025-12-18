@@ -1346,6 +1346,7 @@ export const getProductAvailability = async (productId: string, month: string) =
 
   // Get time slots for the section
   const timeSlots = await timeSlotService.listTimeSlots({ sectionId: product.section.id })
+  logger.info({ sectionId: product.section.id, timeSlotsCount: timeSlots.length, timeSlots }, '[AVAILABILITY] Time slots for section')
 
   for (const closure of closures) {
     const closureStart = new Date(closure.startDate)

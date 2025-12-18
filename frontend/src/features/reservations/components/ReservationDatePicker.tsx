@@ -92,11 +92,16 @@ export function ReservationDatePicker({
 
   // Get time slots from availability data
   const checkoutTimeSlots: TimeSlot[] = useMemo(() => {
-    return availabilityData?.timeSlots?.checkout || [];
+    const slots = availabilityData?.timeSlots?.checkout || [];
+    console.log("[DEBUG] checkoutTimeSlots from API:", slots);
+    console.log("[DEBUG] availabilityData:", availabilityData);
+    return slots;
   }, [availabilityData]);
 
   const returnTimeSlots: TimeSlot[] = useMemo(() => {
-    return availabilityData?.timeSlots?.return || [];
+    const slots = availabilityData?.timeSlots?.return || [];
+    console.log("[DEBUG] returnTimeSlots from API:", slots);
+    return slots;
   }, [availabilityData]);
 
   // Check if time slots are defined for the section

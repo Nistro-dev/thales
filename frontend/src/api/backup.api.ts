@@ -1,8 +1,81 @@
 import { apiClient } from "./client";
+import type { ApiResponse } from "@/types";
+
+export interface BackupInfo {
+  id: string;
+  filename: string;
+  type: "full" | "database" | "files";
+  size: number;
+  createdAt: string;
+  createdBy?: string;
+  isAutomatic: boolean;
+}
+
+export interface BackupResult {
+  id: string;
+  filename: string;
+  size: number;
+  createdAt: string;
+}
 
 /**
- * Download database backup
- * Returns a blob for file download
+ * List all backups
+ */
+export async function listBackups(): Promise<BackupInfo[]> {
+  const response =
+    await apiClient.get<ApiResponse<BackupInfo[]>>("/backup/list");
+  return response.data.data ?? [];
+}
+
+/**
+ * Create a new backup
+ */
+export async function createBackup(
+  type: "full" | "database" = "full",
+): Promise<BackupResult> {
+  const response = await apiClient.post<ApiResponse<BackupResult>>(
+    "/backup/create",
+    { type },
+  );
+  return response.data.data!;
+}
+
+/**
+ * Get download URL for a backup
+ */
+export async function getBackupDownloadUrl(id: string): Promise<string> {
+  const response = await apiClient.get<ApiResponse<{ url: string }>>(
+    `/backup/${id}/download`,
+  );
+  return response.data.data!.url;
+}
+
+/**
+ * Download a backup file
+ */
+export async function downloadBackup(id: string): Promise<void> {
+  const url = await getBackupDownloadUrl(id);
+
+  // Open the download URL in a new tab
+  window.open(url, "_blank");
+}
+
+/**
+ * Delete a backup
+ */
+export async function deleteBackup(id: string): Promise<void> {
+  await apiClient.delete(`/backup/${id}`);
+}
+
+/**
+ * Restore from a backup
+ */
+export async function restoreBackup(id: string): Promise<void> {
+  await apiClient.post(`/backup/${id}/restore`);
+}
+
+/**
+ * Download database backup (legacy - direct download)
  */
 export async function downloadDatabaseBackup(): Promise<void> {
   const response = await apiClient.get("/backup/database", {
@@ -33,5 +106,11 @@ export async function downloadDatabaseBackup(): Promise<void> {
 }
 
 export const backupApi = {
+  list: listBackups,
+  create: createBackup,
+  getDownloadUrl: getBackupDownloadUrl,
+  download: downloadBackup,
+  delete: deleteBackup,
+  restore: restoreBackup,
   downloadDatabase: downloadDatabaseBackup,
 };

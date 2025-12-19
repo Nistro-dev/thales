@@ -28,6 +28,12 @@ const envSchema = z.object({
   S3_SECRET_KEY: z.string(),
   S3_REGION: z.string().default('us-east-1'),
 
+  // Backup S3 configuration (can use same bucket with different prefix, or separate bucket)
+  S3_BACKUP_BUCKET: z.string().optional(),
+  BACKUP_RETENTION_DAYS: z.string().transform(Number).default('14'),
+  BACKUP_CRON_ENABLED: z.string().transform((v) => v === 'true').default('true'),
+  BACKUP_CRON_SCHEDULE: z.string().default('0 2 * * *'), // Default: 2am daily
+
   FRONTEND_URL: z.string(),
   API_URL: z.string(),
 

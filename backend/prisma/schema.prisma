@@ -146,6 +146,9 @@ enum AuditAction {
 
   // System
   DATABASE_BACKUP
+  BACKUP_CREATE
+  BACKUP_DELETE
+  BACKUP_RESTORE
 }
 
 // ============================================

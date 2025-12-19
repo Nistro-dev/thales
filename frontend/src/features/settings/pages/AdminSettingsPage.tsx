@@ -20,6 +20,11 @@ import {
   Scale,
   Edit,
   Eye,
+  Trash2,
+  RefreshCw,
+  AlertTriangle,
+  Archive,
+  Calendar,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -28,7 +33,7 @@ import {
   SecuritySettings,
   MaintenanceSettings,
 } from "@/api/settings.api";
-import { backupApi } from "@/api/backup.api";
+import { backupApi, type BackupInfo } from "@/api/backup.api";
 import {
   legalApi,
   type LegalPage,
@@ -78,54 +83,342 @@ interface SettingSection {
   description: string;
 }
 
-// Database Backup Section Component
-function DatabaseBackupSection() {
-  const [isDownloading, setIsDownloading] = useState(false);
+// Format file size
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
 
-  const handleDownloadBackup = async () => {
-    setIsDownloading(true);
+// Format date
+function formatBackupDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Backup Management Section Component
+function BackupManagementSection() {
+  const queryClient = useQueryClient();
+  const [confirmRestore, setConfirmRestore] = useState<BackupInfo | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<BackupInfo | null>(null);
+
+  // Fetch backups
+  const {
+    data: backups,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["backups"],
+    queryFn: () => backupApi.list(),
+  });
+
+  // Create backup mutation
+  const createBackupMutation = useMutation({
+    mutationFn: (type: "full" | "database") => backupApi.create(type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["backups"] });
+      toast.success("Sauvegarde créée avec succès");
+    },
+    onError: () => {
+      toast.error("Erreur lors de la création de la sauvegarde");
+    },
+  });
+
+  // Delete backup mutation
+  const deleteBackupMutation = useMutation({
+    mutationFn: (id: string) => backupApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["backups"] });
+      toast.success("Sauvegarde supprimée");
+      setConfirmDelete(null);
+    },
+    onError: () => {
+      toast.error("Erreur lors de la suppression");
+    },
+  });
+
+  // Restore backup mutation
+  const restoreBackupMutation = useMutation({
+    mutationFn: (id: string) => backupApi.restore(id),
+    onSuccess: () => {
+      toast.success("Restauration effectuée avec succès");
+      setConfirmRestore(null);
+    },
+    onError: () => {
+      toast.error("Erreur lors de la restauration");
+    },
+  });
+
+  const handleDownload = async (backup: BackupInfo) => {
     try {
-      await backupApi.downloadDatabase();
-      toast.success("Sauvegarde téléchargée avec succès");
+      await backupApi.download(backup.id);
     } catch {
-      toast.error("Erreur lors du téléchargement de la sauvegarde");
-    } finally {
-      setIsDownloading(false);
+      toast.error("Erreur lors du téléchargement");
     }
   };
 
   return (
-    <div className="rounded-lg border bg-card p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <HardDrive className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">
-          Sauvegarde de la base de données
-        </h2>
-      </div>
-      <p className="text-sm text-muted-foreground mb-6">
-        Téléchargez une sauvegarde complète de la base de données au format SQL.
-        Cette sauvegarde peut être utilisée pour restaurer les données en cas de
-        problème.
-      </p>
+    <div className="space-y-6">
+      {/* Create Backup Section */}
+      <div className="rounded-lg border bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Archive className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Créer une sauvegarde</h2>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Actualiser
+          </Button>
+        </div>
+        <p className="text-sm text-muted-foreground mb-6">
+          Créez une sauvegarde manuelle de vos données. Les sauvegardes
+          automatiques sont effectuées quotidiennement à 2h00.
+        </p>
 
-      <div className="flex items-center gap-4">
-        <Button onClick={handleDownloadBackup} disabled={isDownloading}>
-          {isDownloading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
+        <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => createBackupMutation.mutate("full")}
+            disabled={createBackupMutation.isPending}
+          >
+            {createBackupMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <HardDrive className="mr-2 h-4 w-4" />
+            )}
+            Sauvegarde complète
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => createBackupMutation.mutate("database")}
+            disabled={createBackupMutation.isPending}
+          >
+            {createBackupMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Database className="mr-2 h-4 w-4" />
+            )}
+            Base de données uniquement
+          </Button>
+        </div>
+
+        <p className="text-xs text-muted-foreground mt-4">
+          La sauvegarde complète inclut la base de données et tous les fichiers
+          uploadés. Les sauvegardes sont conservées pendant 14 jours.
+        </p>
+      </div>
+
+      {/* Backup List Section */}
+      <div className="rounded-lg border bg-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold">Historique des sauvegardes</h2>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        ) : !backups || backups.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Archive className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>Aucune sauvegarde disponible</p>
+            <p className="text-sm">Créez votre première sauvegarde ci-dessus</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {backups.map((backup) => (
+              <div
+                key={backup.id}
+                className="flex items-center justify-between p-4 rounded-lg border bg-background"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`p-2 rounded-lg ${
+                      backup.type === "full"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-blue-100 text-blue-600"
+                    }`}
+                  >
+                    {backup.type === "full" ? (
+                      <HardDrive className="h-5 w-5" />
+                    ) : (
+                      <Database className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">
+                        {backup.filename}
+                      </span>
+                      {backup.isAutomatic && (
+                        <Badge variant="secondary" className="text-xs">
+                          Auto
+                        </Badge>
+                      )}
+                      <Badge
+                        variant={backup.type === "full" ? "default" : "outline"}
+                        className="text-xs"
+                      >
+                        {backup.type === "full" ? "Complète" : "BDD"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                      <span>{formatBackupDate(backup.createdAt)}</span>
+                      <span>•</span>
+                      <span>{formatFileSize(backup.size)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownload(backup)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmRestore(backup)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setConfirmDelete(backup)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Restore Confirmation Dialog */}
+      <Dialog
+        open={!!confirmRestore}
+        onOpenChange={() => setConfirmRestore(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Confirmer la restauration
+            </DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir restaurer cette sauvegarde ?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-orange-50 border border-orange-200 p-4">
+              <p className="text-sm text-orange-800">
+                <strong>Attention :</strong> Cette action va remplacer toutes
+                les données actuelles par celles de la sauvegarde. Cette
+                opération est irréversible.
+              </p>
+            </div>
+            {confirmRestore && (
+              <div className="mt-4 p-3 rounded-lg bg-muted">
+                <p className="text-sm font-medium">{confirmRestore.filename}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBackupDate(confirmRestore.createdAt)} •{" "}
+                  {formatFileSize(confirmRestore.size)}
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmRestore(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                confirmRestore &&
+                restoreBackupMutation.mutate(confirmRestore.id)
+              }
+              disabled={restoreBackupMutation.isPending}
+            >
+              {restoreBackupMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Restaurer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={!!confirmDelete}
+        onOpenChange={() => setConfirmDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Supprimer la sauvegarde
+            </DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette sauvegarde ?
+            </DialogDescription>
+          </DialogHeader>
+          {confirmDelete && (
+            <div className="py-4">
+              <div className="p-3 rounded-lg bg-muted">
+                <p className="text-sm font-medium">{confirmDelete.filename}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBackupDate(confirmDelete.createdAt)} •{" "}
+                  {formatFileSize(confirmDelete.size)}
+                </p>
+              </div>
+            </div>
           )}
-          {isDownloading
-            ? "Génération en cours..."
-            : "Télécharger la sauvegarde"}
-        </Button>
-      </div>
-
-      <p className="text-xs text-muted-foreground mt-4">
-        La sauvegarde contient toutes les données de l'application
-        (utilisateurs, produits, réservations, etc.). Conservez ce fichier en
-        lieu sûr.
-      </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() =>
+                confirmDelete && deleteBackupMutation.mutate(confirmDelete.id)
+              }
+              disabled={deleteBackupMutation.isPending}
+            >
+              {deleteBackupMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Supprimer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -179,6 +472,12 @@ const settingSections: SettingSection[] = [
     label: "Avancé",
     icon: Database,
     description: "Paramètres avancés",
+  },
+  {
+    id: "backups",
+    label: "Sauvegardes",
+    icon: HardDrive,
+    description: "Gestion des sauvegardes",
   },
   {
     id: "legal",
@@ -1668,10 +1967,19 @@ export function AdminSettingsPage() {
               </div>
             )}
           </div>
+        </TabsContent>
 
-          {/* Database Backup Section */}
-          {hasPermission(PERMISSIONS.BACKUP_DATABASE) && (
-            <DatabaseBackupSection />
+        {/* Backup Settings */}
+        <TabsContent value="backups" className="space-y-6">
+          {hasPermission(PERMISSIONS.BACKUP_DATABASE) ? (
+            <BackupManagementSection />
+          ) : (
+            <div className="rounded-lg border bg-card p-6 text-center">
+              <p className="text-muted-foreground">
+                Vous n'avez pas les permissions nécessaires pour accéder aux
+                sauvegardes.
+              </p>
+            </div>
           )}
         </TabsContent>
 

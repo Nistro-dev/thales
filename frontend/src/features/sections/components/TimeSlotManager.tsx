@@ -5,7 +5,6 @@ import { z } from "zod";
 import { Plus, Trash2, Clock, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -69,6 +68,21 @@ const SLOT_TYPES: { value: SlotType; label: string }[] = [
   { value: "RETURN", label: "Retour" },
 ];
 
+// Generate time options with 15-minute intervals
+const generateTimeOptions = () => {
+  const options: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (const minute of [0, 15, 30, 45]) {
+      const h = hour.toString().padStart(2, "0");
+      const m = minute.toString().padStart(2, "0");
+      options.push(`${h}:${m}`);
+    }
+  }
+  return options;
+};
+
+const TIME_OPTIONS = generateTimeOptions();
+
 // ============================================
 // SCHEMA
 // ============================================
@@ -107,7 +121,6 @@ function TimeSlotFormDialog({
   const createTimeSlot = useCreateTimeSlot();
 
   const {
-    register,
     handleSubmit,
     reset,
     setValue,
@@ -125,6 +138,8 @@ function TimeSlotFormDialog({
 
   const watchType = watch("type");
   const watchDayOfWeek = watch("dayOfWeek");
+  const watchStartTime = watch("startTime");
+  const watchEndTime = watch("endTime");
 
   const onSubmit = async (data: TimeSlotFormData) => {
     try {
@@ -212,13 +227,23 @@ function TimeSlotFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startTime">Heure de début *</Label>
-              <Input
-                id="startTime"
-                type="time"
-                {...register("startTime")}
+              <Label>Heure de début *</Label>
+              <Select
+                value={watchStartTime}
+                onValueChange={(value) => setValue("startTime", value)}
                 disabled={createTimeSlot.isPending}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_OPTIONS.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.startTime && (
                 <p className="text-sm text-destructive">
                   {errors.startTime.message}
@@ -227,13 +252,23 @@ function TimeSlotFormDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endTime">Heure de fin *</Label>
-              <Input
-                id="endTime"
-                type="time"
-                {...register("endTime")}
+              <Label>Heure de fin *</Label>
+              <Select
+                value={watchEndTime}
+                onValueChange={(value) => setValue("endTime", value)}
                 disabled={createTimeSlot.isPending}
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_OPTIONS.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.endTime && (
                 <p className="text-sm text-destructive">
                   {errors.endTime.message}

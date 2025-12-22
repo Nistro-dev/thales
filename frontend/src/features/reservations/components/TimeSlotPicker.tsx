@@ -1,9 +1,30 @@
 import { useMemo } from "react";
 import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { TimeSlot } from "@/types";
+
+// Generate time options with 15-minute intervals
+const generateTimeOptions = () => {
+  const options: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (const minute of [0, 15, 30, 45]) {
+      const h = hour.toString().padStart(2, "0");
+      const m = minute.toString().padStart(2, "0");
+      options.push(`${h}:${m}`);
+    }
+  }
+  return options;
+};
+
+const TIME_OPTIONS = generateTimeOptions();
 
 interface TimeSlotPickerProps {
   slots: TimeSlot[];
@@ -38,6 +59,16 @@ export function TimeSlotPicker({
     const dayOfWeek = selectedDate.getDay();
     return slots.filter((slot) => slot.dayOfWeek === dayOfWeek);
   }, [slots, selectedDate]);
+
+  // Filter time options to only show those within available slots
+  const availableTimeOptions = useMemo(() => {
+    if (availableSlots.length === 0) return [];
+    return TIME_OPTIONS.filter((time) =>
+      availableSlots.some(
+        (slot) => time >= slot.startTime && time <= slot.endTime,
+      ),
+    );
+  }, [availableSlots]);
 
   // Check if selected time is in a valid slot
   const isTimeValid = useMemo(() => {
@@ -94,20 +125,31 @@ export function TimeSlotPicker({
         ))}
       </div>
 
-      {/* Time input */}
-      <Input
-        type="time"
+      {/* Time select with 15-minute intervals */}
+      <Select
         value={selectedTime || ""}
-        onChange={(e) => onTimeChange(e.target.value || undefined)}
+        onValueChange={(value) => onTimeChange(value || undefined)}
         disabled={disabled}
-        className={`h-8 text-sm ${
-          !isTimeValid
-            ? "border-destructive focus-visible:ring-destructive"
-            : selectedTime && isTimeValid
-              ? "border-green-500 focus-visible:ring-green-500"
-              : ""
-        }`}
-      />
+      >
+        <SelectTrigger
+          className={`h-8 text-sm ${
+            !isTimeValid
+              ? "border-destructive focus-visible:ring-destructive"
+              : selectedTime && isTimeValid
+                ? "border-green-500 focus-visible:ring-green-500"
+                : ""
+          }`}
+        >
+          <SelectValue placeholder="Sélectionner une heure" />
+        </SelectTrigger>
+        <SelectContent>
+          {availableTimeOptions.map((time) => (
+            <SelectItem key={time} value={time}>
+              {time}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Status messages */}
       {selectedTime && isTimeValid && (

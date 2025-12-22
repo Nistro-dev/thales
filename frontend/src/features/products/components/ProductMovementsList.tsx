@@ -232,27 +232,6 @@ export function ProductMovementsList({
                     {movement.notes}
                   </p>
                 )}
-
-                {/* Photos for returns with damage */}
-                {movement.photos && movement.photos.length > 0 && (
-                  <div className="mt-2 flex gap-2 flex-wrap">
-                    {movement.photos.map((photo) => (
-                      <a
-                        key={photo.id}
-                        href={photo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block"
-                      >
-                        <img
-                          src={photo.url}
-                          alt="Photo du retour"
-                          className="h-16 w-16 object-cover rounded border hover:opacity-80 transition-opacity"
-                        />
-                      </a>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Status indicator */}

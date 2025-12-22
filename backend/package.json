@@ -13,6 +13,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "tsx scripts/reset-db.ts",
+    "db:reset:prod": "tsx scripts/reset-db-prod.ts",
+    "db:seed:prod": "tsx prisma/seed-prod.ts",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\""
   },

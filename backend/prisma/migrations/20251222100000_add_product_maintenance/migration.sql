@@ -1,11 +1,16 @@
--- CreateEnum values for AuditAction (if not already added)
-ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'MAINTENANCE_CREATE';
-ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'MAINTENANCE_UPDATE';
-ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'MAINTENANCE_END';
-ALTER TYPE "AuditAction" ADD VALUE IF NOT EXISTS 'MAINTENANCE_CANCEL';
+-- Add new AuditAction enum values for Maintenance
+ALTER TYPE "AuditAction" ADD VALUE 'MAINTENANCE_CREATE';
+ALTER TYPE "AuditAction" ADD VALUE 'MAINTENANCE_UPDATE';
+ALTER TYPE "AuditAction" ADD VALUE 'MAINTENANCE_END';
+ALTER TYPE "AuditAction" ADD VALUE 'MAINTENANCE_CANCEL';
 
--- CreateEnum value for NotificationType
-ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'RESERVATION_CANCELLED_MAINTENANCE';
+-- Add new AuditAction enum values for Backup
+ALTER TYPE "AuditAction" ADD VALUE 'BACKUP_CREATE';
+ALTER TYPE "AuditAction" ADD VALUE 'BACKUP_DELETE';
+ALTER TYPE "AuditAction" ADD VALUE 'BACKUP_RESTORE';
+
+-- Add new NotificationType enum value
+ALTER TYPE "NotificationType" ADD VALUE 'RESERVATION_CANCELLED_MAINTENANCE';
 
 -- CreateTable
 CREATE TABLE "ProductMaintenance" (

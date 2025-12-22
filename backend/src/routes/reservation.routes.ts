@@ -73,6 +73,12 @@ export const reservationAdminRoutes = async (fastify: FastifyInstance) => {
     handler: reservationController.refund,
   })
 
+  // Penalize reservation (after return)
+  fastify.post('/:id/penalty', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),
+    handler: reservationController.penalize,
+  })
+
   // Checkout (with optional notes)
   fastify.post('/:id/checkout', {
     preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),

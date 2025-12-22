@@ -297,3 +297,32 @@ export function useRefundReservation() {
     },
   });
 }
+
+/**
+ * ADMIN: Penalize reservation (mutation)
+ */
+export function usePenalizeReservation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      amount,
+      reason,
+    }: {
+      id: string;
+      amount: number;
+      reason: string;
+    }) => {
+      const response = await reservationsAdminApi.penalize(id, amount, reason);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["user-credit-transactions"] });
+      toast.success("Pénalité appliquée");
+    },
+  });
+}

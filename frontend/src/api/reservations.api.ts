@@ -157,6 +157,18 @@ export const reservationsAdminApi = {
   },
 
   /**
+   * Penalize reservation (admin)
+   */
+  penalize: (id: string, amount: number, reason: string) => {
+    return apiClient.post<
+      ApiResponse<Reservation & { willBeNegative: boolean; newBalance: number }>
+    >(`/admin/reservations/${id}/penalty`, {
+      amount,
+      reason,
+    });
+  },
+
+  /**
    * Checkout reservation (admin)
    */
   checkout: (id: string, notes?: string) => {

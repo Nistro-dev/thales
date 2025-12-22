@@ -29,6 +29,7 @@ enum CreditTransactionType {
   ADJUSTMENT
   RESERVATION
   REFUND
+  PENALTY
   SYSTEM
 }
 
@@ -147,6 +148,7 @@ enum AuditAction {
   RESERVATION_CHECKOUT
   RESERVATION_RETURN
   RESERVATION_REFUND
+  RESERVATION_PENALTY
   RESERVATION_UPDATE
   RESERVATION_EXTEND
 
@@ -552,6 +554,12 @@ model Reservation {
   refundedBy     String?
   refundAmount   Int?
 
+  // Penalty
+  penalizedAt    DateTime?
+  penalizedBy    String?
+  penaltyAmount  Int?
+  penaltyReason  String?
+
   // Extension history (can be extended multiple times)
   totalExtensionCost Int               @default(0)
   extensionCount     Int               @default(0)
@@ -643,6 +651,7 @@ enum NotificationType {
   RESERVATION_CANCELLED
   RESERVATION_CANCELLED_MAINTENANCE
   RESERVATION_REFUNDED
+  RESERVATION_PENALIZED
   RESERVATION_CHECKOUT
   RESERVATION_RETURN
   RESERVATION_REMINDER

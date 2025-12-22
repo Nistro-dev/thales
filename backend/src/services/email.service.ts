@@ -310,6 +310,37 @@ export const sendReservationRefundedEmail = async (
   })
 }
 
+interface PenaltyEmailData {
+  firstName: string
+  lastName: string
+  productName: string
+  productReference?: string
+  reservationId: string
+  penaltyAmount: number
+  newBalance: number
+  reason: string
+}
+
+export const sendReservationPenalizedEmail = async (
+  email: string,
+  data: PenaltyEmailData
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-penalized',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Pénalité appliquée'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Pénalité appliquée - ${data.productName}`,
+    html,
+  })
+}
+
 export const sendCheckoutCompletedEmail = async (
   email: string,
   data: ReservationEmailData & { checkedOutAt: string }

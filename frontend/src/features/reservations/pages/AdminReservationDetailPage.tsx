@@ -6,6 +6,7 @@ import {
   useReturnReservation,
   useCancelReservation,
   useRefundReservation,
+  usePenalizeReservation,
 } from "../hooks/useReservations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,12 +26,14 @@ import {
   RefreshCcw,
   Loader2,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { ReservationDetailSkeleton } from "../components/ReservationDetailSkeleton";
 import { CheckoutDialog } from "../components/CheckoutDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
 import { AdminCancelDialog } from "../components/AdminCancelDialog";
 import { RefundDialog } from "../components/RefundDialog";
+import { PenaltyDialog } from "../components/PenaltyDialog";
 import { MovementPhotosSection } from "../components/MovementPhotosSection";
 import type { ReservationStatus, ProductCondition } from "@/types";
 
@@ -53,7 +56,13 @@ const statusColors: Record<
   REFUNDED: "outline",
 };
 
-type DialogType = "checkout" | "return" | "cancel" | "refund" | null;
+type DialogType =
+  | "checkout"
+  | "return"
+  | "cancel"
+  | "refund"
+  | "penalty"
+  | null;
 
 export function AdminReservationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +71,7 @@ export function AdminReservationDetailPage() {
   const returnMutation = useReturnReservation();
   const cancelMutation = useCancelReservation();
   const refundMutation = useRefundReservation();
+  const penaltyMutation = usePenalizeReservation();
   const [dialogType, setDialogType] = useState<DialogType>(null);
 
   const handleCheckout = async (notes?: string) => {
@@ -107,6 +117,15 @@ export function AdminReservationDetailPage() {
     }
   };
 
+  const handlePenalty = async (amount: number, reason: string) => {
+    try {
+      await penaltyMutation.mutateAsync({ id: id!, amount, reason });
+      setDialogType(null);
+    } catch {
+      // Error handled by mutation onError
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("fr-FR", {
       day: "numeric",
@@ -137,7 +156,8 @@ export function AdminReservationDetailPage() {
     checkoutMutation.isPending ||
     returnMutation.isPending ||
     cancelMutation.isPending ||
-    refundMutation.isPending;
+    refundMutation.isPending ||
+    penaltyMutation.isPending;
 
   if (isLoading) {
     return <ReservationDetailSkeleton />;
@@ -173,6 +193,10 @@ export function AdminReservationDetailPage() {
   const canRefund =
     (reservation.status === "CANCELLED" || reservation.status === "RETURNED") &&
     !reservation.refundedAt;
+  // Can penalize if RETURNED or REFUNDED, and not already penalized
+  const canPenalize =
+    (reservation.status === "RETURNED" || reservation.status === "REFUNDED") &&
+    !reservation.penalizedAt;
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -373,6 +397,30 @@ export function AdminReservationDetailPage() {
                     </div>
                   </>
                 )}
+
+              {reservation.penaltyAmount != null &&
+                reservation.penaltyAmount > 0 && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="flex items-baseline justify-between text-orange-600">
+                      <span className="text-sm font-medium flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4" />
+                        Pénalité
+                      </span>
+                      <div className="text-right">
+                        <span className="text-xl font-bold">
+                          -{reservation.penaltyAmount}
+                        </span>
+                        <span className="ml-1">crédits</span>
+                      </div>
+                    </div>
+                    {reservation.penaltyReason && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Motif : {reservation.penaltyReason}
+                      </p>
+                    )}
+                  </>
+                )}
             </CardContent>
           </Card>
 
@@ -439,7 +487,11 @@ export function AdminReservationDetailPage() {
         {/* Right Column - Actions & Timeline */}
         <div className="space-y-6">
           {/* Actions */}
-          {(canCheckout || canReturn || canCancel || canRefund) && (
+          {(canCheckout ||
+            canReturn ||
+            canCancel ||
+            canRefund ||
+            canPenalize) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Actions</CardTitle>
@@ -488,6 +540,22 @@ export function AdminReservationDetailPage() {
                       <RefreshCcw className="mr-2 h-4 w-4" />
                     )}
                     Rembourser
+                  </Button>
+                )}
+
+                {canPenalize && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-orange-300 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                    onClick={() => setDialogType("penalty")}
+                    disabled={isActionPending}
+                  >
+                    {penaltyMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                    )}
+                    Pénaliser
                   </Button>
                 )}
 
@@ -571,6 +639,18 @@ export function AdminReservationDetailPage() {
                     </div>
                   </>
                 )}
+
+                {reservation.penalizedAt && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="font-medium text-orange-600">Pénalisée</p>
+                      <p className="text-muted-foreground">
+                        {formatDateTime(reservation.penalizedAt)}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -629,6 +709,20 @@ export function AdminReservationDetailPage() {
         }
         maxAmount={reservation.creditsCharged}
         isLoading={refundMutation.isPending}
+      />
+
+      <PenaltyDialog
+        open={dialogType === "penalty"}
+        onOpenChange={(open) => !open && setDialogType(null)}
+        onConfirm={handlePenalty}
+        productName={reservation.product?.name}
+        userName={
+          reservation.user
+            ? `${reservation.user.firstName} ${reservation.user.lastName}`
+            : undefined
+        }
+        userCurrentBalance={reservation.user?.creditBalance}
+        isLoading={penaltyMutation.isPending}
       />
     </div>
   );

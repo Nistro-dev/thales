@@ -1,0 +1,27 @@
+<!-- reservation-penalized.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="warning-box">
+  <strong>Une pénalité a été appliquée à votre réservation</strong>
+</div>
+
+<p>Nous vous informons qu'une pénalité a été appliquée à votre réservation.</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  {{#if productReference}}
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  {{/if}}
+  <p><strong>Montant de la pénalité :</strong> {{penaltyAmount}} crédits</p>
+  <p><strong>Nouveau solde :</strong> {{newBalance}} crédits</p>
+</div>
+
+<div class="info-box">
+  <p><strong>Motif :</strong> {{reason}}</p>
+</div>
+
+<p>Si vous avez des questions concernant cette pénalité, veuillez contacter l'équipe de gestion.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/account/credits" class="button">Voir mon historique de crédits</a>
+</p>

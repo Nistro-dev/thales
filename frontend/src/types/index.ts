@@ -256,6 +256,7 @@ export interface Reservation {
     email: string;
     firstName: string;
     lastName: string;
+    creditBalance?: number;
   };
   productId: string;
   product?: Product;
@@ -278,6 +279,10 @@ export interface Reservation {
   refundedAt?: string | null;
   refundedBy?: string | null;
   refundAmount?: number | null;
+  penalizedAt?: string | null;
+  penalizedBy?: string | null;
+  penaltyAmount?: number | null;
+  penaltyReason?: string | null;
   movements?: ReservationMovement[];
   createdAt: string;
   updatedAt: string;

@@ -100,12 +100,24 @@ export const listProducts = async (params: ListProductsParams, userCautionStatus
     prisma.product.count({ where }),
   ])
 
-  const formattedProducts = products.map((p) => ({
-    ...p,
-    priceCredits: canSeePrices ? p.priceCredits : null,
-    thumbnail: p.files[0] || null,
-    files: undefined,
-  }))
+  // Generate signed URLs for thumbnails
+  const formattedProducts = await Promise.all(
+    products.map(async (p) => {
+      const thumbnail = p.files[0]
+        ? {
+            ...p.files[0],
+            url: await getSignedDownloadUrl(p.files[0].s3Key),
+          }
+        : null
+
+      return {
+        ...p,
+        priceCredits: canSeePrices ? p.priceCredits : null,
+        thumbnail,
+        files: undefined,
+      }
+    })
+  )
 
   return { products: formattedProducts, total }
 }

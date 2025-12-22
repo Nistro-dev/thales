@@ -52,10 +52,6 @@ export const listProducts = async (params: ListProductsParams, userCautionStatus
 
   if (subSectionId) {
     where.subSectionId = subSectionId
-  } else {
-    where.subSection = {
-      OR: [{ sectionId: { not: null } }, { id: undefined }],
-    }
   }
 
   if (search) {

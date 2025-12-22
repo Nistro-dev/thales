@@ -107,14 +107,40 @@ export const getProductMovements = async (productId: string) => {
     throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
-  return prisma.productMovement.findMany({
+  const movements = await prisma.productMovement.findMany({
     where: { productId },
     include: {
       photos: {
         orderBy: { sortOrder: 'asc' },
       },
+      reservation: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
     orderBy: { performedAt: 'desc' },
     take: 50,
   })
+
+  // Récupérer les infos des utilisateurs qui ont effectué les mouvements (performedBy)
+  const performedByIds = [...new Set(movements.map(m => m.performedBy).filter(Boolean))]
+  const performedByUsers = await prisma.user.findMany({
+    where: { id: { in: performedByIds } },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  })
+  const performedByMap = new Map(performedByUsers.map(u => [u.id, u]))
+
+  return movements.map(m => ({
+    ...m,
+    performedByUser: performedByMap.get(m.performedBy) || null,
+  }))
 }

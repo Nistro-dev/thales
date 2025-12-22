@@ -10,6 +10,7 @@ import {
   Package,
   Archive,
   Ban,
+  User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -101,7 +102,8 @@ export function ProductMovementsList({
         const isCheckout = movement.type === "CHECKOUT";
         const isReturn = movement.type === "RETURN";
         const isStatusChange = movement.type === "STATUS_CHANGE";
-        const user = movement.reservation?.user;
+        const reservationUser = movement.reservation?.user;
+        const performedByUser = movement.performedByUser;
         const condition = movement.condition;
         const hasIssue = condition && condition !== "OK" && isReturn;
         const statusChange = isStatusChange
@@ -177,22 +179,34 @@ export function ProductMovementsList({
                 )}
               </div>
 
-              <div className="text-sm text-muted-foreground mt-1">
-                {(isCheckout || isReturn) && user && (
-                  <>
-                    <span>
-                      {user.firstName} {user.lastName}
-                    </span>
-                    <span className="mx-2">•</span>
-                  </>
-                )}
-                <span>
-                  {format(
-                    new Date(movement.performedAt),
-                    "dd MMM yyyy à HH:mm",
-                    { locale: fr },
+              <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                <div className="flex items-center flex-wrap gap-x-2">
+                  {/* Utilisateur de la réservation (pour checkout/return) */}
+                  {(isCheckout || isReturn) && reservationUser && (
+                    <>
+                      <span>
+                        {reservationUser.firstName} {reservationUser.lastName}
+                      </span>
+                      <span>•</span>
+                    </>
                   )}
-                </span>
+                  <span>
+                    {format(
+                      new Date(movement.performedAt),
+                      "dd MMM yyyy à HH:mm",
+                      { locale: fr },
+                    )}
+                  </span>
+                </div>
+                {/* Utilisateur qui a effectué l'action */}
+                {performedByUser && (
+                  <div className="flex items-center gap-1 text-xs">
+                    <User className="h-3 w-3" />
+                    <span>
+                      Par {performedByUser.firstName} {performedByUser.lastName}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Show notes only for checkout/return, not for status changes (already displayed above) */}

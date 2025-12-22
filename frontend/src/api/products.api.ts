@@ -43,7 +43,7 @@ export interface UpdateProductInput {
 export interface ProductMovement {
   id: string;
   productId: string;
-  reservationId: string;
+  reservationId: string | null;
   type: "CHECKOUT" | "RETURN" | "STATUS_CHANGE";
   condition: ProductCondition | null;
   notes: string | null;
@@ -62,7 +62,13 @@ export interface ProductMovement {
       lastName: string;
       email: string;
     };
-  };
+  } | null;
+  performedByUser?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
   photos?: Array<{
     id: string;
     s3Key: string;

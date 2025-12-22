@@ -170,12 +170,16 @@ export function AdminReservationsPage() {
     }
   };
 
-  const handleReturn = async (condition: ProductCondition, notes?: string) => {
+  const handleReturn = async (
+    condition: ProductCondition,
+    notes?: string,
+    photos?: Array<{ file: File; caption?: string }>,
+  ) => {
     if (!dialogState.reservation) return;
     try {
       await returnMutation.mutateAsync({
         id: dialogState.reservation.id,
-        data: { condition, notes },
+        data: { condition, notes, photos },
       });
       closeDialog();
     } catch {

@@ -18,6 +18,7 @@ import {
   Calendar,
   Info,
   FolderOpen,
+  CalendarCheck,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -49,6 +50,7 @@ import { ProductMovementsList } from "../components/ProductMovementsList";
 import { ProductGallery } from "../components/ProductGallery";
 import { ProductStatusManager } from "../components/ProductStatusManager";
 import { MaintenanceHistory } from "../components/MaintenanceHistory";
+import { ProductReservationsTab } from "../components/ProductReservationsTab";
 import {
   useProductAdmin,
   useProductFilesAdmin,
@@ -307,6 +309,15 @@ export function AdminProductDetailPage() {
                       <Wrench className="h-4 w-4 mr-1 md:mr-2" />
                       <span className="hidden sm:inline">Maintenance</span>
                       <span className="sm:hidden">Maint.</span>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="reservations"
+                      disabled={isEditMode}
+                      className="flex-1 md:flex-none"
+                    >
+                      <CalendarCheck className="h-4 w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Réservations</span>
+                      <span className="sm:hidden">Rés.</span>
                     </TabsTrigger>
                     {isEditMode && (
                       <TabsTrigger value="edit" className="flex-1 md:flex-none">
@@ -580,6 +591,11 @@ export function AdminProductDetailPage() {
                 {/* Maintenance Tab */}
                 <TabsContent value="maintenance">
                   <MaintenanceHistory productId={id!} />
+                </TabsContent>
+
+                {/* Reservations Tab */}
+                <TabsContent value="reservations">
+                  <ProductReservationsTab productId={id!} />
                 </TabsContent>
 
                 {/* Edit Tab */}

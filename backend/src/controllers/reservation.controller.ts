@@ -5,7 +5,7 @@ import * as reservationService from '../services/reservation.service.js'
 import { createSuccessResponse, SuccessMessages } from '../utils/response.js'
 import { listReservationsSchema } from '../schemas/reservation.js'
 import { uploadToS3 } from '../utils/s3.js'
-import sharp from 'sharp'
+import { compressFile } from '../services/file-compression.service.js'
 import type { ProductCondition } from '@prisma/client'
 import type {
   CreateReservationInput,
@@ -228,7 +228,7 @@ export const returnProduct = async (
   reply: FastifyReply
 ) => {
   const fields: Record<string, string> = {}
-  const photoFiles: Array<{ buffer: Buffer; filename: string; mimetype: string }> = []
+  const photoFiles: Array<{ buffer: Buffer; filename: string; mimetype: string; caption?: string }> = []
 
   // Check if request is multipart or JSON
   const contentType = request.headers['content-type'] || ''
@@ -236,9 +236,20 @@ export const returnProduct = async (
 
   if (isMultipart) {
     // Process multipart data
+    // Photos are sent as 'photos' (file) and captions as 'captions' (JSON array) or 'caption_0', 'caption_1', etc.
     const parts = request.parts()
+    const captionsMap: Record<number, string> = {}
+
     for await (const part of parts) {
       if (part.type === 'file' && part.fieldname === 'photos') {
+        // Validate image type
+        if (!part.mimetype.startsWith('image/')) {
+          throw {
+            statusCode: 400,
+            message: 'Seules les images sont autorisées (JPG, PNG, WebP, GIF)',
+            code: 'INVALID_FILE_TYPE',
+          }
+        }
         const buffer = await part.toBuffer()
         photoFiles.push({
           buffer,
@@ -246,9 +257,23 @@ export const returnProduct = async (
           mimetype: part.mimetype,
         })
       } else if (part.type === 'field') {
-        fields[part.fieldname] = part.value as string
+        const fieldValue = part.value as string
+        // Handle caption fields (caption_0, caption_1, etc.)
+        const captionMatch = part.fieldname.match(/^caption_(\d+)$/)
+        if (captionMatch) {
+          captionsMap[parseInt(captionMatch[1], 10)] = fieldValue
+        } else {
+          fields[part.fieldname] = fieldValue
+        }
       }
     }
+
+    // Assign captions to photos
+    photoFiles.forEach((photo, index) => {
+      if (captionsMap[index]) {
+        photo.caption = captionsMap[index]
+      }
+    })
   } else {
     // Process JSON body
     const body = request.body as { condition?: string; notes?: string } | undefined
@@ -270,47 +295,27 @@ export const returnProduct = async (
     }
   }
 
-  // Validate max 3 photos
-  if (photoFiles.length > 3) {
-    throw {
-      statusCode: 400,
-      message: 'Maximum 3 photos autorisées',
-      code: 'TOO_MANY_PHOTOS',
-    }
-  }
-
-  // Compress and upload photos to S3
+  // Compress and upload photos to S3 (no limit on number of photos)
   const uploadedPhotos = await Promise.all(
     photoFiles.map(async (file, index) => {
-      let processedBuffer = file.buffer
-      let finalMimeType = file.mimetype
-      let fileExtension = file.filename.split('.').pop()
+      // Use the compression service (1200px, 60% quality)
+      const compressed = await compressFile(file.buffer, file.mimetype, file.filename)
 
-      // Compress images (JPEG, PNG, WebP)
-      if (file.mimetype.startsWith('image/')) {
-        try {
-          processedBuffer = await sharp(file.buffer)
-            .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 85, mozjpeg: true })
-            .toBuffer()
-
-          finalMimeType = 'image/jpeg'
-          fileExtension = 'jpg'
-        } catch (error) {
-          // If compression fails, use original
-          console.error('Image compression failed:', error)
-        }
-      }
+      // Determine file extension from compressed mime type
+      let fileExtension = 'jpg'
+      if (compressed.mimeType === 'image/webp') fileExtension = 'webp'
+      else if (compressed.mimeType === 'image/png') fileExtension = 'png'
+      else if (compressed.mimeType === 'image/gif') fileExtension = 'gif'
 
       const key = `movements/${request.params.id}/return-${Date.now()}-${index}.${fileExtension}`
-      await uploadToS3(key, processedBuffer, finalMimeType)
+      await uploadToS3(key, compressed.buffer, compressed.mimeType)
 
       return {
         s3Key: key,
-        filename: file.filename,
-        mimeType: finalMimeType,
-        size: processedBuffer.length,
-        sortOrder: index,
+        filename: compressed.newFilename || file.filename,
+        mimeType: compressed.mimeType,
+        size: compressed.size,
+        caption: file.caption,
       }
     })
   )

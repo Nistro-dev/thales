@@ -12,10 +12,10 @@ import { logger } from '../utils/logger.js'
 
 const execAsync = promisify(exec)
 
-const IMAGE_MAX_WIDTH = 2000
-const IMAGE_MAX_HEIGHT = 2000
-const IMAGE_QUALITY_JPEG = 90
-const IMAGE_QUALITY_WEBP = 85
+const IMAGE_MAX_WIDTH = 1200
+const IMAGE_MAX_HEIGHT = 1200
+const IMAGE_QUALITY_JPEG = 60
+const IMAGE_QUALITY_WEBP = 60
 const VIDEO_CRF = 28
 const VIDEO_PRESET = 'medium'
 

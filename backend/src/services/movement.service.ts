@@ -8,6 +8,7 @@ interface MovementPhotoData {
   filename: string
   mimeType: string
   size: number
+  caption?: string
 }
 
 interface CreateMovementParams {
@@ -41,6 +42,7 @@ export const createMovement = async (params: CreateMovementParams) => {
                 mimeType: photo.mimeType,
                 size: photo.size,
                 sortOrder: index,
+                caption: photo.caption,
               })),
             }
           : undefined,

@@ -311,6 +311,60 @@ export const adminProductsApi = {
 };
 
 // ============================================
+// PRODUCT RESERVATIONS (for admin product detail)
+// ============================================
+
+export interface ProductReservation {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  returnCondition?: ProductCondition | null;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
+export interface ProductReservationsFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export const productReservationsApi = {
+  /**
+   * Get reservations for a specific product
+   */
+  list: (productId: string, filters: ProductReservationsFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+    if (filters.search) params.append("search", filters.search);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.sortBy) params.append("sortBy", filters.sortBy);
+    if (filters.sortOrder) params.append("sortOrder", filters.sortOrder);
+
+    const query = params.toString();
+    return apiClient.get<
+      ApiResponse<{
+        data: ProductReservation[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>
+    >(`/products/${productId}/reservations${query ? `?${query}` : ""}`);
+  },
+};
+
+// ============================================
 // ADMIN MOVEMENTS API
 // ============================================
 

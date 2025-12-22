@@ -24,6 +24,12 @@ export const productRoutes = async (fastify: FastifyInstance) => {
     handler: productController.listFilesAdmin,
   })
 
+  // Product reservations (admin only)
+  fastify.get('/:id/reservations', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_RESERVATIONS),
+    handler: productController.listReservations,
+  })
+
   // ============================================
   // MAINTENANCE ROUTES (Admin only)
   // ============================================

@@ -31,6 +31,7 @@ import { CheckoutDialog } from "../components/CheckoutDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
 import { AdminCancelDialog } from "../components/AdminCancelDialog";
 import { RefundDialog } from "../components/RefundDialog";
+import { MovementPhotosSection } from "../components/MovementPhotosSection";
 import type { ReservationStatus, ProductCondition } from "@/types";
 
 const statusLabels: Record<ReservationStatus, string> = {
@@ -72,11 +73,15 @@ export function AdminReservationDetailPage() {
     }
   };
 
-  const handleReturn = async (condition: ProductCondition, notes?: string) => {
+  const handleReturn = async (
+    condition: ProductCondition,
+    notes?: string,
+    photos?: Array<{ file: File; caption?: string }>,
+  ) => {
     try {
       await returnMutation.mutateAsync({
         id: id!,
-        data: { condition, notes },
+        data: { condition, notes, photos },
       });
       setDialogType(null);
     } catch {
@@ -426,6 +431,9 @@ export function AdminReservationDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Movement Photos */}
+          <MovementPhotosSection movements={reservation.movements} />
         </div>
 
         {/* Right Column - Actions & Timeline */}

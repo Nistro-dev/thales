@@ -223,6 +223,31 @@ export type ReservationStatus =
   | "CANCELLED"
   | "REFUNDED";
 
+export interface MovementPhoto {
+  id: string;
+  s3Key: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  sortOrder: number;
+  caption?: string | null;
+  url?: string;
+}
+
+export interface ReservationMovement {
+  id: string;
+  type: "CHECKOUT" | "RETURN" | "STATUS_CHANGE";
+  condition?: ProductCondition | null;
+  notes?: string | null;
+  performedAt: string;
+  performedByUser?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  photos?: MovementPhoto[];
+}
+
 export interface Reservation {
   id: string;
   userId: string;
@@ -253,6 +278,7 @@ export interface Reservation {
   refundedAt?: string | null;
   refundedBy?: string | null;
   refundAmount?: number | null;
+  movements?: ReservationMovement[];
   createdAt: string;
   updatedAt: string;
 }

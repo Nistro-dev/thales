@@ -3,9 +3,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import * as productService from '../services/product.service.js'
 import * as productFileService from '../services/product-file.service.js'
+import * as reservationService from '../services/reservation.service.js'
 import { createSuccessResponse, SuccessMessages } from '../utils/response.js'
 import { prisma } from '../utils/prisma.js'
 import { listProductsSchema } from '../schemas/product.js'
+import type { ReservationStatus } from '@prisma/client'
 import type {
   ListProductsInput,
   CreateProductInput,
@@ -239,4 +241,46 @@ export const renameFile = async (
     request
   )
   return reply.send(createSuccessResponse(SuccessMessages.UPDATED, file))
+}
+
+// ============================================
+// PRODUCT RESERVATIONS
+// ============================================
+
+interface ListProductReservationsQuery {
+  page?: string
+  limit?: string
+  search?: string
+  status?: ReservationStatus
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+export const listReservations = async (
+  request: FastifyRequest<{ Params: { id: string }; Querystring: ListProductReservationsQuery }>,
+  reply: FastifyReply
+) => {
+  const { page = '1', limit = '10', search, status, sortBy, sortOrder } = request.query
+
+  const { reservations, total } = await reservationService.listProductReservations({
+    productId: request.params.id,
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+    search,
+    status,
+    sortBy,
+    sortOrder,
+  })
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.RETRIEVED, {
+      data: reservations,
+      pagination: {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        total,
+        totalPages: Math.ceil(total / parseInt(limit, 10)),
+      },
+    })
+  )
 }

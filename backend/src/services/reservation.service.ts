@@ -4,6 +4,7 @@ import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
 import { createMovement } from './movement.service.js'
 import { generateReservationQRCode } from '../utils/qrCode.js'
+import { generatePresignedUrl } from '../utils/s3.js'
 import { FastifyRequest } from 'fastify'
 import type { ReservationStatus, ProductCondition, CreditPeriod } from '@prisma/client'
 import * as notificationHelper from './notification-helper.service.js'
@@ -717,11 +718,33 @@ export const getReservationById = async (id: string, userId?: string) => {
           subSection: { select: { id: true, name: true } },
         },
       },
+      movements: {
+        include: {
+          photos: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          performedByUser: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+        orderBy: { performedAt: 'desc' },
+      },
     },
   })
 
   if (!reservation) {
     throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
+  }
+
+  // Add presigned URLs for movement photos
+  if (reservation.movements) {
+    for (const movement of reservation.movements) {
+      if (movement.photos) {
+        for (const photo of movement.photos) {
+          (photo as any).url = await generatePresignedUrl(photo.s3Key)
+        }
+      }
+    }
   }
 
   return reservation
@@ -1200,6 +1223,7 @@ interface MovementPhotoData {
   filename: string
   mimeType: string
   size: number
+  caption?: string
 }
 
 interface ReturnParams {
@@ -1487,4 +1511,89 @@ export const checkAvailability = async (
     available: !conflict,
     conflictingReservation: conflict,
   }
+}
+
+// ============================================
+// PRODUCT RESERVATIONS (for product detail page)
+// ============================================
+
+interface ListProductReservationsParams {
+  productId: string
+  page: number
+  limit: number
+  search?: string
+  status?: ReservationStatus
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+export const listProductReservations = async (params: ListProductReservationsParams) => {
+  const {
+    productId,
+    page,
+    limit,
+    search,
+    status,
+    sortBy = 'startDate',
+    sortOrder = 'desc',
+  } = params
+
+  // Verify product exists
+  const product = await prisma.product.findUnique({ where: { id: productId } })
+  if (!product) {
+    throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
+  }
+
+  const where: any = { productId }
+
+  if (status) {
+    where.status = status
+  }
+
+  if (search) {
+    where.user = {
+      OR: [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ],
+    }
+  }
+
+  const [reservations, total] = await Promise.all([
+    prisma.reservation.findMany({
+      where,
+      include: {
+        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.reservation.count({ where }),
+  ])
+
+  // Get return conditions from movements for returned reservations
+  const returnedIds = reservations.filter(r => r.status === 'RETURNED').map(r => r.id)
+  const returnMovements = returnedIds.length > 0
+    ? await prisma.productMovement.findMany({
+        where: {
+          reservationId: { in: returnedIds },
+          type: 'RETURN',
+        },
+        select: {
+          reservationId: true,
+          condition: true,
+        },
+      })
+    : []
+
+  const conditionMap = new Map(returnMovements.map(m => [m.reservationId, m.condition]))
+
+  const reservationsWithCondition = reservations.map(r => ({
+    ...r,
+    returnCondition: r.status === 'RETURNED' ? conditionMap.get(r.id) || null : null,
+  }))
+
+  return { reservations: reservationsWithCondition, total }
 }

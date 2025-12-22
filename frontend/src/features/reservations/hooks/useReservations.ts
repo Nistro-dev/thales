@@ -229,12 +229,7 @@ export function useReturnReservation() {
           | "MISSING_PARTS"
           | "BROKEN";
         notes?: string;
-        photos?: Array<{
-          s3Key: string;
-          filename: string;
-          mimeType: string;
-          size: number;
-        }>;
+        photos?: Array<{ file: File; caption?: string }>;
       };
     }) => {
       const response = await reservationsAdminApi.return(id, data);

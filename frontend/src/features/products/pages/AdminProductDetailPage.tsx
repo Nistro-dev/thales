@@ -487,45 +487,73 @@ export function AdminProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Last movement info */}
-                  {product.lastMovementAt && (
+                  {/* Last movement info - use actual movement data */}
+                  {movements && movements.length > 0 && (
                     <div>
                       <h3 className="font-semibold mb-3 flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         Dernier mouvement
                       </h3>
-                      <div className="bg-muted/30 rounded-lg p-4">
+                      <div className="bg-muted/30 rounded-lg p-4 space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <span>
                             {format(
-                              new Date(product.lastMovementAt),
+                              new Date(movements[0].performedAt),
                               "dd MMMM yyyy à HH:mm",
                               { locale: fr },
                             )}
                           </span>
-                          {product.lastCondition && (
-                            <Badge
-                              variant={
-                                product.lastCondition === "OK"
+                          <Badge
+                            variant={
+                              movements[0].type === "CHECKOUT"
+                                ? "secondary"
+                                : movements[0].type === "RETURN"
                                   ? "default"
-                                  : "destructive"
-                              }
-                            >
-                              {product.lastCondition === "OK"
-                                ? "OK"
-                                : product.lastCondition === "MINOR_DAMAGE"
-                                  ? "Dégâts mineurs"
-                                  : product.lastCondition === "MAJOR_DAMAGE"
-                                    ? "Dégâts majeurs"
-                                    : product.lastCondition === "MISSING_PARTS"
-                                      ? "Pièces manquantes"
-                                      : product.lastCondition === "BROKEN"
-                                        ? "Cassé"
-                                        : product.lastCondition}
-                            </Badge>
-                          )}
+                                  : "outline"
+                            }
+                          >
+                            {movements[0].type === "CHECKOUT"
+                              ? "Sortie"
+                              : movements[0].type === "RETURN"
+                                ? "Retour"
+                                : "Changement de statut"}
+                          </Badge>
                         </div>
+                        {movements[0].type === "RETURN" &&
+                          movements[0].condition && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground">
+                                État :
+                              </span>
+                              <Badge
+                                variant={
+                                  movements[0].condition === "OK"
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+                                {movements[0].condition === "OK"
+                                  ? "OK"
+                                  : movements[0].condition === "MINOR_DAMAGE"
+                                    ? "Dégâts mineurs"
+                                    : movements[0].condition === "MAJOR_DAMAGE"
+                                      ? "Dégâts majeurs"
+                                      : movements[0].condition ===
+                                          "MISSING_PARTS"
+                                        ? "Pièces manquantes"
+                                        : movements[0].condition === "BROKEN"
+                                          ? "Cassé"
+                                          : movements[0].condition}
+                              </Badge>
+                            </div>
+                          )}
+                        {movements[0].performedByUser && (
+                          <div className="text-xs text-muted-foreground">
+                            Par {movements[0].performedByUser.firstName}{" "}
+                            {movements[0].performedByUser.lastName}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

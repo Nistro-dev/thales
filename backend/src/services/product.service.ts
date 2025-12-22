@@ -383,9 +383,19 @@ export const deleteProduct = async (id: string, performedBy: string, _request?: 
     throw { statusCode: 404, message: 'Produit introuvable', code: 'NOT_FOUND' }
   }
 
+  const oldStatus = product.status
+
   await prisma.product.update({
     where: { id },
     data: { status: 'ARCHIVED' },
+  })
+
+  // Create a movement record for archiving
+  await createMovement({
+    productId: id,
+    type: 'STATUS_CHANGE',
+    notes: `Changement de statut: ${oldStatus} → ARCHIVED`,
+    performedBy,
   })
 
   await logAudit({
@@ -393,7 +403,7 @@ export const deleteProduct = async (id: string, performedBy: string, _request?: 
     action: 'PRODUCT_DELETE',
     targetType: 'Product',
     targetId: id,
-    metadata: { name: product.name },
+    metadata: { name: product.name, oldStatus },
   })
 }
 

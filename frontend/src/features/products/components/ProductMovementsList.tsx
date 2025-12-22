@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -11,11 +12,16 @@ import {
   Archive,
   Ban,
   User,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ProductMovement } from "@/api/products.api";
 import type { ProductCondition } from "@/types";
+
+const ITEMS_PER_PAGE = 10;
 
 interface ProductMovementsListProps {
   movements: ProductMovement[];
@@ -76,6 +82,8 @@ export function ProductMovementsList({
   movements,
   isLoading,
 }: ProductMovementsListProps) {
+  const [page, setPage] = useState(1);
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -96,159 +104,204 @@ export function ProductMovementsList({
     );
   }
 
-  return (
-    <div className="space-y-3">
-      {movements.map((movement) => {
-        const isCheckout = movement.type === "CHECKOUT";
-        const isReturn = movement.type === "RETURN";
-        const isStatusChange = movement.type === "STATUS_CHANGE";
-        const reservationUser = movement.reservation?.user;
-        const performedByUser = movement.performedByUser;
-        const condition = movement.condition;
-        const hasIssue = condition && condition !== "OK" && isReturn;
-        const statusChange = isStatusChange
-          ? parseStatusChange(movement.notes)
-          : null;
-        const NewStatusIcon = statusChange
-          ? statusIcons[statusChange.to] || Settings
-          : Settings;
+  const totalPages = Math.ceil(movements.length / ITEMS_PER_PAGE);
+  const startIndex = (page - 1) * ITEMS_PER_PAGE;
+  const paginatedMovements = movements.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
 
-        return (
-          <div
-            key={movement.id}
-            className={cn(
-              "flex items-start gap-4 p-4 rounded-lg border",
-              hasIssue &&
-                "border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30",
-            )}
-          >
-            {/* Icon */}
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {paginatedMovements.map((movement) => {
+          const isCheckout = movement.type === "CHECKOUT";
+          const isReturn = movement.type === "RETURN";
+          const isStatusChange = movement.type === "STATUS_CHANGE";
+          const reservationUser = movement.reservation?.user;
+          const performedByUser = movement.performedByUser;
+          const condition = movement.condition;
+          const hasIssue = condition && condition !== "OK" && isReturn;
+          const statusChange = isStatusChange
+            ? parseStatusChange(movement.notes)
+            : null;
+          const NewStatusIcon = statusChange
+            ? statusIcons[statusChange.to] || Settings
+            : Settings;
+
+          return (
             <div
+              key={movement.id}
               className={cn(
-                "flex-shrink-0 p-2 rounded-full",
-                isCheckout &&
-                  "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400",
-                isReturn &&
-                  "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400",
-                isStatusChange &&
-                  (statusChange
-                    ? statusColors[statusChange.to]
-                    : "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400"),
+                "flex items-start gap-4 p-4 rounded-lg border",
+                hasIssue &&
+                  "border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/30",
               )}
             >
-              {isCheckout && <ArrowUpFromLine className="h-4 w-4" />}
-              {isReturn && <ArrowDownToLine className="h-4 w-4" />}
-              {isStatusChange && <NewStatusIcon className="h-4 w-4" />}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                {isCheckout && <span className="font-medium">Sortie</span>}
-                {isReturn && (
-                  <>
-                    <span className="font-medium">Retour</span>
-                    {condition && (
-                      <Badge variant={conditionConfig[condition].variant}>
-                        {conditionConfig[condition].label}
-                      </Badge>
-                    )}
-                  </>
+              {/* Icon */}
+              <div
+                className={cn(
+                  "flex-shrink-0 p-2 rounded-full",
+                  isCheckout &&
+                    "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400",
+                  isReturn &&
+                    "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400",
+                  isStatusChange &&
+                    (statusChange
+                      ? statusColors[statusChange.to]
+                      : "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400"),
                 )}
-                {isStatusChange && statusChange && (
-                  <>
-                    <span className="font-medium">Changement de statut</span>
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <Badge variant="outline" className="font-normal">
-                        {statusLabels[statusChange.from] || statusChange.from}
-                      </Badge>
-                      <span className="text-muted-foreground">→</span>
-                      <Badge
-                        variant={
-                          statusChange.to === "AVAILABLE"
-                            ? "default"
-                            : statusChange.to === "MAINTENANCE"
-                              ? "secondary"
-                              : "outline"
-                        }
-                      >
-                        {statusLabels[statusChange.to] || statusChange.to}
-                      </Badge>
-                    </div>
-                  </>
-                )}
+              >
+                {isCheckout && <ArrowUpFromLine className="h-4 w-4" />}
+                {isReturn && <ArrowDownToLine className="h-4 w-4" />}
+                {isStatusChange && <NewStatusIcon className="h-4 w-4" />}
               </div>
 
-              <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                <div className="flex items-center flex-wrap gap-x-2">
-                  {/* Utilisateur de la réservation (pour checkout/return) */}
-                  {(isCheckout || isReturn) && reservationUser && (
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isCheckout && <span className="font-medium">Sortie</span>}
+                  {isReturn && (
                     <>
-                      <span>
-                        {reservationUser.firstName} {reservationUser.lastName}
-                      </span>
-                      <span>•</span>
+                      <span className="font-medium">Retour</span>
+                      {condition && (
+                        <Badge variant={conditionConfig[condition].variant}>
+                          {conditionConfig[condition].label}
+                        </Badge>
+                      )}
                     </>
                   )}
-                  <span>
-                    {format(
-                      new Date(movement.performedAt),
-                      "dd MMM yyyy à HH:mm",
-                      { locale: fr },
-                    )}
-                  </span>
+                  {isStatusChange && statusChange && (
+                    <>
+                      <span className="font-medium">Changement de statut</span>
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Badge variant="outline" className="font-normal">
+                          {statusLabels[statusChange.from] || statusChange.from}
+                        </Badge>
+                        <span className="text-muted-foreground">→</span>
+                        <Badge
+                          variant={
+                            statusChange.to === "AVAILABLE"
+                              ? "default"
+                              : statusChange.to === "MAINTENANCE"
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
+                          {statusLabels[statusChange.to] || statusChange.to}
+                        </Badge>
+                      </div>
+                    </>
+                  )}
                 </div>
-                {/* Utilisateur qui a effectué l'action */}
-                {performedByUser && (
-                  <div className="flex items-center gap-1 text-xs">
-                    <User className="h-3 w-3" />
+
+                <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                  <div className="flex items-center flex-wrap gap-x-2">
+                    {/* Utilisateur de la réservation (pour checkout/return) */}
+                    {(isCheckout || isReturn) && reservationUser && (
+                      <>
+                        <span>
+                          {reservationUser.firstName} {reservationUser.lastName}
+                        </span>
+                        <span>•</span>
+                      </>
+                    )}
                     <span>
-                      Par {performedByUser.firstName} {performedByUser.lastName}
+                      {format(
+                        new Date(movement.performedAt),
+                        "dd MMM yyyy à HH:mm",
+                        { locale: fr },
+                      )}
                     </span>
+                  </div>
+                  {/* Utilisateur qui a effectué l'action */}
+                  {performedByUser && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <User className="h-3 w-3" />
+                      <span>
+                        Par {performedByUser.firstName}{" "}
+                        {performedByUser.lastName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Show notes only for checkout/return, not for status changes (already displayed above) */}
+                {movement.notes && !isStatusChange && (
+                  <p className="mt-2 text-sm bg-muted/50 p-2 rounded">
+                    {movement.notes}
+                  </p>
+                )}
+
+                {/* Photos for returns with damage */}
+                {movement.photos && movement.photos.length > 0 && (
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    {movement.photos.map((photo) => (
+                      <a
+                        key={photo.id}
+                        href={photo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={photo.url}
+                          alt="Photo du retour"
+                          className="h-16 w-16 object-cover rounded border hover:opacity-80 transition-opacity"
+                        />
+                      </a>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* Show notes only for checkout/return, not for status changes (already displayed above) */}
-              {movement.notes && !isStatusChange && (
-                <p className="mt-2 text-sm bg-muted/50 p-2 rounded">
-                  {movement.notes}
-                </p>
-              )}
-
-              {/* Photos for returns with damage */}
-              {movement.photos && movement.photos.length > 0 && (
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  {movement.photos.map((photo) => (
-                    <a
-                      key={photo.id}
-                      href={photo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <img
-                        src={photo.url}
-                        alt="Photo du retour"
-                        className="h-16 w-16 object-cover rounded border hover:opacity-80 transition-opacity"
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
+              {/* Status indicator */}
+              <div className="flex-shrink-0">
+                {hasIssue ? (
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                ) : (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                )}
+              </div>
             </div>
+          );
+        })}
+      </div>
 
-            {/* Status indicator */}
-            <div className="flex-shrink-0">
-              {hasIssue ? (
-                <AlertTriangle className="h-5 w-5 text-orange-500" />
-              ) : (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              )}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t pt-4">
+          <span className="text-sm text-muted-foreground">
+            {movements.length} mouvement{movements.length > 1 ? "s" : ""} au
+            total
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">
+              Page {page} sur {totalPages}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setPage(page + 1)}
+                disabled={page === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        );
-      })}
+        </div>
+      )}
     </div>
   );
 }

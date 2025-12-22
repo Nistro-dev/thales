@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -8,8 +9,11 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -27,6 +31,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useMaintenanceHistory } from "../hooks/useMaintenance";
 import type { ProductMaintenance } from "@/api/maintenance.api";
+
+const ITEMS_PER_PAGE = 10;
 
 interface MaintenanceHistoryProps {
   productId: string;
@@ -89,6 +95,7 @@ function MaintenanceStatusBadge({
 
 export function MaintenanceHistory({ productId }: MaintenanceHistoryProps) {
   const { data: maintenances, isLoading } = useMaintenanceHistory(productId);
+  const [page, setPage] = useState(1);
 
   if (isLoading) {
     return (
@@ -109,125 +116,173 @@ export function MaintenanceHistory({ productId }: MaintenanceHistoryProps) {
     );
   }
 
+  const totalPages = Math.ceil(maintenances.length / ITEMS_PER_PAGE);
+  const startIndex = (page - 1) * ITEMS_PER_PAGE;
+  const paginatedMaintenances = maintenances.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
+
   return (
     <TooltipProvider>
-      <div className="rounded-md border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Statut</TableHead>
-              <TableHead>Période</TableHead>
-              <TableHead>Raison</TableHead>
-              <TableHead className="text-center">
-                <Tooltip>
-                  <TooltipTrigger>
-                    <XCircle className="h-4 w-4" />
-                  </TooltipTrigger>
-                  <TooltipContent>Réservations annulées</TooltipContent>
-                </Tooltip>
-              </TableHead>
-              <TableHead className="text-center">
-                <Tooltip>
-                  <TooltipTrigger>
-                    <CreditCard className="h-4 w-4" />
-                  </TooltipTrigger>
-                  <TooltipContent>Crédits remboursés</TooltipContent>
-                </Tooltip>
-              </TableHead>
-              <TableHead>Créée par</TableHead>
-              <TableHead>Terminée</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {maintenances.map((maintenance) => (
-              <TableRow key={maintenance.id}>
-                <TableCell>
-                  <MaintenanceStatusBadge maintenance={maintenance} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    {format(new Date(maintenance.startDate), "dd/MM/yyyy", {
-                      locale: fr,
-                    })}
-                    {" - "}
-                    {maintenance.endDate
-                      ? format(new Date(maintenance.endDate), "dd/MM/yyyy", {
-                          locale: fr,
-                        })
-                      : "Indéterminée"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {maintenance.reason ? (
-                    <Tooltip>
-                      <TooltipTrigger className="text-left">
-                        <span className="text-sm max-w-[150px] truncate block">
-                          {maintenance.reason}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        {maintenance.reason}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  {maintenance.cancelledReservationsCount > 0 ? (
-                    <span className="font-medium text-red-600">
-                      {maintenance.cancelledReservationsCount}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">0</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-center">
-                  {maintenance.refundedCreditsTotal > 0 ? (
-                    <span className="font-medium">
-                      {maintenance.refundedCreditsTotal}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">0</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <User className="h-3.5 w-3.5" />
-                    <span className="truncate max-w-[120px]">
-                      {maintenance.createdByUser
-                        ? `${maintenance.createdByUser.firstName} ${maintenance.createdByUser.lastName}`.trim()
-                        : maintenance.createdBy.substring(0, 8) + "..."}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {maintenance.endedAt ? (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <span className="text-sm text-muted-foreground">
-                          {format(new Date(maintenance.endedAt), "dd/MM/yyyy", {
-                            locale: fr,
-                          })}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {maintenance.endedByUser
-                          ? `Terminée par ${maintenance.endedByUser.firstName} ${maintenance.endedByUser.lastName}`.trim()
-                          : maintenance.endedBy === "SYSTEM"
-                            ? "Terminée automatiquement"
-                            : `Terminée par ${maintenance.endedBy}`}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )}
-                </TableCell>
+      <div className="space-y-4">
+        <div className="rounded-md border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Statut</TableHead>
+                <TableHead>Période</TableHead>
+                <TableHead>Raison</TableHead>
+                <TableHead className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <XCircle className="h-4 w-4" />
+                    </TooltipTrigger>
+                    <TooltipContent>Réservations annulées</TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <CreditCard className="h-4 w-4" />
+                    </TooltipTrigger>
+                    <TooltipContent>Crédits remboursés</TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead>Créée par</TableHead>
+                <TableHead>Terminée</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedMaintenances.map((maintenance) => (
+                <TableRow key={maintenance.id}>
+                  <TableCell>
+                    <MaintenanceStatusBadge maintenance={maintenance} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-sm">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      {format(new Date(maintenance.startDate), "dd/MM/yyyy", {
+                        locale: fr,
+                      })}
+                      {" - "}
+                      {maintenance.endDate
+                        ? format(new Date(maintenance.endDate), "dd/MM/yyyy", {
+                            locale: fr,
+                          })
+                        : "Indéterminée"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {maintenance.reason ? (
+                      <Tooltip>
+                        <TooltipTrigger className="text-left">
+                          <span className="text-sm max-w-[150px] truncate block">
+                            {maintenance.reason}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          {maintenance.reason}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {maintenance.cancelledReservationsCount > 0 ? (
+                      <span className="font-medium text-red-600">
+                        {maintenance.cancelledReservationsCount}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {maintenance.refundedCreditsTotal > 0 ? (
+                      <span className="font-medium">
+                        {maintenance.refundedCreditsTotal}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <User className="h-3.5 w-3.5" />
+                      <span className="truncate max-w-[120px]">
+                        {maintenance.createdByUser
+                          ? `${maintenance.createdByUser.firstName} ${maintenance.createdByUser.lastName}`.trim()
+                          : maintenance.createdBy.substring(0, 8) + "..."}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {maintenance.endedAt ? (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="text-sm text-muted-foreground">
+                            {format(
+                              new Date(maintenance.endedAt),
+                              "dd/MM/yyyy",
+                              {
+                                locale: fr,
+                              },
+                            )}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {maintenance.endedByUser
+                            ? `Terminée par ${maintenance.endedByUser.firstName} ${maintenance.endedByUser.lastName}`.trim()
+                            : maintenance.endedBy === "SYSTEM"
+                              ? "Terminée automatiquement"
+                              : `Terminée par ${maintenance.endedBy}`}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t pt-4">
+            <span className="text-sm text-muted-foreground">
+              {maintenances.length} maintenance
+              {maintenances.length > 1 ? "s" : ""} au total
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Page {page} sur {totalPages}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );

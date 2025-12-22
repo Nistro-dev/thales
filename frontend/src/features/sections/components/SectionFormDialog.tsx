@@ -2,32 +2,37 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, FolderPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useCreateSection, useUpdateSection } from "../hooks/useSectionsAdmin";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { Section } from "@/types";
 
-// Schema
+// Schema simplifié - juste nom et description pour la création
 const sectionSchema = z.object({
   name: z
     .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
     .max(100),
   description: z.string().max(500).optional(),
-  allowedDaysIn: z.array(z.number()).default([1, 2, 3, 4, 5]),
-  allowedDaysOut: z.array(z.number()).default([1, 2, 3, 4, 5]),
-  refundDeadlineHours: z.coerce.number().int().min(0).default(48),
 });
 
 type SectionFormData = z.infer<typeof sectionSchema>;
@@ -36,91 +41,60 @@ interface SectionFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   section?: Section | null;
+  onCreated?: (sectionId: string) => void;
 }
-
-const DAYS = [
-  { value: 0, label: "Dim" },
-  { value: 1, label: "Lun" },
-  { value: 2, label: "Mar" },
-  { value: 3, label: "Mer" },
-  { value: 4, label: "Jeu" },
-  { value: 5, label: "Ven" },
-  { value: 6, label: "Sam" },
-];
 
 export function SectionFormDialog({
   open,
   onOpenChange,
   section,
+  onCreated,
 }: SectionFormDialogProps) {
   const createSection = useCreateSection();
   const updateSection = useUpdateSection();
   const isEditing = !!section;
+  const isDesktop = useMediaQuery("(min-width: 640px)");
 
   const {
     register,
     handleSubmit,
     reset,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<SectionFormData>({
     resolver: zodResolver(sectionSchema),
     defaultValues: {
       name: "",
       description: "",
-      allowedDaysIn: [1, 2, 3, 4, 5],
-      allowedDaysOut: [1, 2, 3, 4, 5],
-      refundDeadlineHours: 48,
     },
   });
-
-  const allowedDaysIn = watch("allowedDaysIn");
-  const allowedDaysOut = watch("allowedDaysOut");
 
   useEffect(() => {
     if (section) {
       reset({
         name: section.name,
         description: section.description || "",
-        allowedDaysIn: section.allowedDaysIn || [1, 2, 3, 4, 5],
-        allowedDaysOut: section.allowedDaysOut || [1, 2, 3, 4, 5],
-        refundDeadlineHours: section.refundDeadlineHours ?? 48,
       });
     } else {
       reset({
         name: "",
         description: "",
-        allowedDaysIn: [1, 2, 3, 4, 5],
-        allowedDaysOut: [1, 2, 3, 4, 5],
-        refundDeadlineHours: 48,
       });
     }
-  }, [section, reset]);
-
-  const toggleDay = (
-    field: "allowedDaysIn" | "allowedDaysOut",
-    day: number,
-  ) => {
-    const current = field === "allowedDaysIn" ? allowedDaysIn : allowedDaysOut;
-    if (current.includes(day)) {
-      setValue(
-        field,
-        current.filter((d) => d !== day),
-      );
-    } else {
-      setValue(field, [...current, day].sort());
-    }
-  };
+  }, [section, reset, open]);
 
   const onSubmit = async (data: SectionFormData) => {
     try {
       if (isEditing && section) {
         await updateSection.mutateAsync({ id: section.id, data });
+        onOpenChange(false);
       } else {
-        await createSection.mutateAsync(data);
+        const response = await createSection.mutateAsync(data);
+        onOpenChange(false);
+        // Rediriger vers le détail de la section créée
+        if (onCreated && response.data.data?.id) {
+          onCreated(response.data.data.id);
+        }
       }
-      onOpenChange(false);
     } catch {
       // Error handled in hook
     }
@@ -128,124 +102,133 @@ export function SectionFormDialog({
 
   const isPending = createSection.isPending || updateSection.isPending;
 
+  const formContent = (
+    <form
+      id="section-form"
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-5"
+    >
+      <div className="space-y-2">
+        <Label htmlFor="name" className="text-sm font-medium">
+          Nom de la section *
+        </Label>
+        <Input
+          id="name"
+          {...register("name")}
+          placeholder="Ex: Photo, Vidéo, Son..."
+          disabled={isPending}
+          className="h-11"
+          autoFocus
+        />
+        {errors.name && (
+          <p className="text-sm text-destructive">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-sm font-medium">
+          Description{" "}
+          <span className="text-muted-foreground font-normal">(optionnel)</span>
+        </Label>
+        <Textarea
+          id="description"
+          {...register("description")}
+          placeholder="Décrivez brièvement cette section..."
+          disabled={isPending}
+          rows={3}
+          className="resize-none"
+        />
+        {errors.description && (
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
+        )}
+      </div>
+
+      {!isEditing && (
+        <p className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+          Après la création, vous pourrez configurer les jours autorisés, les
+          créneaux horaires et les périodes de fermeture.
+        </p>
+      )}
+    </form>
+  );
+
+  const footerContent = (
+    <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-2 w-full sm:w-auto sm:justify-end">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => onOpenChange(false)}
+        disabled={isPending}
+        className="w-full sm:w-auto"
+      >
+        Annuler
+      </Button>
+      <Button
+        type="submit"
+        form="section-form"
+        disabled={isPending}
+        className="w-full sm:w-auto"
+      >
+        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isEditing ? "Enregistrer" : "Créer la section"}
+      </Button>
+    </div>
+  );
+
+  // Mobile: Drawer from bottom
+  if (!isDesktop) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <FolderPlus className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <DrawerTitle>
+                  {isEditing ? "Modifier la section" : "Nouvelle section"}
+                </DrawerTitle>
+                <DrawerDescription>
+                  {isEditing
+                    ? "Modifiez les informations de la section"
+                    : "Créez une nouvelle catégorie de produits"}
+                </DrawerDescription>
+              </div>
+            </div>
+          </DrawerHeader>
+          <div className="px-4 pb-2">{formContent}</div>
+          <DrawerFooter className="pt-2">{footerContent}</DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Desktop: Dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Modifier la section" : "Nouvelle section"}
-          </DialogTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <FolderPlus className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle>
+                {isEditing ? "Modifier la section" : "Nouvelle section"}
+              </DialogTitle>
+              <DialogDescription>
+                {isEditing
+                  ? "Modifiez les informations de la section"
+                  : "Créez une nouvelle catégorie de produits"}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom *</Label>
-            <Input
-              id="name"
-              {...register("name")}
-              placeholder="Ex: Photo, Vidéo, Son..."
-              disabled={isPending}
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              {...register("description")}
-              placeholder="Description de la section (optionnel)"
-              disabled={isPending}
-              rows={3}
-            />
-            {errors.description && (
-              <p className="text-sm text-destructive">
-                {errors.description.message}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Jours autorisés pour récupération</Label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
-                <label
-                  key={`in-${day.value}`}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Checkbox
-                    checked={allowedDaysIn.includes(day.value)}
-                    onCheckedChange={() =>
-                      toggleDay("allowedDaysIn", day.value)
-                    }
-                    disabled={isPending}
-                  />
-                  <span className="text-sm">{day.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Jours autorisés pour retour</Label>
-            <div className="flex flex-wrap gap-2">
-              {DAYS.map((day) => (
-                <label
-                  key={`out-${day.value}`}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Checkbox
-                    checked={allowedDaysOut.includes(day.value)}
-                    onCheckedChange={() =>
-                      toggleDay("allowedDaysOut", day.value)
-                    }
-                    disabled={isPending}
-                  />
-                  <span className="text-sm">{day.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="refundDeadlineHours">
-              Délai d'annulation pour remboursement (heures)
-            </Label>
-            <Input
-              id="refundDeadlineHours"
-              type="number"
-              min="0"
-              {...register("refundDeadlineHours")}
-              disabled={isPending}
-            />
-            <p className="text-xs text-muted-foreground">
-              L'utilisateur doit annuler au moins ce nombre d'heures avant le
-              début de la réservation pour être remboursé automatiquement.
-            </p>
-            {errors.refundDeadlineHours && (
-              <p className="text-sm text-destructive">
-                {errors.refundDeadlineHours.message}
-              </p>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? "Enregistrer" : "Créer"}
-            </Button>
-          </DialogFooter>
-        </form>
+        <div className="py-2">{formContent}</div>
+        <div className="flex justify-end">{footerContent}</div>
       </DialogContent>
     </Dialog>
   );

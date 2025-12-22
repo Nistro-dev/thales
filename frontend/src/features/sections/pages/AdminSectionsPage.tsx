@@ -1,69 +1,80 @@
-import { useState } from 'react'
-import { Plus, FolderTree } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useSectionsAdmin } from '../hooks/useSectionsAdmin'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, FolderTree } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useSectionsAdmin } from "../hooks/useSectionsAdmin";
 import {
   SectionTree,
   SectionFormDialog,
   SubSectionFormDialog,
   DeleteSectionDialog,
-} from '../components'
-import type { SectionWithCount } from '@/api/sections.api'
-import type { Section, SubSection } from '@/types'
+} from "../components";
+import type { SectionWithCount } from "@/api/sections.api";
+import type { Section, SubSection } from "@/types";
 
 export function AdminSectionsPage() {
-  const { data: sections, isLoading, isError } = useSectionsAdmin(true)
+  const navigate = useNavigate();
+  const { data: sections, isLoading, isError } = useSectionsAdmin(true);
 
   // Section form dialog
-  const [sectionDialogOpen, setSectionDialogOpen] = useState(false)
-  const [editingSection, setEditingSection] = useState<Section | null>(null)
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
+  const [editingSection, setEditingSection] = useState<Section | null>(null);
 
   // SubSection form dialog
-  const [subSectionDialogOpen, setSubSectionDialogOpen] = useState(false)
-  const [editingSubSection, setEditingSubSection] = useState<SubSection | null>(null)
-  const [parentSectionId, setParentSectionId] = useState<string>('')
+  const [subSectionDialogOpen, setSubSectionDialogOpen] = useState(false);
+  const [editingSubSection, setEditingSubSection] = useState<SubSection | null>(
+    null,
+  );
+  const [parentSectionId, setParentSectionId] = useState<string>("");
 
   // Delete dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deletingSection, setDeletingSection] = useState<Section | null>(null)
-  const [deletingSubSection, setDeletingSubSection] = useState<SubSection | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingSection, setDeletingSection] = useState<Section | null>(null);
+  const [deletingSubSection, setDeletingSubSection] =
+    useState<SubSection | null>(null);
 
   // Handlers
   const handleAddSection = () => {
-    setEditingSection(null)
-    setSectionDialogOpen(true)
-  }
+    setEditingSection(null);
+    setSectionDialogOpen(true);
+  };
 
   const handleEditSection = (section: SectionWithCount) => {
-    setEditingSection(section)
-    setSectionDialogOpen(true)
-  }
+    setEditingSection(section);
+    setSectionDialogOpen(true);
+  };
 
   const handleDeleteSection = (section: SectionWithCount) => {
-    setDeletingSection(section)
-    setDeletingSubSection(null)
-    setDeleteDialogOpen(true)
-  }
+    setDeletingSection(section);
+    setDeletingSubSection(null);
+    setDeleteDialogOpen(true);
+  };
 
   const handleAddSubSection = (sectionId: string) => {
-    setParentSectionId(sectionId)
-    setEditingSubSection(null)
-    setSubSectionDialogOpen(true)
-  }
+    setParentSectionId(sectionId);
+    setEditingSubSection(null);
+    setSubSectionDialogOpen(true);
+  };
 
   const handleEditSubSection = (subSection: SubSection, sectionId: string) => {
-    setParentSectionId(sectionId)
-    setEditingSubSection(subSection)
-    setSubSectionDialogOpen(true)
-  }
+    setParentSectionId(sectionId);
+    setEditingSubSection(subSection);
+    setSubSectionDialogOpen(true);
+  };
 
   const handleDeleteSubSection = (subSection: SubSection) => {
-    setDeletingSubSection(subSection)
-    setDeletingSection(null)
-    setDeleteDialogOpen(true)
-  }
+    setDeletingSubSection(subSection);
+    setDeletingSection(null);
+    setDeleteDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -85,17 +96,19 @@ export function AdminSectionsPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="rounded-lg border border-destructive bg-destructive/10 p-8 text-center">
-          <p className="text-destructive">Erreur lors du chargement des sections</p>
+          <p className="text-destructive">
+            Erreur lors du chargement des sections
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -142,6 +155,7 @@ export function AdminSectionsPage() {
         open={sectionDialogOpen}
         onOpenChange={setSectionDialogOpen}
         section={editingSection}
+        onCreated={(sectionId) => navigate(`/admin/sections/${sectionId}`)}
       />
 
       <SubSectionFormDialog
@@ -158,5 +172,5 @@ export function AdminSectionsPage() {
         subSection={deletingSubSection}
       />
     </div>
-  )
+  );
 }

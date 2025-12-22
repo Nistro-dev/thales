@@ -142,45 +142,50 @@ async function backupUploadedFiles(outputPath: string): Promise<void> {
     select: { key: true, filename: true },
   })
 
-  if (files.length === 0) {
-    logger.info('No files to backup')
-    // Create empty archive
-    const output = createWriteStream(outputPath)
-    const archive = archiver('zip', { zlib: { level: 9 } })
-    archive.pipe(output)
-    await archive.finalize()
-    return
-  }
-
   const output = createWriteStream(outputPath)
   const archive = archiver('zip', { zlib: { level: 9 } })
 
+  // Handle archive errors
+  archive.on('error', (err) => {
+    logger.error({ error: err }, 'Archive error')
+    throw err
+  })
+
   archive.pipe(output)
 
-  // Download each file from S3 and add to archive
-  for (const file of files) {
-    try {
-      const command = new GetObjectCommand({
-        Bucket: env.S3_BUCKET,
-        Key: file.key,
-      })
-      const response = await s3Client.send(command)
+  if (files.length === 0) {
+    logger.info('No files to backup')
+    // Add a placeholder file to avoid empty archive issues
+    archive.append('No files at time of backup', { name: '.placeholder' })
+  } else {
+    // Download each file from S3 and add to archive
+    for (const file of files) {
+      try {
+        const command = new GetObjectCommand({
+          Bucket: env.S3_BUCKET,
+          Key: file.key,
+        })
+        const response = await s3Client.send(command)
 
-      if (response.Body) {
-        const chunks: Buffer[] = []
-        for await (const chunk of response.Body as AsyncIterable<Buffer>) {
-          chunks.push(chunk)
+        if (response.Body) {
+          const chunks: Buffer[] = []
+          for await (const chunk of response.Body as AsyncIterable<Buffer>) {
+            chunks.push(chunk)
+          }
+          const buffer = Buffer.concat(chunks)
+          archive.append(buffer, { name: file.key })
         }
-        const buffer = Buffer.concat(chunks)
-        archive.append(buffer, { name: file.key })
+      } catch (error) {
+        logger.warn({ key: file.key, error }, 'Failed to backup file, skipping')
       }
-    } catch (error) {
-      logger.warn({ key: file.key, error }, 'Failed to backup file, skipping')
     }
   }
 
   await archive.finalize()
-  await new Promise<void>((resolve) => output.on('close', resolve))
+  await new Promise<void>((resolve, reject) => {
+    output.on('close', resolve)
+    output.on('error', reject)
+  })
 
   logger.info({ outputPath, fileCount: files.length }, 'Files backup completed')
 }

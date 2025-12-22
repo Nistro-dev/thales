@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,17 +9,192 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum CautionStatus {
+  PENDING
+  VALIDATED
+  EXEMPTED
+}
+
+enum CreditTransactionType {
+  ADJUSTMENT
+  RESERVATION
+  REFUND
+  SYSTEM
+}
+
+enum ProductStatus {
+  AVAILABLE
+  UNAVAILABLE
+  MAINTENANCE
+  ARCHIVED
+}
+
+enum FileVisibility {
+  PUBLIC
+  ADMIN
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CHECKED_OUT
+  RETURNED
+  CANCELLED
+  REFUNDED
+}
+
+enum MovementType {
+  CHECKOUT
+  RETURN
+  STATUS_CHANGE
+}
+
+enum ProductCondition {
+  OK
+  MINOR_DAMAGE
+  MAJOR_DAMAGE
+  MISSING_PARTS
+  BROKEN
+}
+
+enum CreditPeriod {
+  DAY
+  WEEK
+}
+
+enum SlotType {
+  CHECKOUT
+  RETURN
+}
+
+enum AuditAction {
+  // Auth
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_COMPLETE
+  TOKEN_REFRESH
+
+  // Users
+  USER_CREATE
+  USER_UPDATE
+  USER_DELETE
+  USER_STATUS_CHANGE
+
+  // Invitations
+  INVITATION_CREATE
+  INVITATION_CANCEL
+  INVITATION_COMPLETE
+
+  // Credits
+  CREDIT_ADJUST
+
+  // Caution
+  CAUTION_VALIDATE
+  CAUTION_EXEMPT
+  CAUTION_RESET
+
+  // Roles & Permissions
+  ROLE_CREATE
+  ROLE_UPDATE
+  ROLE_DELETE
+  ROLE_ASSIGN
+  ROLE_REVOKE
+
+  // Sections
+  SECTION_CREATE
+  SECTION_UPDATE
+  SECTION_DELETE
+  SECTION_CLOSURE_CREATE
+  SECTION_CLOSURE_UPDATE
+  SECTION_CLOSURE_DELETE
+  SECTION_TIMESLOT_CREATE
+  SECTION_TIMESLOT_UPDATE
+  SECTION_TIMESLOT_DELETE
+
+  // SubSections
+  SUBSECTION_CREATE
+  SUBSECTION_UPDATE
+  SUBSECTION_DELETE
+
+  // Products
+  PRODUCT_CREATE
+  PRODUCT_UPDATE
+  PRODUCT_DELETE
+  PRODUCT_STATUS_CHANGE
+  PRODUCT_FILE_UPLOAD
+  PRODUCT_FILE_DELETE
+
+  // Maintenance
+  MAINTENANCE_CREATE
+  MAINTENANCE_UPDATE
+  MAINTENANCE_END
+  MAINTENANCE_CANCEL
+
+  // Reservations
+  RESERVATION_CREATE
+  RESERVATION_CANCEL
+  RESERVATION_CHECKOUT
+  RESERVATION_RETURN
+  RESERVATION_REFUND
+  RESERVATION_UPDATE
+  RESERVATION_EXTEND
+
+  // System
+  DATABASE_BACKUP
+  BACKUP_CREATE
+  BACKUP_DELETE
+  BACKUP_RESTORE
+}
+
+// ============================================
+// USER
+// ============================================
+
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  password      String
-  firstName     String
-  lastName      String
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
-  files         File[]
+  id                 String        @id @default(uuid())
+  email              String        @unique
+  password           String
+  firstName          String
+  lastName           String
+  phone              String?
+  status             UserStatus    @default(ACTIVE)
+  creditBalance      Int           @default(0)
+  cautionStatus      CautionStatus @default(PENDING)
+  emailNotifications Boolean       @default(true)
+  inAppNotifications Boolean       @default(true)
+  gdprConsentAt      DateTime?
+  gdprVersion        String?
+  lastLoginAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  refreshTokens           RefreshToken[]
+  passwordResets          PasswordReset[]
+  invitationsSent         Invitation[]              @relation("InvitationsSent")
+  files                   File[]
+  roles                   UserRole[]
+  creditTransactions      CreditTransaction[]
+  auditLogs               AuditLog[]                @relation("AuditUser")
+  auditLogsPerformed      AuditLog[]                @relation("AuditPerformer")
+  reservations            Reservation[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  legalPagesEdited        LegalPage[]
+  movementsPerformed      ProductMovement[]
+
+  @@index([email])
+  @@index([status])
 }
 
 model RefreshToken {
@@ -32,6 +209,33 @@ model RefreshToken {
   @@index([token])
 }
 
+model PasswordReset {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Invitation {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  token     String    @unique
+  invitedBy String
+  inviter   User      @relation("InvitationsSent", fields: [invitedBy], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
 model File {
   id        String   @id @default(uuid())
   filename  String
@@ -43,4 +247,464 @@ model File {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// ============================================
+// ROLES & PERMISSIONS
+// ============================================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       UserRole[]
+  sections    RoleSection[]
+}
+
+model RoleSection {
+  roleId    String
+  sectionId String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([roleId, sectionId])
+  @@index([roleId])
+  @@index([sectionId])
+}
+
+model Permission {
+  id          String       @id @default(uuid())
+  key         String       @unique
+  name        String
+  description String?
+  category    String
+  parentId    String?
+  parent      Permission?  @relation("PermissionHierarchy", fields: [parentId], references: [id])
+  children    Permission[] @relation("PermissionHierarchy")
+  createdAt   DateTime     @default(now())
+
+  roles RolePermission[]
+
+  @@index([category])
+  @@index([parentId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  sectionId String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  section   Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([sectionId])
+}
+
+// ============================================
+// SECTIONS & SUBSECTIONS
+// ============================================
+
+model Section {
+  id                  String    @id @default(uuid())
+  name                String
+  description         String?
+  allowedDaysIn       Int[]     @default([1, 2, 3, 4, 5])
+  allowedDaysOut      Int[]     @default([1, 2, 3, 4, 5])
+  refundDeadlineHours Int       @default(48)
+  sortOrder           Int       @default(0)
+  isSystem            Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  subSections  SubSection[]
+  products     Product[]
+  userRoles    UserRole[]
+  closures     SectionClosure[]
+  timeSlots    TimeSlot[]
+  roleSections RoleSection[]
+
+  @@index([isSystem])
+}
+
+model SectionClosure {
+  id        String   @id @default(uuid())
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  reason    String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([startDate, endDate])
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  type      SlotType
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([sectionId, type, dayOfWeek])
+}
+
+model SubSection {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  sectionId   String?
+  section     Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([sectionId])
+}
+
+// ============================================
+// PRODUCTS
+// ============================================
+
+model Product {
+  id             String           @id @default(uuid())
+  name           String
+  description    String?
+  reference      String?
+  priceCredits   Int
+  creditPeriod   CreditPeriod     @default(DAY)
+  minDuration    Int              @default(1)
+  maxDuration    Int              @default(14)
+  status         ProductStatus    @default(AVAILABLE)
+  sectionId      String
+  section        Section          @relation(fields: [sectionId], references: [id])
+  subSectionId   String?
+  subSection     SubSection?      @relation(fields: [subSectionId], references: [id], onDelete: SetNull)
+  lastCondition  ProductCondition @default(OK)
+  lastMovementAt DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  attributes   ProductAttribute[]
+  files        ProductFile[]
+  reservations Reservation[]
+  movements    ProductMovement[]
+  maintenances ProductMaintenance[]
+
+  @@index([sectionId])
+  @@index([subSectionId])
+  @@index([status])
+  @@index([name])
+}
+
+model ProductAttribute {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, key])
+  @@index([productId])
+}
+
+model ProductFile {
+  id         String         @id @default(uuid())
+  productId  String
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String
+  size       Int
+  s3Key      String         @unique
+  visibility FileVisibility @default(PUBLIC)
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+
+  @@index([productId])
+  @@index([sortOrder])
+}
+
+model ProductMovement {
+  id            String           @id @default(uuid())
+  productId     String
+  product       Product          @relation(fields: [productId], references: [id])
+  reservationId String?
+  reservation   Reservation?     @relation(fields: [reservationId], references: [id])
+  type          MovementType
+  condition     ProductCondition @default(OK)
+  notes         String?
+  performedBy   String
+  performedAt   DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+
+  photos          MovementPhoto[]
+  performedByUser User?           @relation(fields: [performedBy], references: [id])
+
+  @@index([productId])
+  @@index([reservationId])
+  @@index([type])
+  @@index([performedAt])
+}
+
+model MovementPhoto {
+  id         String          @id @default(uuid())
+  movementId String
+  movement   ProductMovement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  s3Key      String
+  filename   String
+  mimeType   String
+  size       Int
+  sortOrder  Int             @default(0)
+  caption    String?
+  createdAt  DateTime        @default(now())
+
+  @@index([movementId])
+  @@index([sortOrder])
+}
+
+// ============================================
+// PRODUCT MAINTENANCE
+// ============================================
+
+model ProductMaintenance {
+  id                        String    @id @default(uuid())
+  productId                 String
+  product                   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  startDate                 DateTime  @db.Date
+  endDate                   DateTime? @db.Date // null = durée indéterminée
+  reason                    String?   // raison optionnelle
+  cancelledReservationsCount Int       @default(0)
+  refundedCreditsTotal      Int       @default(0)
+  createdBy                 String
+  endedAt                   DateTime? // si terminée manuellement avant la date prévue
+  endedBy                   String?   // admin qui a terminé
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([productId, startDate, endDate])
+}
+
+// ============================================
+// RESERVATIONS
+// ============================================
+
+model Reservation {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  productId      String
+  product        Product           @relation(fields: [productId], references: [id])
+
+  startDate      DateTime          @db.Date
+  endDate        DateTime          @db.Date
+  startTime      String?
+  endTime        String?
+
+  status         ReservationStatus @default(CONFIRMED)
+  creditsCharged Int
+  qrCode         String?           @unique
+
+  checkedOutAt   DateTime?
+  checkedOutBy   String?
+  returnedAt     DateTime?
+  returnedBy     String?
+
+  notes          String?
+  adminNotes     String?
+
+  cancelledAt    DateTime?
+  cancelReason   String?
+  cancelledBy    String?
+
+  refundedAt     DateTime?
+  refundedBy     String?
+  refundAmount   Int?
+
+  // Extension history (can be extended multiple times)
+  totalExtensionCost Int               @default(0)
+  extensionCount     Int               @default(0)
+
+  createdBy      String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  movements      ProductMovement[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([startDate, endDate])
+  @@index([qrCode])
+}
+
+// ============================================
+// CREDITS
+// ============================================
+
+model CreditTransaction {
+  id            String                @id @default(uuid())
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int
+  balanceAfter  Int
+  type          CreditTransactionType
+  reason        String?
+  performedBy   String?
+  reservationId String?
+  metadata      Json?
+  createdAt     DateTime              @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([reservationId])
+  @@index([createdAt])
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  userId      String?
+  user        User?       @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  performedBy String?
+  performer   User?       @relation("AuditPerformer", fields: [performedBy], references: [id], onDelete: SetNull)
+  action      AuditAction
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([performedBy])
+  @@index([action])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+// ============================================
+// SETTINGS
+// ============================================
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  encrypted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  RESERVATION_CONFIRMED
+  RESERVATION_CANCELLED
+  RESERVATION_CANCELLED_MAINTENANCE
+  RESERVATION_REFUNDED
+  RESERVATION_CHECKOUT
+  RESERVATION_RETURN
+  RESERVATION_REMINDER
+  RESERVATION_EXTENDED
+  RESERVATION_OVERDUE
+  RESERVATION_EXPIRED
+  CREDIT_ADDED
+  CREDIT_REMOVED
+  PASSWORD_CHANGED
+  SYSTEM
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationType NotificationType
+  emailEnabled     Boolean          @default(true)
+  inAppEnabled     Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([userId, notificationType])
+  @@index([userId])
+}
+
+// ============================================
+// LEGAL PAGES
+// ============================================
+
+enum LegalPageType {
+  TERMS           // CGU - Conditions générales d'utilisation
+  PRIVACY         // RGPD - Politique de confidentialité
+  LEGAL_NOTICE    // Mentions légales
+}
+
+model LegalPage {
+  id        String        @id @default(uuid())
+  type      LegalPageType @unique
+  title     String
+  content   String        @db.Text
+  version   String        @default("1.0")
+  updatedBy String?
+  editor    User?         @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([type])
 }

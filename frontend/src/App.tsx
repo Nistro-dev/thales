@@ -1,25 +1,20 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Login, Register, Dashboard } from '@/pages'
-import { ProtectedRoute, Toaster } from '@/components'
+import { RouterProvider } from 'react-router-dom'
+import { QueryProvider } from './lib/react-query'
+import { AuthProvider } from './features/auth/components/AuthProvider'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { Toaster } from './components/ui/toaster'
+import { router } from './router'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <QueryProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </AuthProvider>
+      </QueryProvider>
+    </ErrorBoundary>
   )
 }
 

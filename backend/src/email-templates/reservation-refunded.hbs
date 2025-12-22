@@ -1,0 +1,31 @@
+<!-- reservation-refunded.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="success-box">
+  <strong>Votre réservation a été remboursée</strong>
+</div>
+
+<p>Nous vous informons qu'un remboursement a été effectué sur votre réservation.</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  <p><strong>Date de début :</strong> {{startDate}}</p>
+  <p><strong>Date de fin :</strong> {{endDate}}</p>
+  <p><strong>Montant remboursé :</strong> {{refundAmount}} crédits</p>
+  <p><strong>Nouveau solde :</strong> {{newBalance}} crédits</p>
+</div>
+
+{{#if adminNotes}}
+<div class="info-box">
+  <p><strong>Notes administratives :</strong> {{adminNotes}}</p>
+</div>
+{{/if}}
+
+<p>Les crédits ont été crédités sur votre compte et sont immédiatement disponibles.</p>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/account/credits" class="button">Voir mon solde</a>
+</p>
+
+<p>Merci pour votre compréhension.</p>

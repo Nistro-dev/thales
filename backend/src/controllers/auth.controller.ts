@@ -1,118 +1,157 @@
-import { FastifyRequest, FastifyReply } from "fastify";
-import { authService } from "../services/index.js";
-import {
-  registerSchema,
-  loginSchema,
-  refreshTokenSchema,
-} from "../schemas/index.js";
+import { FastifyRequest, FastifyReply } from 'fastify'
+import * as authService from '../services/auth.service.js'
+import * as passwordResetService from '../services/password-reset.service.js'
+import { env } from '../config/env.js'
+import { createSuccessResponse, SuccessMessages, ErrorMessages } from '../utils/response.js'
+import { logger as _logger } from '../utils/logger.js'
+import type { LoginInput, ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from '../schemas/auth.js'
 
-export const register = async (
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> => {
-  const data = registerSchema.parse(request.body);
-  const result = await authService.register(data);
+const useTunnels = process.env.USE_TUNNELS === 'true'
 
-  reply.status(201).send(result);
-};
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: env.NODE_ENV === 'production' || useTunnels,
+  sameSite: useTunnels ? 'none' as const : 'strict' as const,
+  path: '/',
+}
+
+const setAuthCookies = (reply: FastifyReply, accessToken: string, refreshToken: string): void => {
+  reply.setCookie('accessToken', accessToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: 15 * 60,
+  })
+
+  reply.setCookie('refreshToken', refreshToken, {
+    ...COOKIE_OPTIONS,
+    path: '/api/auth',
+    maxAge: 7 * 24 * 60 * 60,
+  })
+}
+
+const clearAuthCookies = (reply: FastifyReply) => {
+  reply.clearCookie('accessToken', { path: '/' })
+  reply.clearCookie('refreshToken', { path: '/api/auth' })
+}
 
 export const login = async (
-  request: FastifyRequest,
+  request: FastifyRequest<{ Body: LoginInput }>,
   reply: FastifyReply
-): Promise<void> => {
-  const data = loginSchema.parse(request.body);
-  const result = await authService.login(data);
+) => {
+  const result = await authService.login(request.body)
 
-  reply
-    .setCookie("refreshToken", result.tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/api/auth/refresh",
-      maxAge: 7 * 24 * 60 * 60,
-    })
-    .send({
+  setAuthCookies(reply, result.tokens.accessToken, result.tokens.refreshToken)
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.LOGIN_SUCCESS, {
       user: result.user,
-      accessToken: result.tokens.accessToken,
-    });
-};
+    })
+  )
+}
 
 export const refresh = async (
   request: FastifyRequest,
   reply: FastifyReply
-): Promise<void> => {
-  const refreshToken = request.cookies.refreshToken;
+) => {
+  const refreshToken = request.cookies.refreshToken
 
   if (!refreshToken) {
-    const body = refreshTokenSchema.parse(request.body);
-    const tokens = await authService.refresh(body.refreshToken);
-
-    reply.send({ accessToken: tokens.accessToken });
-    return;
+    throw {
+      statusCode: 401,
+      message: ErrorMessages.NO_REFRESH_TOKEN,
+      code: 'UNAUTHORIZED',
+    }
   }
 
-  const tokens = await authService.refresh(refreshToken);
+  const tokens = await authService.refresh(refreshToken)
 
-  reply
-    .setCookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/api/auth/refresh",
-      maxAge: 7 * 24 * 60 * 60,
-    })
-    .send({ accessToken: tokens.accessToken });
-};
+  setAuthCookies(reply, tokens.accessToken, tokens.refreshToken)
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.TOKEN_REFRESHED, {})
+  )
+}
 
 export const logout = async (
   request: FastifyRequest,
   reply: FastifyReply
-): Promise<void> => {
-  const refreshToken = request.cookies.refreshToken;
+) => {
+  const refreshToken = request.cookies.refreshToken
 
   if (refreshToken) {
-    await authService.logout(refreshToken);
+    await authService.logout(refreshToken)
   }
 
-  reply
-    .clearCookie("refreshToken", { path: "/api/auth/refresh" })
-    .status(204)
-    .send();
-};
+  clearAuthCookies(reply)
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.LOGOUT_SUCCESS, {})
+  )
+}
 
 export const logoutAll = async (
   request: FastifyRequest,
   reply: FastifyReply
-): Promise<void> => {
-  await authService.logoutAll(request.user.userId);
+) => {
+  await authService.logoutAll(request.user.userId)
 
-  reply
-    .clearCookie("refreshToken", { path: "/api/auth/refresh" })
-    .status(204)
-    .send();
-};
+  clearAuthCookies(reply)
 
-export const me = async (
+  return reply.send(
+    createSuccessResponse(SuccessMessages.LOGOUT_ALL_SUCCESS, {})
+  )
+}
+
+export const getMe = async (
   request: FastifyRequest,
   reply: FastifyReply
-): Promise<void> => {
-  const { prisma } = await import("../utils/prisma.js");
+) => {
+  const user = await authService.getMe(request.user.userId)
 
-  const user = await prisma.user.findUnique({
-    where: { id: request.user.userId },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      createdAt: true,
-    },
-  });
+  return reply.send(
+    createSuccessResponse(SuccessMessages.RETRIEVED, { user })
+  )
+}
 
-  if (!user) {
-    reply.status(404).send({ error: "User not found" });
-    return;
-  }
+export const forgotPassword = async (
+  request: FastifyRequest<{ Body: ForgotPasswordInput }>,
+  reply: FastifyReply
+) => {
+  await passwordResetService.requestPasswordReset(request.body.email)
 
-  reply.send(user);
-};
+  return reply.send(
+    createSuccessResponse(SuccessMessages.PASSWORD_RESET_REQUESTED, {})
+  )
+}
+
+export const validateResetToken = async (
+  request: FastifyRequest<{ Querystring: { token: string } }>,
+  reply: FastifyReply
+) => {
+  const result = await passwordResetService.validateResetToken(request.query.token)
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.RETRIEVED, result)
+  )
+}
+
+export const resetPassword = async (
+  request: FastifyRequest<{ Body: ResetPasswordInput }>,
+  reply: FastifyReply
+) => {
+  await passwordResetService.resetPassword(request.body.token, request.body.password)
+
+  return reply.send(
+    createSuccessResponse(SuccessMessages.PASSWORD_RESET_SUCCESS, {})
+  )
+}
+
+export const changePassword = async (
+  request: FastifyRequest<{ Body: ChangePasswordInput }>,
+  reply: FastifyReply
+) => {
+  await authService.changePassword(request.user.userId, request.body)
+
+  return reply.send(
+    createSuccessResponse('Mot de passe modifié avec succès', {})
+  )
+}

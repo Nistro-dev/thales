@@ -1,0 +1,22 @@
+<!-- reservation-reminder.hbs -->
+<p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+<div class="info-box">
+  <strong>Rappel : Votre réservation commence demain !</strong>
+</div>
+
+<p>Nous vous rappelons que votre réservation débute demain. N'oubliez pas de venir retirer votre matériel.</p>
+
+<div class="info-box">
+  <p><strong>Produit :</strong> {{productName}}</p>
+  <p><strong>Référence :</strong> {{productReference}}</p>
+  <p><strong>Date de début :</strong> {{startDate}}</p>
+  <p><strong>Date de fin :</strong> {{endDate}}</p>
+  <p><strong>Durée :</strong> {{duration}} jour(s)</p>
+</div>
+
+<p style="margin-top: 30px;">
+  <a href="{{frontendUrl}}/reservations/{{reservationId}}" class="button">Voir ma réservation</a>
+</p>
+
+<p>À demain !</p>

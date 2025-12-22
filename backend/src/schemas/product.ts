@@ -11,6 +11,7 @@ export const listProductsSchema = z.object({
   maxPrice: z.string().transform(Number).optional(),
   sortBy: z.enum(['createdAt', 'name', 'priceCredits']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  includeArchived: z.string().transform(v => v === 'true').optional(),
 })
 
 export const createProductSchema = z.object({

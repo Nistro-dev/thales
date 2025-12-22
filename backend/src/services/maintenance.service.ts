@@ -4,6 +4,7 @@ import { prisma } from '../utils/prisma.js'
 import { logAudit } from './audit.service.js'
 import { logger } from '../utils/logger.js'
 import * as notificationHelper from './notification-helper.service.js'
+import { createMovement } from './movement.service.js'
 
 // ============================================
 // HELPERS
@@ -282,15 +283,27 @@ export const createMaintenance = async (params: CreateMaintenanceParams) => {
     // Update product status to MAINTENANCE if maintenance starts today or earlier
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
-    if (start <= today) {
+    let statusChanged = false
+    if (start <= today && product.status !== 'MAINTENANCE') {
       await tx.product.update({
         where: { id: productId },
         data: { status: 'MAINTENANCE' },
       })
+      statusChanged = true
     }
 
-    return { maintenance, cancelledCount, totalRefunded, affectedReservations }
+    return { maintenance, cancelledCount, totalRefunded, affectedReservations, statusChanged, oldStatus: product.status }
   })
+
+  // Create movement for status change (outside transaction to use the movement service)
+  if (result.statusChanged) {
+    await createMovement({
+      productId,
+      type: 'STATUS_CHANGE',
+      notes: `Changement de statut: ${result.oldStatus} → MAINTENANCE (Maintenance: ${reason || 'Non spécifiée'})`,
+      performedBy,
+    })
+  }
 
   // Send notifications to affected users (outside transaction)
   for (const reservation of result.affectedReservations) {
@@ -446,6 +459,8 @@ export const endMaintenance = async (maintenanceId: string, performedBy: string)
     },
   })
 
+  const shouldChangeStatus = !otherActiveMaintenances && maintenance.product.status === 'MAINTENANCE'
+
   const result = await prisma.$transaction(async (tx) => {
     // Mark maintenance as ended
     const updated = await tx.productMaintenance.update({
@@ -457,7 +472,7 @@ export const endMaintenance = async (maintenanceId: string, performedBy: string)
     })
 
     // Only change product status to AVAILABLE if no other active maintenances
-    if (!otherActiveMaintenances && maintenance.product.status === 'MAINTENANCE') {
+    if (shouldChangeStatus) {
       await tx.product.update({
         where: { id: maintenance.productId },
         data: { status: 'AVAILABLE' },
@@ -466,6 +481,16 @@ export const endMaintenance = async (maintenanceId: string, performedBy: string)
 
     return updated
   })
+
+  // Create movement for status change (outside transaction)
+  if (shouldChangeStatus) {
+    await createMovement({
+      productId: maintenance.productId,
+      type: 'STATUS_CHANGE',
+      notes: `Changement de statut: MAINTENANCE → AVAILABLE (Fin de maintenance)`,
+      performedBy,
+    })
+  }
 
   await logAudit({
     performedBy,
@@ -665,9 +690,19 @@ export const activateScheduledMaintenances = async () => {
       }
     }
 
+    const oldStatus = maintenance.product.status
+
     await prisma.product.update({
       where: { id: maintenance.productId },
       data: { status: 'MAINTENANCE' },
+    })
+
+    // Create movement for status change
+    await createMovement({
+      productId: maintenance.productId,
+      type: 'STATUS_CHANGE',
+      notes: `Changement de statut: ${oldStatus} → MAINTENANCE (Maintenance planifiée activée)`,
+      performedBy: 'SYSTEM',
     })
 
     activatedCount++
@@ -718,6 +753,8 @@ export const endExpiredMaintenances = async () => {
       },
     })
 
+    const shouldChangeStatus = !otherActiveMaintenances && maintenance.product.status === 'MAINTENANCE'
+
     await prisma.$transaction(async (tx) => {
       // Mark maintenance as ended
       await tx.productMaintenance.update({
@@ -729,13 +766,23 @@ export const endExpiredMaintenances = async () => {
       })
 
       // Only change product status if no other active maintenances
-      if (!otherActiveMaintenances && maintenance.product.status === 'MAINTENANCE') {
+      if (shouldChangeStatus) {
         await tx.product.update({
           where: { id: maintenance.productId },
           data: { status: 'AVAILABLE' },
         })
       }
     })
+
+    // Create movement for status change (outside transaction)
+    if (shouldChangeStatus) {
+      await createMovement({
+        productId: maintenance.productId,
+        type: 'STATUS_CHANGE',
+        notes: `Changement de statut: MAINTENANCE → AVAILABLE (Maintenance expirée)`,
+        performedBy: 'SYSTEM',
+      })
+    }
 
     endedCount++
     logger.info(

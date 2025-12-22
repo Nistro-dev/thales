@@ -137,10 +137,36 @@ async function generateDatabaseDump(outputPath: string): Promise<void> {
 async function backupUploadedFiles(outputPath: string): Promise<void> {
   logger.info('Backing up uploaded files...')
 
-  // Get all files from the database
-  const files = await prisma.file.findMany({
-    select: { key: true, filename: true },
-  })
+  // Get all files from different tables
+  const [userFiles, productFiles, movementPhotos] = await Promise.all([
+    // User uploaded files
+    prisma.file.findMany({
+      select: { key: true },
+    }),
+    // Product files (images, documents)
+    prisma.productFile.findMany({
+      select: { s3Key: true },
+    }),
+    // Movement photos (checkout/return photos)
+    prisma.movementPhoto.findMany({
+      select: { s3Key: true },
+    }),
+  ])
+
+  // Combine all S3 keys
+  const allKeys = new Set<string>()
+  userFiles.forEach((f) => allKeys.add(f.key))
+  productFiles.forEach((f) => allKeys.add(f.s3Key))
+  movementPhotos.forEach((f) => allKeys.add(f.s3Key))
+
+  const keysArray = Array.from(allKeys)
+
+  logger.info({
+    userFiles: userFiles.length,
+    productFiles: productFiles.length,
+    movementPhotos: movementPhotos.length,
+    totalKeys: keysArray.length,
+  }, 'Files to backup')
 
   const output = createWriteStream(outputPath)
   const archive = archiver('zip', { zlib: { level: 9 } })
@@ -153,17 +179,18 @@ async function backupUploadedFiles(outputPath: string): Promise<void> {
 
   archive.pipe(output)
 
-  if (files.length === 0) {
+  if (keysArray.length === 0) {
     logger.info('No files to backup')
     // Add a placeholder file to avoid empty archive issues
     archive.append('No files at time of backup', { name: '.placeholder' })
   } else {
     // Download each file from S3 and add to archive
-    for (const file of files) {
+    let successCount = 0
+    for (const key of keysArray) {
       try {
         const command = new GetObjectCommand({
           Bucket: env.S3_BUCKET,
-          Key: file.key,
+          Key: key,
         })
         const response = await s3Client.send(command)
 
@@ -173,12 +200,14 @@ async function backupUploadedFiles(outputPath: string): Promise<void> {
             chunks.push(chunk)
           }
           const buffer = Buffer.concat(chunks)
-          archive.append(buffer, { name: file.key })
+          archive.append(buffer, { name: key })
+          successCount++
         }
       } catch (error) {
-        logger.warn({ key: file.key, error }, 'Failed to backup file, skipping')
+        logger.warn({ key, error }, 'Failed to backup file, skipping')
       }
     }
+    logger.info({ successCount, totalKeys: keysArray.length }, 'Files downloaded from S3')
   }
 
   await archive.finalize()
@@ -187,7 +216,7 @@ async function backupUploadedFiles(outputPath: string): Promise<void> {
     output.on('error', reject)
   })
 
-  logger.info({ outputPath, fileCount: files.length }, 'Files backup completed')
+  logger.info({ outputPath, fileCount: keysArray.length }, 'Files backup completed')
 }
 
 /**

@@ -549,7 +549,29 @@ export const getProductMaintenances = async (productId: string) => {
     orderBy: { startDate: 'desc' },
   })
 
-  return maintenances
+  // Récupérer les infos utilisateur pour createdBy et endedBy
+  const userIds = new Set<string>()
+  for (const m of maintenances) {
+    if (m.createdBy && m.createdBy !== 'SYSTEM') userIds.add(m.createdBy)
+    if (m.endedBy && m.endedBy !== 'SYSTEM') userIds.add(m.endedBy)
+  }
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: Array.from(userIds) } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+
+  const userMap = new Map(users.map(u => [u.id, u]))
+
+  return maintenances.map(m => ({
+    ...m,
+    createdByUser: m.createdBy === 'SYSTEM'
+      ? { firstName: 'Système', lastName: '' }
+      : userMap.get(m.createdBy) || null,
+    endedByUser: m.endedBy === 'SYSTEM'
+      ? { firstName: 'Système', lastName: '' }
+      : m.endedBy ? userMap.get(m.endedBy) || null : null,
+  }))
 }
 
 export const getActiveMaintenance = async (productId: string) => {

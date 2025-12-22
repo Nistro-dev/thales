@@ -5,6 +5,11 @@ import type { ApiResponse } from "@/types";
 // TYPES
 // ============================================
 
+export interface MaintenanceUser {
+  firstName: string;
+  lastName: string;
+}
+
 export interface ProductMaintenance {
   id: string;
   productId: string;
@@ -14,8 +19,10 @@ export interface ProductMaintenance {
   cancelledReservationsCount: number;
   refundedCreditsTotal: number;
   createdBy: string;
+  createdByUser: MaintenanceUser | null;
   endedAt: string | null;
   endedBy: string | null;
+  endedByUser: MaintenanceUser | null;
   createdAt: string;
   updatedAt: string;
 }

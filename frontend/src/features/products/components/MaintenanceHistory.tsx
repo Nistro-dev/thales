@@ -195,8 +195,10 @@ export function MaintenanceHistory({ productId }: MaintenanceHistoryProps) {
                 <TableCell>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <User className="h-3.5 w-3.5" />
-                    <span className="truncate max-w-[80px]">
-                      {maintenance.createdBy.substring(0, 8)}...
+                    <span className="truncate max-w-[120px]">
+                      {maintenance.createdByUser
+                        ? `${maintenance.createdByUser.firstName} ${maintenance.createdByUser.lastName}`.trim()
+                        : maintenance.createdBy.substring(0, 8) + "..."}
                     </span>
                   </div>
                 </TableCell>
@@ -211,9 +213,11 @@ export function MaintenanceHistory({ productId }: MaintenanceHistoryProps) {
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {maintenance.endedBy === "SYSTEM"
-                          ? "Terminée automatiquement"
-                          : `Terminée par ${maintenance.endedBy}`}
+                        {maintenance.endedByUser
+                          ? `Terminée par ${maintenance.endedByUser.firstName} ${maintenance.endedByUser.lastName}`.trim()
+                          : maintenance.endedBy === "SYSTEM"
+                            ? "Terminée automatiquement"
+                            : `Terminée par ${maintenance.endedBy}`}
                       </TooltipContent>
                     </Tooltip>
                   ) : (

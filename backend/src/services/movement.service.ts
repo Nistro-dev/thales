@@ -113,19 +113,6 @@ export const getProductMovements = async (productId: string) => {
       photos: {
         orderBy: { sortOrder: 'asc' },
       },
-      reservation: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-            },
-          },
-        },
-      },
     },
     orderBy: { performedAt: 'desc' },
     take: 50,
@@ -139,8 +126,29 @@ export const getProductMovements = async (productId: string) => {
   })
   const performedByMap = new Map(performedByUsers.map(u => [u.id, u]))
 
+  // Récupérer les réservations liées aux mouvements
+  const reservationIds = [...new Set(movements.map(m => m.reservationId).filter((id): id is string => !!id))]
+  const reservations = reservationIds.length > 0
+    ? await prisma.reservation.findMany({
+        where: { id: { in: reservationIds } },
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      })
+    : []
+  const reservationMap = new Map(reservations.map(r => [r.id, r]))
+
   return movements.map(m => ({
     ...m,
     performedByUser: performedByMap.get(m.performedBy) || null,
+    reservation: m.reservationId ? reservationMap.get(m.reservationId) || null : null,
   }))
 }

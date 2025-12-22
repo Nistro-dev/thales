@@ -15,7 +15,12 @@ import {
   FileText,
   History,
   Wrench,
+  Calendar,
+  Info,
+  FolderOpen,
 } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -318,12 +323,15 @@ export function AdminProductDetailPage() {
                   {/* Attributes */}
                   {product.attributes && product.attributes.length > 0 && (
                     <div>
-                      <h3 className="font-semibold mb-3">Caractéristiques</h3>
-                      <div className="grid gap-2">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Tag className="h-4 w-4" />
+                        Caractéristiques
+                      </h3>
+                      <div className="grid gap-2 bg-muted/30 rounded-lg p-4">
                         {product.attributes.map((attr) => (
                           <div
                             key={attr.id}
-                            className="flex justify-between py-2 border-b last:border-0"
+                            className="flex justify-between py-2 border-b border-border/50 last:border-0"
                           >
                             <span className="text-muted-foreground capitalize">
                               {attr.key}
@@ -335,33 +343,189 @@ export function AdminProductDetailPage() {
                     </div>
                   )}
 
+                  {/* Section Info */}
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4" />
+                      Informations de la section
+                    </h3>
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Section</span>
+                        <span className="font-medium">
+                          {product.section.name}
+                        </span>
+                      </div>
+                      {product.subSection && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Sous-section
+                          </span>
+                          <span className="font-medium">
+                            {product.subSection.name}
+                          </span>
+                        </div>
+                      )}
+                      {product.section.allowedDaysIn && (
+                        <div className="flex justify-between items-start">
+                          <span className="text-muted-foreground">
+                            Jours de retrait
+                          </span>
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {[
+                              "Dim",
+                              "Lun",
+                              "Mar",
+                              "Mer",
+                              "Jeu",
+                              "Ven",
+                              "Sam",
+                            ].map((day, i) => (
+                              <Badge
+                                key={day}
+                                variant={
+                                  product.section.allowedDaysIn?.includes(i)
+                                    ? "default"
+                                    : "outline"
+                                }
+                                className="text-xs"
+                              >
+                                {day}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {product.section.allowedDaysOut && (
+                        <div className="flex justify-between items-start">
+                          <span className="text-muted-foreground">
+                            Jours de retour
+                          </span>
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {[
+                              "Dim",
+                              "Lun",
+                              "Mar",
+                              "Mer",
+                              "Jeu",
+                              "Ven",
+                              "Sam",
+                            ].map((day, i) => (
+                              <Badge
+                                key={day}
+                                variant={
+                                  product.section.allowedDaysOut?.includes(i)
+                                    ? "default"
+                                    : "outline"
+                                }
+                                className="text-xs"
+                              >
+                                {day}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {product.section.refundDeadlineHours !== undefined && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Délai d'annulation
+                          </span>
+                          <span className="font-medium">
+                            {product.section.refundDeadlineHours}h avant
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Product Stats */}
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Info className="h-4 w-4" />
+                      Informations système
+                    </h3>
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          ID Produit
+                        </span>
+                        <span className="font-mono text-xs bg-muted px-2 py-1 rounded">
+                          {product.id.substring(0, 8)}...
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Créé le</span>
+                        <span className="text-sm">
+                          {format(new Date(product.createdAt), "dd MMMM yyyy", {
+                            locale: fr,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Modifié le
+                        </span>
+                        <span className="text-sm">
+                          {format(
+                            new Date(product.updatedAt),
+                            "dd MMMM yyyy à HH:mm",
+                            { locale: fr },
+                          )}
+                        </span>
+                      </div>
+                      {movements && movements.length > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Nombre de mouvements
+                          </span>
+                          <span className="font-medium">
+                            {movements.length}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Last movement info */}
                   {product.lastMovementAt && (
                     <div>
-                      <h3 className="font-semibold mb-3">Dernier mouvement</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {new Date(product.lastMovementAt).toLocaleDateString(
-                          "fr-FR",
-                          {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                        {product.lastCondition && (
-                          <Badge
-                            variant={
-                              product.lastCondition === "OK"
-                                ? "default"
-                                : "destructive"
-                            }
-                          >
-                            {product.lastCondition}
-                          </Badge>
-                        )}
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Dernier mouvement
+                      </h3>
+                      <div className="bg-muted/30 rounded-lg p-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            {format(
+                              new Date(product.lastMovementAt),
+                              "dd MMMM yyyy à HH:mm",
+                              { locale: fr },
+                            )}
+                          </span>
+                          {product.lastCondition && (
+                            <Badge
+                              variant={
+                                product.lastCondition === "OK"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {product.lastCondition === "OK"
+                                ? "OK"
+                                : product.lastCondition === "MINOR_DAMAGE"
+                                  ? "Dégâts mineurs"
+                                  : product.lastCondition === "MAJOR_DAMAGE"
+                                    ? "Dégâts majeurs"
+                                    : product.lastCondition === "MISSING_PARTS"
+                                      ? "Pièces manquantes"
+                                      : product.lastCondition === "BROKEN"
+                                        ? "Cassé"
+                                        : product.lastCondition}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

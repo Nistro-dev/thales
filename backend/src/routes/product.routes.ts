@@ -2,6 +2,7 @@
 
 import { FastifyInstance } from 'fastify'
 import * as productController from '../controllers/product.controller.js'
+import * as maintenanceController from '../controllers/maintenance.controller.js'
 import { authMiddleware } from '../middlewares/auth.js'
 import { requirePermission } from '../middlewares/permission.js'
 import { PERMISSIONS } from '../constants/permissions.js'
@@ -21,6 +22,58 @@ export const productRoutes = async (fastify: FastifyInstance) => {
   fastify.get('/:id/files/admin', {
     onRequest: [authMiddleware, requirePermission(PERMISSIONS.MANAGE_PRODUCTS)],
     handler: productController.listFilesAdmin,
+  })
+
+  // ============================================
+  // MAINTENANCE ROUTES (Admin only)
+  // ============================================
+
+  // Preview affected reservations before creating maintenance
+  fastify.post('/:id/maintenance/preview', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.previewAffected,
+  })
+
+  // Get active and scheduled maintenances
+  fastify.get('/:id/maintenance/active', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.getActive,
+  })
+
+  // Create new maintenance
+  fastify.post('/:id/maintenance', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.create,
+  })
+
+  // Get all maintenances (history)
+  fastify.get('/:id/maintenance', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.list,
+  })
+
+  // Get a specific maintenance
+  fastify.get('/:id/maintenance/:maintenanceId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.getById,
+  })
+
+  // Update a maintenance
+  fastify.patch('/:id/maintenance/:maintenanceId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.update,
+  })
+
+  // End a maintenance early
+  fastify.post('/:id/maintenance/:maintenanceId/end', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.end,
+  })
+
+  // Cancel a scheduled maintenance (before it starts)
+  fastify.delete('/:id/maintenance/:maintenanceId', {
+    preHandler: requirePermission(PERMISSIONS.MANAGE_PRODUCTS),
+    handler: maintenanceController.cancel,
   })
 
   // Public product detail

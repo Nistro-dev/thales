@@ -14,11 +14,7 @@ import {
   Clock,
   FileText,
   History,
-  MoreVertical,
-  CheckCircle,
-  XCircle,
   Wrench,
-  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,12 +28,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -47,22 +37,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ProductStatusBadge } from "../components/ProductStatusBadge";
 import { ProductForm, type ProductFormData } from "../components/ProductForm";
 import { ProductFilesList } from "../components/ProductFilesList";
 import { ImageUpload } from "../components/ImageUpload";
 import { ProductMovementsList } from "../components/ProductMovementsList";
 import { ProductGallery } from "../components/ProductGallery";
+import { ProductStatusManager } from "../components/ProductStatusManager";
+import { MaintenanceHistory } from "../components/MaintenanceHistory";
 import {
   useProductAdmin,
   useProductFilesAdmin,
   useProductMovements,
   useUpdateProduct,
   useDeleteProduct,
-  useUpdateProductStatus,
 } from "../hooks/useProductsAdmin";
 import { ROUTES } from "@/constants/routes";
-import type { ProductStatus } from "@/types";
 
 export function AdminProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +66,6 @@ export function AdminProductDetailPage() {
 
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
-  const updateStatus = useUpdateProductStatus();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
@@ -106,11 +94,6 @@ export function AdminProductDetailPage() {
     } catch {
       // Error handled in hook
     }
-  };
-
-  const handleStatusChange = async (status: ProductStatus) => {
-    if (!id) return;
-    await updateStatus.mutateAsync({ id, status });
   };
 
   const handleDelete = async () => {
@@ -211,50 +194,16 @@ export function AdminProductDetailPage() {
               <CardTitle className="text-lg">Informations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Statut</span>
-                <div className="flex items-center gap-2">
-                  <ProductStatusBadge status={product.status} />
-                  {!isEditMode && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange("AVAILABLE")}
-                          disabled={product.status === "AVAILABLE"}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                          Disponible
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange("UNAVAILABLE")}
-                          disabled={product.status === "UNAVAILABLE"}
-                        >
-                          <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                          Indisponible
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange("MAINTENANCE")}
-                          disabled={product.status === "MAINTENANCE"}
-                        >
-                          <Wrench className="h-4 w-4 mr-2 text-orange-600" />
-                          Maintenance
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange("ARCHIVED")}
-                          disabled={product.status === "ARCHIVED"}
-                        >
-                          <Archive className="h-4 w-4 mr-2 text-gray-600" />
-                          Archivé
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
+              <div>
+                <span className="text-sm text-muted-foreground block mb-2">
+                  Statut
+                </span>
+                <ProductStatusManager
+                  productId={id!}
+                  productName={product.name}
+                  currentStatus={product.status}
+                  disabled={isEditMode}
+                />
               </div>
 
               <div className="flex items-center justify-between">
@@ -345,6 +294,15 @@ export function AdminProductDetailPage() {
                       <span className="hidden sm:inline">Mouvements</span>
                       <span className="sm:hidden">Mvts</span>
                     </TabsTrigger>
+                    <TabsTrigger
+                      value="maintenance"
+                      disabled={isEditMode}
+                      className="flex-1 md:flex-none"
+                    >
+                      <Wrench className="h-4 w-4 mr-1 md:mr-2" />
+                      <span className="hidden sm:inline">Maintenance</span>
+                      <span className="sm:hidden">Maint.</span>
+                    </TabsTrigger>
                     {isEditMode && (
                       <TabsTrigger value="edit" className="flex-1 md:flex-none">
                         <Edit className="h-4 w-4 mr-1 md:mr-2" />
@@ -425,6 +383,11 @@ export function AdminProductDetailPage() {
                     movements={movements || []}
                     isLoading={movementsLoading}
                   />
+                </TabsContent>
+
+                {/* Maintenance Tab */}
+                <TabsContent value="maintenance">
+                  <MaintenanceHistory productId={id!} />
                 </TabsContent>
 
                 {/* Edit Tab */}

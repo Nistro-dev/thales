@@ -9,6 +9,7 @@ import type { ReservationStatus, ProductCondition, CreditPeriod } from '@prisma/
 import * as notificationHelper from './notification-helper.service.js'
 import * as closureService from './section-closure.service.js'
 import * as timeSlotService from './time-slot.service.js'
+import * as maintenanceService from './maintenance.service.js'
 import { logger } from '../utils/logger.js'
 
 // ============================================
@@ -303,6 +304,60 @@ export const validateNoClosureConflict = async (
   return { valid: true }
 }
 
+export const validateNoMaintenanceConflict = async (
+  productId: string,
+  startDate: Date,
+  endDate: Date
+): Promise<ValidationResult> => {
+  // Get all active and scheduled maintenances for this product
+  const maintenances = await prisma.productMaintenance.findMany({
+    where: {
+      productId,
+      endedAt: null, // Only active/scheduled maintenances
+    },
+  })
+
+  const reqStart = new Date(startDate)
+  reqStart.setUTCHours(0, 0, 0, 0)
+  const reqEnd = new Date(endDate)
+  reqEnd.setUTCHours(0, 0, 0, 0)
+
+  for (const maintenance of maintenances) {
+    const mStart = new Date(maintenance.startDate)
+    mStart.setUTCHours(0, 0, 0, 0)
+    const mEnd = maintenance.endDate ? new Date(maintenance.endDate) : null
+    if (mEnd) {
+      mEnd.setUTCHours(0, 0, 0, 0)
+    }
+
+    // Check for overlap
+    if (mEnd === null) {
+      // Indefinite maintenance - blocks all dates from mStart onwards
+      if (reqEnd >= mStart) {
+        const reason = maintenance.reason ? ` (${maintenance.reason})` : ''
+        return {
+          valid: false,
+          error: `Le produit est en maintenance${reason}`,
+          code: 'PRODUCT_MAINTENANCE',
+        }
+      }
+    } else {
+      // Maintenance with end date - check for overlap
+      // Overlap if: reqStart <= mEnd AND reqEnd >= mStart
+      if (reqStart <= mEnd && reqEnd >= mStart) {
+        const reason = maintenance.reason ? ` (${maintenance.reason})` : ''
+        return {
+          valid: false,
+          error: `Le produit est en maintenance du ${mStart.toLocaleDateString('fr-FR')} au ${mEnd.toLocaleDateString('fr-FR')}${reason}`,
+          code: 'PRODUCT_MAINTENANCE',
+        }
+      }
+    }
+  }
+
+  return { valid: true }
+}
+
 export const validateUserCredits = async (
   userId: string,
   amount: number
@@ -398,6 +453,12 @@ export const createReservation = async (params: CreateReservationParams) => {
   const closureValidation = await validateNoClosureConflict(product.sectionId, start, end)
   if (!closureValidation.valid) {
     throw { statusCode: 400, message: closureValidation.error, code: closureValidation.code }
+  }
+
+  // Check if the reservation period conflicts with a maintenance
+  const maintenanceValidation = await validateNoMaintenanceConflict(productId, start, end)
+  if (!maintenanceValidation.valid) {
+    throw { statusCode: 400, message: maintenanceValidation.error, code: maintenanceValidation.code }
   }
 
   // Calculate total credits based on credit period (per day or per week)
@@ -1346,6 +1407,42 @@ export const getProductAvailability = async (productId: string, month: string) =
     }
   }
 
+  // Get maintenance periods for the month
+  const maintenancePeriods = await maintenanceService.getMaintenancePeriodsForMonth(productId, month)
+  const maintenanceDates: Array<{ date: string; reason: string | null }> = []
+
+  for (const maintenance of maintenancePeriods) {
+    const mStart = new Date(maintenance.startDate)
+    mStart.setUTCHours(0, 0, 0, 0)
+    const mEnd = maintenance.endDate ? new Date(maintenance.endDate) : null
+    if (mEnd) {
+      mEnd.setUTCHours(0, 0, 0, 0)
+    }
+
+    // Iterate through each day of the month
+    for (let day = 1; day <= endOfMonth.getDate(); day++) {
+      const currentDate = new Date(Date.UTC(year, monthNum - 1, day, 0, 0, 0, 0))
+      const dateStr = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+      // Check if this date is in the maintenance period
+      if (mEnd === null) {
+        // Indefinite maintenance - all dates from mStart onwards
+        if (currentDate >= mStart) {
+          if (!maintenanceDates.find((d) => d.date === dateStr)) {
+            maintenanceDates.push({ date: dateStr, reason: maintenance.reason })
+          }
+        }
+      } else {
+        // Maintenance with end date (inclusive)
+        if (currentDate >= mStart && currentDate <= mEnd) {
+          if (!maintenanceDates.find((d) => d.date === dateStr)) {
+            maintenanceDates.push({ date: dateStr, reason: maintenance.reason })
+          }
+        }
+      }
+    }
+  }
+
   return {
     productId,
     month,
@@ -1353,6 +1450,7 @@ export const getProductAvailability = async (productId: string, month: string) =
     allowedDaysOut: product.section.allowedDaysOut,
     reservedDates,
     closedDates,
+    maintenanceDates,
     timeSlots: {
       checkout: timeSlots.filter((ts) => ts.type === 'CHECKOUT'),
       return: timeSlots.filter((ts) => ts.type === 'RETURN'),

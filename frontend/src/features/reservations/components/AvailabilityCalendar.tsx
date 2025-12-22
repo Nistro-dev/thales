@@ -8,6 +8,11 @@ interface ClosedDate {
   reason: string;
 }
 
+interface MaintenanceDate {
+  date: string;
+  reason: string | null;
+}
+
 interface AvailabilityCalendarProps {
   selectedStartDate: Date | undefined;
   selectedEndDate: Date | undefined;
@@ -15,6 +20,7 @@ interface AvailabilityCalendarProps {
   onEndDateSelect: (date: Date) => void;
   reservedDates: string[];
   closedDates?: ClosedDate[];
+  maintenanceDates?: MaintenanceDate[];
   allowedDaysOut?: number[];
   allowedDaysIn?: number[];
   minDate?: Date;
@@ -28,6 +34,7 @@ export function AvailabilityCalendar({
   onEndDateSelect,
   reservedDates,
   closedDates = [],
+  maintenanceDates = [],
   allowedDaysOut,
   allowedDaysIn,
   minDate,
@@ -103,6 +110,24 @@ export function AvailabilityCalendar({
     const day = String(date.getDate()).padStart(2, "0");
     const dateStr = `${year}-${month}-${day}`;
     return closedDates.find((c) => c.date === dateStr)?.reason;
+  };
+
+  // Check if date is in maintenance
+  const isDateInMaintenance = (date: Date): boolean => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+    return maintenanceDates.some((m) => m.date === dateStr);
+  };
+
+  // Get maintenance reason for a date
+  const getMaintenanceReason = (date: Date): string | null | undefined => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+    return maintenanceDates.find((m) => m.date === dateStr)?.reason;
   };
 
   // Check if date is in the selected range
@@ -181,6 +206,7 @@ export function AvailabilityCalendar({
       // Check if valid start date
       if (!isAllowedDay(date, allowedDaysOut)) return;
       if (isDateReserved(date)) return;
+      if (isDateInMaintenance(date)) return;
       if (minDate && date < minDate) return;
       if (date < today) return;
 
@@ -190,13 +216,15 @@ export function AvailabilityCalendar({
       // Check if valid end date
       if (!isAllowedDay(date, allowedDaysIn)) return;
       if (isDateReserved(date)) return;
+      if (isDateInMaintenance(date)) return;
       if (selectedStartDate && date <= selectedStartDate) return;
 
-      // Check if any date in range is reserved
+      // Check if any date in range is reserved or in maintenance
       if (selectedStartDate) {
         const currentDate = new Date(selectedStartDate);
         while (currentDate <= date) {
-          if (isDateReserved(currentDate)) return;
+          if (isDateReserved(currentDate) || isDateInMaintenance(currentDate))
+            return;
           currentDate.setDate(currentDate.getDate() + 1);
         }
       }
@@ -211,12 +239,14 @@ export function AvailabilityCalendar({
     const isPast = date < today;
     const isReserved = isDateReserved(date);
     const isClosed = isDateClosed(date);
+    const isMaintenance = isDateInMaintenance(date);
     const isStart = isStartDate(date);
     const isEnd = isEndDate(date);
     const inRange = isInRange(date);
 
     // Determine if date is selectable based on current selection mode
-    let isDisabled = !isCurrentMonth || isPast || isReserved || isClosed;
+    let isDisabled =
+      !isCurrentMonth || isPast || isReserved || isClosed || isMaintenance;
 
     if (selectingStartDate) {
       // For start date selection, check allowed days out
@@ -231,6 +261,7 @@ export function AvailabilityCalendar({
       isPast,
       isReserved,
       isClosed,
+      isMaintenance,
       isStart,
       isEnd,
       inRange,
@@ -322,12 +353,26 @@ export function AvailabilityCalendar({
             isPast,
             isReserved,
             isClosed,
+            isMaintenance,
             isStart,
             isEnd,
             inRange,
             isDisabled,
           } = getDateState(date, isCurrentMonth);
           const closureReason = isClosed ? getClosureReason(date) : undefined;
+          const maintenanceReason = isMaintenance
+            ? getMaintenanceReason(date)
+            : undefined;
+
+          // Build title for tooltip
+          let title: string | undefined;
+          if (isMaintenance) {
+            title = maintenanceReason
+              ? `En maintenance: ${maintenanceReason}`
+              : "En maintenance";
+          } else if (closureReason) {
+            title = `Fermé: ${closureReason}`;
+          }
 
           return (
             <button
@@ -335,7 +380,7 @@ export function AvailabilityCalendar({
               type="button"
               onClick={() => !isDisabled && handleDateClick(date)}
               disabled={isDisabled}
-              title={closureReason ? `Fermé: ${closureReason}` : undefined}
+              title={title}
               className={cn(
                 "h-8 w-full text-xs rounded-md transition-colors relative",
                 // Base states
@@ -347,10 +392,15 @@ export function AvailabilityCalendar({
                 isReserved &&
                   isCurrentMonth &&
                   "bg-destructive/20 text-destructive line-through",
-                // Closed states (different from reserved)
-                isClosed &&
+                // Maintenance states (orange)
+                isMaintenance &&
                   isCurrentMonth &&
-                  "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
+                  "bg-orange-500/20 text-orange-700 dark:text-orange-400 font-medium",
+                // Closed states (different from reserved, grey/neutral)
+                isClosed &&
+                  !isMaintenance &&
+                  isCurrentMonth &&
+                  "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400",
                 // Selected states
                 isStart &&
                   "bg-primary text-primary-foreground hover:bg-primary",
@@ -379,7 +429,11 @@ export function AvailabilityCalendar({
           <span>Réservé</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-3 w-3 rounded bg-orange-100 dark:bg-orange-900/30" />
+          <div className="h-3 w-3 rounded bg-orange-500/20" />
+          <span>Maintenance</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="h-3 w-3 rounded bg-gray-200 dark:bg-gray-700" />
           <span>Fermé</span>
         </div>
       </div>

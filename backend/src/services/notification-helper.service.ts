@@ -565,6 +565,72 @@ export const sendPasswordChangedNotification = async (
   })
 }
 
+// Maintenance cancellation notification
+export const sendMaintenanceCancellationNotification = async (
+  userId: string,
+  reservationId: string,
+  productName: string,
+  refundAmount: number,
+  maintenanceReason?: string
+): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      firstName: true,
+      lastName: true,
+      creditBalance: true,
+    },
+  })
+
+  if (!user) return
+
+  const notificationType: PrismaNotificationType = 'RESERVATION_CANCELLED_MAINTENANCE'
+
+  // Email
+  if (await shouldSendEmail(userId, notificationType)) {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: {
+        product: true,
+      },
+    })
+
+    if (reservation) {
+      const duration = Math.ceil(
+        (reservation.endDate.getTime() - reservation.startDate.getTime()) / (1000 * 60 * 60 * 24)
+      )
+
+      await emailService.sendReservationCancelledMaintenanceEmail(user.email, {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        productName: reservation.product.name,
+        productReference: reservation.product.reference || undefined,
+        startDate: reservation.startDate.toLocaleDateString('fr-FR'),
+        endDate: reservation.endDate.toLocaleDateString('fr-FR'),
+        duration,
+        creditsCharged: reservation.creditsCharged,
+        reservationId: reservation.id,
+        refundAmount,
+        newBalance: user.creditBalance,
+        maintenanceReason,
+      })
+    }
+  }
+
+  // In-app notification
+  if (await shouldSendInApp(userId, notificationType)) {
+    const reasonText = maintenanceReason ? ` Raison : ${maintenanceReason}` : ''
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_CANCELLED,
+      title: 'Réservation annulée (maintenance)',
+      message: `Votre réservation pour ${productName} a été annulée en raison d'une maintenance.${reasonText} Vos ${refundAmount} crédits ont été remboursés.`,
+      metadata: { reservationId, refundAmount, maintenanceReason },
+    })
+  }
+}
+
 // Reminder notification (for scheduled reminders)
 export const sendReservationReminderNotification = async (
   userId: string,

@@ -90,6 +90,28 @@ export function ReservationDatePicker({
     return uniqueDates;
   }, [availabilityData, nextMonthData]);
 
+  // Combine maintenance dates from both months
+  const maintenanceDates = useMemo(() => {
+    const dates: Array<{ date: string; reason: string | null }> = [];
+    if (availabilityData?.maintenanceDates) {
+      dates.push(...availabilityData.maintenanceDates);
+    }
+    if (nextMonthData?.maintenanceDates) {
+      dates.push(...nextMonthData.maintenanceDates);
+    }
+    // Remove duplicates by date
+    const uniqueDates = dates.reduce(
+      (acc, curr) => {
+        if (!acc.find((d) => d.date === curr.date)) {
+          acc.push(curr);
+        }
+        return acc;
+      },
+      [] as Array<{ date: string; reason: string | null }>,
+    );
+    return uniqueDates;
+  }, [availabilityData, nextMonthData]);
+
   // Get time slots from availability data
   const checkoutTimeSlots: TimeSlot[] = useMemo(() => {
     return availabilityData?.timeSlots?.checkout || [];
@@ -369,6 +391,7 @@ export function ReservationDatePicker({
             onEndDateSelect={onEndDateChange}
             reservedDates={reservedDates}
             closedDates={closedDates}
+            maintenanceDates={maintenanceDates}
             allowedDaysOut={product.section.allowedDaysOut}
             allowedDaysIn={product.section.allowedDaysIn}
             onMonthChange={handleMonthChange}

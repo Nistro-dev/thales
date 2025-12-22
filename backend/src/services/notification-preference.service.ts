@@ -7,6 +7,7 @@ import type { NotificationType } from '@prisma/client'
 export const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   'RESERVATION_CONFIRMED',
   'RESERVATION_CANCELLED',
+  'RESERVATION_CANCELLED_MAINTENANCE',
   'RESERVATION_REFUNDED',
   'RESERVATION_CHECKOUT',
   'RESERVATION_RETURN',
@@ -29,6 +30,10 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, { label: string;
   RESERVATION_CANCELLED: {
     label: 'Réservation annulée',
     description: 'Lorsqu\'une réservation est annulée',
+  },
+  RESERVATION_CANCELLED_MAINTENANCE: {
+    label: 'Annulation pour maintenance',
+    description: 'Lorsqu\'une réservation est annulée suite à une maintenance',
   },
   RESERVATION_REFUNDED: {
     label: 'Remboursement',

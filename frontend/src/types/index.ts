@@ -325,6 +325,7 @@ export interface ProductAvailability {
   allowedDaysOut: number[];
   reservedDates: Array<{ date: string }>;
   closedDates?: Array<{ date: string; reason: string }>;
+  maintenanceDates?: Array<{ date: string; reason: string | null }>;
   timeSlots?: {
     checkout: TimeSlot[];
     return: TimeSlot[];

@@ -270,6 +270,26 @@ export const sendReservationCancelledEmail = async (
   })
 }
 
+export const sendReservationCancelledMaintenanceEmail = async (
+  email: string,
+  data: ReservationEmailData & { refundAmount: number; newBalance: number; maintenanceReason?: string }
+): Promise<void> => {
+  const html = renderEmail(
+    'reservation-cancelled-maintenance',
+    {
+      ...data,
+      frontendUrl: env.FRONTEND_URL,
+    },
+    'Réservation annulée (maintenance)'
+  )
+
+  await sendEmail({
+    to: email,
+    subject: `Réservation annulée (maintenance) - ${data.productName}`,
+    html,
+  })
+}
+
 export const sendReservationRefundedEmail = async (
   email: string,
   data: ReservationEmailData & { refundAmount: number; newBalance: number; adminNotes?: string }

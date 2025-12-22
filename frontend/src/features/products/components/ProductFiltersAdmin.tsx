@@ -1,67 +1,73 @@
-import { Search, X } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useSections } from '@/features/products/hooks/useSections'
-import type { ProductFilters, ProductStatus } from '@/types'
+} from "@/components/ui/select";
+import { useSections } from "@/features/products/hooks/useSections";
+import type { ProductFilters, ProductStatus } from "@/types";
 
 interface ProductFiltersAdminProps {
-  filters: ProductFilters
-  onFiltersChange: (filters: ProductFilters) => void
+  filters: ProductFilters;
+  onFiltersChange: (filters: ProductFilters) => void;
 }
 
-const STATUS_OPTIONS: { value: ProductStatus | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'Tous les statuts' },
-  { value: 'AVAILABLE', label: 'Disponible' },
-  { value: 'UNAVAILABLE', label: 'Indisponible' },
-  { value: 'MAINTENANCE', label: 'Maintenance' },
-  { value: 'ARCHIVED', label: 'Archivé' },
-]
+const STATUS_OPTIONS: { value: ProductStatus | "ALL"; label: string }[] = [
+  { value: "ALL", label: "Tous (y compris archivés)" },
+  { value: "AVAILABLE", label: "Disponible" },
+  { value: "UNAVAILABLE", label: "Indisponible" },
+  { value: "MAINTENANCE", label: "Maintenance" },
+  { value: "ARCHIVED", label: "Archivé" },
+];
 
-export function ProductFiltersAdmin({ filters, onFiltersChange }: ProductFiltersAdminProps) {
-  const { data: sections } = useSections()
+export function ProductFiltersAdmin({
+  filters,
+  onFiltersChange,
+}: ProductFiltersAdminProps) {
+  const { data: sections } = useSections();
 
-  const selectedSection = sections?.find((s) => s.id === filters.sectionId)
-  const subSections = selectedSection?.subSections || []
+  const selectedSection = sections?.find((s) => s.id === filters.sectionId);
+  const subSections = selectedSection?.subSections || [];
 
   const handleSearchChange = (value: string) => {
-    onFiltersChange({ ...filters, search: value || undefined })
-  }
+    onFiltersChange({ ...filters, search: value || undefined });
+  };
 
   const handleSectionChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      sectionId: value === 'ALL' ? undefined : value,
+      sectionId: value === "ALL" ? undefined : value,
       subSectionId: undefined, // Reset subsection when section changes
-    })
-  }
+    });
+  };
 
   const handleSubSectionChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      subSectionId: value === 'ALL' ? undefined : value,
-    })
-  }
+      subSectionId: value === "ALL" ? undefined : value,
+    });
+  };
 
   const handleStatusChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      status: value === 'ALL' ? undefined : (value as ProductStatus),
-    })
-  }
+      status: value === "ALL" ? undefined : (value as ProductStatus),
+    });
+  };
 
   const clearFilters = () => {
-    onFiltersChange({})
-  }
+    onFiltersChange({});
+  };
 
   const hasFilters =
-    filters.search || filters.sectionId || filters.subSectionId || filters.status
+    filters.search ||
+    filters.sectionId ||
+    filters.subSectionId ||
+    filters.status;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -70,14 +76,17 @@ export function ProductFiltersAdmin({ filters, onFiltersChange }: ProductFilters
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Rechercher..."
-          value={filters.search || ''}
+          value={filters.search || ""}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="pl-9"
         />
       </div>
 
       {/* Section */}
-      <Select value={filters.sectionId || 'ALL'} onValueChange={handleSectionChange}>
+      <Select
+        value={filters.sectionId || "ALL"}
+        onValueChange={handleSectionChange}
+      >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Section" />
         </SelectTrigger>
@@ -93,7 +102,10 @@ export function ProductFiltersAdmin({ filters, onFiltersChange }: ProductFilters
 
       {/* SubSection (only if section selected) */}
       {filters.sectionId && subSections.length > 0 && (
-        <Select value={filters.subSectionId || 'ALL'} onValueChange={handleSubSectionChange}>
+        <Select
+          value={filters.subSectionId || "ALL"}
+          onValueChange={handleSubSectionChange}
+        >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Sous-section" />
           </SelectTrigger>
@@ -109,7 +121,10 @@ export function ProductFiltersAdmin({ filters, onFiltersChange }: ProductFilters
       )}
 
       {/* Status */}
-      <Select value={filters.status || 'ALL'} onValueChange={handleStatusChange}>
+      <Select
+        value={filters.status || "ALL"}
+        onValueChange={handleStatusChange}
+      >
         <SelectTrigger className="w-[160px]">
           <SelectValue placeholder="Statut" />
         </SelectTrigger>
@@ -130,5 +145,5 @@ export function ProductFiltersAdmin({ filters, onFiltersChange }: ProductFilters
         </Button>
       )}
     </div>
-  )
+  );
 }

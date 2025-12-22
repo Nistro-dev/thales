@@ -1,14 +1,20 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Package, Plus, ChevronLeft, ChevronRight, Archive } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Package,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Archive,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,22 +24,24 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { ProductTable } from '../components/ProductTable'
-import { ProductFiltersAdmin } from '../components/ProductFiltersAdmin'
-import { useProductsAdmin, useDeleteProduct } from '../hooks/useProductsAdmin'
-import { ROUTES } from '@/constants/routes'
-import type { Product, ProductFilters } from '@/types'
+} from "@/components/ui/alert-dialog";
+import { ProductTable } from "../components/ProductTable";
+import { ProductFiltersAdmin } from "../components/ProductFiltersAdmin";
+import { useProductsAdmin, useDeleteProduct } from "../hooks/useProductsAdmin";
+import { ROUTES } from "@/constants/routes";
+import type { Product, ProductFilters } from "@/types";
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function AdminProductsPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  // Filters state
-  const [filters, setFilters] = useState<ProductFilters>({})
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(20)
+  // Filters state - default to AVAILABLE status
+  const [filters, setFilters] = useState<ProductFilters>({
+    status: "AVAILABLE",
+  });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   // Build query params
   const queryFilters = useMemo(
@@ -41,48 +49,48 @@ export function AdminProductsPage() {
       ...filters,
       includeArchived: true, // Admin can see archived products
     }),
-    [filters]
-  )
+    [filters],
+  );
 
   // Fetch products
-  const { data, isLoading } = useProductsAdmin(queryFilters, page, limit)
+  const { data, isLoading } = useProductsAdmin(queryFilters, page, limit);
 
   // Archive dialog
-  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const deleteProduct = useDeleteProduct()
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const deleteProduct = useDeleteProduct();
 
   const handleFiltersChange = (newFilters: ProductFilters) => {
-    setFilters(newFilters)
-    setPage(1)
-  }
+    setFilters(newFilters);
+    setPage(1);
+  };
 
   const handleLimitChange = (newLimit: number) => {
-    setLimit(newLimit)
-    setPage(1)
-  }
+    setLimit(newLimit);
+    setPage(1);
+  };
 
   const handleArchive = (product: Product) => {
-    setSelectedProduct(product)
-    setArchiveDialogOpen(true)
-  }
+    setSelectedProduct(product);
+    setArchiveDialogOpen(true);
+  };
 
   const confirmArchive = async () => {
-    if (!selectedProduct) return
+    if (!selectedProduct) return;
     try {
-      await deleteProduct.mutateAsync(selectedProduct.id)
-      setArchiveDialogOpen(false)
-      setSelectedProduct(null)
+      await deleteProduct.mutateAsync(selectedProduct.id);
+      setArchiveDialogOpen(false);
+      setSelectedProduct(null);
     } catch {
       // Error handled in hook
     }
-  }
+  };
 
   // Pagination calculations
-  const total = data?.pagination?.total ?? 0
-  const totalPages = data?.pagination?.totalPages ?? 1
-  const hasNextPage = page < totalPages
-  const hasPrevPage = page > 1
+  const total = data?.pagination?.total ?? 0;
+  const totalPages = data?.pagination?.totalPages ?? 1;
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -93,17 +101,25 @@ export function AdminProductsPage() {
             <Package className="h-6 w-6 sm:h-8 sm:w-8" />
             Produits
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Gérer le catalogue de produits</p>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Gérer le catalogue de produits
+          </p>
         </div>
 
-        <Button onClick={() => navigate(ROUTES.ADMIN_PRODUCT_NEW)} className="w-full sm:w-auto">
+        <Button
+          onClick={() => navigate(ROUTES.ADMIN_PRODUCT_NEW)}
+          className="w-full sm:w-auto"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Nouveau produit
         </Button>
       </div>
 
       {/* Filters */}
-      <ProductFiltersAdmin filters={filters} onFiltersChange={handleFiltersChange} />
+      <ProductFiltersAdmin
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+      />
 
       {/* Products Table */}
       <ProductTable
@@ -117,7 +133,10 @@ export function AdminProductsPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>Afficher</span>
-            <Select value={String(limit)} onValueChange={(v) => handleLimitChange(Number(v))}>
+            <Select
+              value={String(limit)}
+              onValueChange={(v) => handleLimitChange(Number(v))}
+            >
               <SelectTrigger className="w-20 h-8">
                 <SelectValue />
               </SelectTrigger>
@@ -131,7 +150,7 @@ export function AdminProductsPage() {
             </Select>
             <span>par page</span>
             <span className="hidden sm:inline ml-4">
-              {total} produit{total > 1 ? 's' : ''} au total
+              {total} produit{total > 1 ? "s" : ""} au total
             </span>
           </div>
 
@@ -174,27 +193,33 @@ export function AdminProductsPage() {
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <p>
-                  Êtes-vous sûr de vouloir archiver{' '}
-                  <strong className="text-foreground">{selectedProduct?.name}</strong> ?
+                  Êtes-vous sûr de vouloir archiver{" "}
+                  <strong className="text-foreground">
+                    {selectedProduct?.name}
+                  </strong>{" "}
+                  ?
                 </p>
                 <p>
-                  Le produit ne sera plus visible dans le catalogue et ne pourra plus être réservé.
+                  Le produit ne sera plus visible dans le catalogue et ne pourra
+                  plus être réservé.
                 </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteProduct.isPending}>Annuler</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteProduct.isPending}>
+              Annuler
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmArchive}
               disabled={deleteProduct.isPending}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {deleteProduct.isPending ? 'Archivage...' : 'Archiver'}
+              {deleteProduct.isPending ? "Archivage..." : "Archiver"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

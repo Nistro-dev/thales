@@ -160,6 +160,7 @@ export const createAdmin = async (
     adminNotes: request.body.adminNotes,
     createdBy: request.user.userId,
     isAdmin: true,
+    status: request.body.status,
     request,
   })
 

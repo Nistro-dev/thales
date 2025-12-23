@@ -105,7 +105,11 @@ export const reservationsAdminApi = {
    * Create reservation for a user (admin)
    */
   createForUser: (
-    data: CreateReservationInput & { userId: string; adminNotes?: string },
+    data: CreateReservationInput & {
+      userId: string;
+      adminNotes?: string;
+      status?: "CONFIRMED" | "CHECKED_OUT" | "RETURNED";
+    },
   ) => {
     return apiClient.post<ApiResponse<Reservation>>(
       "/admin/reservations",

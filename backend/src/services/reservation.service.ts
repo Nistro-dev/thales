@@ -398,6 +398,7 @@ interface CreateReservationParams {
   adminNotes?: string
   createdBy: string
   isAdmin?: boolean
+  status?: 'CONFIRMED' | 'CHECKED_OUT' | 'RETURNED'
   request?: FastifyRequest
 }
 
@@ -413,6 +414,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     adminNotes,
     createdBy,
     isAdmin = false,
+    status: initialStatus,
     request: _request,
   } = params
 
@@ -517,6 +519,10 @@ export const createReservation = async (params: CreateReservationParams) => {
 
       const newBalance = user.creditBalance - totalCredits
 
+      // Determine the reservation status and timestamps based on initialStatus
+      const reservationStatus = initialStatus || 'CONFIRMED'
+      const now = new Date()
+
       // Create reservation
       const newReservation = await tx.reservation.create({
         data: {
@@ -526,11 +532,22 @@ export const createReservation = async (params: CreateReservationParams) => {
           endDate: end,
           startTime,
           endTime,
-          status: 'CONFIRMED',
+          status: reservationStatus,
           creditsCharged: totalCredits,
           notes,
           adminNotes,
           createdBy,
+          // Set timestamps based on status
+          ...(reservationStatus === 'CHECKED_OUT' && {
+            checkedOutAt: now,
+            checkedOutBy: createdBy,
+          }),
+          ...(reservationStatus === 'RETURNED' && {
+            checkedOutAt: now,
+            checkedOutBy: createdBy,
+            returnedAt: now,
+            returnedBy: createdBy,
+          }),
         },
         include: {
           user: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -575,6 +592,9 @@ export const createReservation = async (params: CreateReservationParams) => {
     },
   })
 
+  // Determine reservation status for metadata and movements
+  const reservationStatus = initialStatus || 'CONFIRMED'
+
   await logAudit({
     userId,
     performedBy: createdBy,
@@ -591,8 +611,33 @@ export const createReservation = async (params: CreateReservationParams) => {
       durationDays,
       pricePerDay: product.priceCredits,
       creditsCharged: totalCredits,
+      initialStatus: reservationStatus,
+      isAdminCreated: isAdmin,
     },
   })
+
+  // Create movements if status is CHECKED_OUT or RETURNED (admin created with initial status)
+  if (reservationStatus === 'CHECKED_OUT' || reservationStatus === 'RETURNED') {
+    await createMovement({
+      productId,
+      reservationId: reservation.id,
+      type: 'CHECKOUT',
+      condition: 'OK',
+      notes: 'Créé par admin avec statut initial',
+      performedBy: createdBy,
+    })
+  }
+
+  if (reservationStatus === 'RETURNED') {
+    await createMovement({
+      productId,
+      reservationId: reservation.id,
+      type: 'RETURN',
+      condition: 'OK',
+      notes: 'Créé par admin avec statut initial',
+      performedBy: createdBy,
+    })
+  }
 
   // Send notifications
   await notificationHelper.sendReservationConfirmedNotification(

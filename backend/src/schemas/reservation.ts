@@ -18,6 +18,7 @@ export const createReservationSchema = z.object({
 export const createReservationAdminSchema = createReservationSchema.extend({
   userId: z.string().uuid(),
   adminNotes: z.string().max(1000).optional(),
+  status: z.enum(['CONFIRMED', 'CHECKED_OUT', 'RETURNED']).optional(),
 })
 
 export const updateReservationSchema = z.object({

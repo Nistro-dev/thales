@@ -151,6 +151,31 @@ export function useCheckAvailability() {
 }
 
 /**
+ * ADMIN: Create reservation for a user
+ */
+export function useAdminCreateReservation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      data: CreateReservationInput & {
+        userId: string;
+        adminNotes?: string;
+        status?: "CONFIRMED" | "CHECKED_OUT" | "RETURNED";
+      },
+    ) => {
+      const response = await reservationsAdminApi.createForUser(data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
+      toast.success("Réservation créée avec succès");
+    },
+  });
+}
+
+/**
  * ADMIN: Get all reservations
  */
 export function useAdminReservations(

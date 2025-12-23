@@ -36,6 +36,7 @@ import {
   SlidersHorizontal,
   Clock,
   QrCode,
+  Plus,
 } from "lucide-react";
 import { ReservationCardSkeleton } from "../components/ReservationCardSkeleton";
 import { ReservationFiltersSkeleton } from "../components/ReservationFiltersSkeleton";
@@ -43,6 +44,7 @@ import { CheckoutDialog } from "../components/CheckoutDialog";
 import { ReturnDialog } from "../components/ReturnDialog";
 import { AdminCancelDialog } from "../components/AdminCancelDialog";
 import { QRScannerDialog } from "../components/QRScannerDialog";
+import { AdminCreateReservationDialog } from "../components/AdminCreateReservationDialog";
 import type {
   ReservationStatus,
   ReservationFilters,
@@ -94,6 +96,7 @@ export function AdminReservationsPage() {
     reservation: null,
   });
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -271,13 +274,23 @@ export function AdminReservationsPage() {
             Gérez les réservations et les mouvements de matériel
           </p>
         </div>
-        <Button
-          onClick={() => setQrScannerOpen(true)}
-          className="w-full sm:w-auto"
-        >
-          <QrCode className="mr-2 h-4 w-4" />
-          Scanner QR
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button
+            onClick={() => setCreateDialogOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Créer
+          </Button>
+          <Button
+            onClick={() => setQrScannerOpen(true)}
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            <QrCode className="mr-2 h-4 w-4" />
+            Scanner QR
+          </Button>
+        </div>
       </div>
 
       <Tabs
@@ -878,6 +891,11 @@ export function AdminReservationsPage() {
       />
 
       <QRScannerDialog open={qrScannerOpen} onOpenChange={setQrScannerOpen} />
+
+      <AdminCreateReservationDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </div>
   );
 }

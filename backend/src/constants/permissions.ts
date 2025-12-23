@@ -1,7 +1,4 @@
 export const PERMISSIONS = {
-  // Admin Panel
-  VIEW_ADMIN_PANEL: 'VIEW_ADMIN_PANEL',
-
   // Users
   VIEW_USERS: 'VIEW_USERS',
   MANAGE_USERS: 'MANAGE_USERS',
@@ -11,27 +8,13 @@ export const PERMISSIONS = {
   MANAGE_CREDITS: 'MANAGE_CREDITS',
 
   // Cautions
-  VIEW_CAUTIONS: 'VIEW_CAUTIONS',
   MANAGE_CAUTIONS: 'MANAGE_CAUTIONS',
 
   // Roles
   VIEW_ROLES: 'VIEW_ROLES',
   MANAGE_ROLES: 'MANAGE_ROLES',
 
-  // Invitations
-  VIEW_INVITATIONS: 'VIEW_INVITATIONS',
-  MANAGE_INVITATIONS: 'MANAGE_INVITATIONS',
-
-  // Audit
-  VIEW_AUDIT_LOGS: 'VIEW_AUDIT_LOGS',
-  EXPORT_AUDIT_LOGS: 'EXPORT_AUDIT_LOGS',
-
-  // Files
-  VIEW_FILES: 'VIEW_FILES',
-  MANAGE_FILES: 'MANAGE_FILES',
-
   // Sections
-  VIEW_SECTIONS: 'VIEW_SECTIONS',
   MANAGE_SECTIONS: 'MANAGE_SECTIONS',
 
   // Products
@@ -57,52 +40,20 @@ export const PERMISSIONS = {
 export type PermissionKey = typeof PERMISSIONS[keyof typeof PERMISSIONS]
 
 export const PERMISSION_HIERARCHY: Record<string, string> = {
-  // MANAGE implies VIEW, and VIEW implies VIEW_ADMIN_PANEL
+  // MANAGE implies VIEW
   MANAGE_USERS: 'VIEW_USERS',
-  VIEW_USERS: 'VIEW_ADMIN_PANEL',
-
   MANAGE_CREDITS: 'VIEW_CREDITS',
-  VIEW_CREDITS: 'VIEW_ADMIN_PANEL',
-
-  MANAGE_CAUTIONS: 'VIEW_CAUTIONS',
-  VIEW_CAUTIONS: 'VIEW_ADMIN_PANEL',
-
   MANAGE_ROLES: 'VIEW_ROLES',
-  VIEW_ROLES: 'VIEW_ADMIN_PANEL',
-
-  MANAGE_INVITATIONS: 'VIEW_INVITATIONS',
-  VIEW_INVITATIONS: 'VIEW_ADMIN_PANEL',
-
-  EXPORT_AUDIT_LOGS: 'VIEW_AUDIT_LOGS',
-  VIEW_AUDIT_LOGS: 'VIEW_ADMIN_PANEL',
-
-  MANAGE_FILES: 'VIEW_FILES',
-  VIEW_FILES: 'VIEW_ADMIN_PANEL',
-
-  MANAGE_SECTIONS: 'VIEW_SECTIONS',
-  VIEW_SECTIONS: 'VIEW_ADMIN_PANEL',
-
   MANAGE_PRODUCTS: 'VIEW_PRODUCTS',
-  VIEW_PRODUCTS: 'VIEW_ADMIN_PANEL',
-
   MANAGE_RESERVATIONS: 'VIEW_RESERVATIONS',
-  VIEW_RESERVATIONS: 'VIEW_ADMIN_PANEL',
-
-  VIEW_STATISTICS: 'VIEW_ADMIN_PANEL',
-
   MANAGE_SETTINGS: 'VIEW_SETTINGS',
-  VIEW_SETTINGS: 'VIEW_ADMIN_PANEL',
 }
 
 export const PERMISSION_CATEGORIES = {
-  admin: 'admin',
   users: 'users',
   credits: 'credits',
   cautions: 'cautions',
   roles: 'roles',
-  invitations: 'invitations',
-  audit: 'audit',
-  files: 'files',
   sections: 'sections',
   products: 'products',
   reservations: 'reservations',
@@ -114,15 +65,11 @@ export const PERMISSION_CATEGORIES = {
 export type PermissionCategory = typeof PERMISSION_CATEGORIES[keyof typeof PERMISSION_CATEGORIES]
 
 export const PERMISSIONS_BY_CATEGORY: Record<PermissionCategory, PermissionKey[]> = {
-  admin: ['VIEW_ADMIN_PANEL'],
   users: ['VIEW_USERS', 'MANAGE_USERS'],
   credits: ['VIEW_CREDITS', 'MANAGE_CREDITS'],
-  cautions: ['VIEW_CAUTIONS', 'MANAGE_CAUTIONS'],
+  cautions: ['MANAGE_CAUTIONS'],
   roles: ['VIEW_ROLES', 'MANAGE_ROLES'],
-  invitations: ['VIEW_INVITATIONS', 'MANAGE_INVITATIONS'],
-  audit: ['VIEW_AUDIT_LOGS', 'EXPORT_AUDIT_LOGS'],
-  files: ['VIEW_FILES', 'MANAGE_FILES'],
-  sections: ['VIEW_SECTIONS', 'MANAGE_SECTIONS'],
+  sections: ['MANAGE_SECTIONS'],
   products: ['VIEW_PRODUCTS', 'MANAGE_PRODUCTS'],
   reservations: ['VIEW_RESERVATIONS', 'MANAGE_RESERVATIONS'],
   statistics: ['VIEW_STATISTICS'],

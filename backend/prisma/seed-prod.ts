@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { hashPassword } from '../src/utils/password.js'
-import { PERMISSIONS, PERMISSIONS_BY_CATEGORY } from '../src/constants/permissions.js'
+import { PERMISSIONS_BY_CATEGORY } from '../src/constants/permissions.js'
 
 const prisma = new PrismaClient()
 
@@ -96,11 +96,6 @@ async function main(): Promise<void> {
 
   // 4. Create Basic User Role
   console.log('👤 Creating Basic User role...')
-  const basicUserPermissions = permissionRecords.filter(p =>
-    [
-      PERMISSIONS.VIEW_FILES as string,
-    ].includes(p.key)
-  )
 
   const existingBasicRole = await prisma.role.findUnique({
     where: { name: 'Utilisateur' },
@@ -115,11 +110,6 @@ async function main(): Promise<void> {
         name: 'Utilisateur',
         description: 'Utilisateur basique avec accès limité',
         isSystem: true,
-        permissions: {
-          create: basicUserPermissions.map(p => ({
-            permissionId: p.id,
-          })),
-        },
       },
     })
   }

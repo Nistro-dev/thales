@@ -198,16 +198,6 @@ export function AdminReservationDetailPage() {
     (reservation.status === "RETURNED" || reservation.status === "REFUNDED") &&
     !reservation.penalizedAt;
 
-  // DEBUG: Log penalty-related fields
-  console.log("DEBUG Penalty:", {
-    status: reservation.status,
-    penalizedAt: reservation.penalizedAt,
-    canPenalize,
-    hasStatusMatch:
-      reservation.status === "RETURNED" || reservation.status === "REFUNDED",
-    notAlreadyPenalized: !reservation.penalizedAt,
-  });
-
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
       {/* Back Button */}

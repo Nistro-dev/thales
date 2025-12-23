@@ -1,6 +1,12 @@
-import { Coins, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import {
+  Coins,
+  TrendingUp,
+  TrendingDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,50 +14,50 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 import {
   formatDateTime,
   getCreditTransactionTypeLabel,
   getCreditTransactionTypeColor,
-} from '../utils/userHelpers'
-import type { CreditTransaction } from '@/api/users.api'
+} from "../utils/userHelpers";
+import type { CreditTransaction } from "@/api/users.api";
 
 interface CreditTransactionsTableProps {
-  transactions: CreditTransaction[] | undefined
-  isLoading: boolean
-  title?: string
+  transactions: CreditTransaction[] | undefined;
+  isLoading: boolean;
+  title?: string;
   // Pagination
-  page: number
-  limit: number
-  total?: number
-  onPageChange: (page: number) => void
-  onLimitChange: (limit: number) => void
+  page: number;
+  limit: number;
+  total?: number;
+  onPageChange: (page: number) => void;
+  onLimitChange: (limit: number) => void;
 }
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50]
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 export function CreditTransactionsTable({
   transactions,
   isLoading,
-  title = 'Historique des crédits',
+  title = "Historique des crédits",
   page,
   limit,
   total = 0,
   onPageChange,
   onLimitChange,
 }: CreditTransactionsTableProps) {
-  const totalPages = Math.ceil(total / limit)
-  const hasNextPage = page < totalPages
-  const hasPrevPage = page > 1
+  const totalPages = Math.ceil(total / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
 
   return (
     <Card>
@@ -59,7 +65,9 @@ export function CreditTransactionsTable({
         <CardTitle className="flex items-center gap-2">
           <Coins className="h-5 w-5" />
           {title}
-          {total > 0 && <span className="text-muted-foreground">({total})</span>}
+          {total > 0 && (
+            <span className="text-muted-foreground">({total})</span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -75,7 +83,9 @@ export function CreditTransactionsTable({
             ))}
           </div>
         ) : !transactions || transactions.length === 0 ? (
-          <p className="text-center text-muted-foreground py-4">Aucune transaction</p>
+          <p className="text-center text-muted-foreground py-4">
+            Aucune transaction
+          </p>
         ) : (
           <>
             <Table>
@@ -83,6 +93,7 @@ export function CreditTransactionsTable({
                 <TableRow>
                   <TableHead>Montant</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Par</TableHead>
                   <TableHead>Raison</TableHead>
                   <TableHead>Solde après</TableHead>
                   <TableHead>Date</TableHead>
@@ -100,10 +111,12 @@ export function CreditTransactionsTable({
                         )}
                         <span
                           className={`font-medium ${
-                            transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                            transaction.amount > 0
+                              ? "text-green-600"
+                              : "text-red-600"
                           }`}
                         >
-                          {transaction.amount > 0 ? '+' : ''}
+                          {transaction.amount > 0 ? "+" : ""}
                           {transaction.amount}
                         </span>
                       </div>
@@ -111,15 +124,24 @@ export function CreditTransactionsTable({
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={getCreditTransactionTypeColor(transaction.type)}
+                        className={getCreditTransactionTypeColor(
+                          transaction.type,
+                        )}
                       >
                         {getCreditTransactionTypeLabel(transaction.type)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground max-w-xs truncate">
-                      {transaction.reason || '-'}
+                    <TableCell className="text-muted-foreground">
+                      {transaction.performedByUser
+                        ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
+                        : "Automatique"}
                     </TableCell>
-                    <TableCell className="font-medium">{transaction.balanceAfter}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-xs truncate">
+                      {transaction.reason || "-"}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {transaction.balanceAfter}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDateTime(transaction.createdAt)}
                     </TableCell>
@@ -182,5 +204,5 @@ export function CreditTransactionsTable({
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

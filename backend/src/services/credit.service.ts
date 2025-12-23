@@ -109,8 +109,22 @@ export const getUserTransactions = async (params: GetTransactionsParams) => {
     }),
   ])
 
+  // Fetch performedBy user info
+  const performedByIds = [...new Set(transactions.map(t => t.performedBy).filter(Boolean))] as string[]
+  const performedByUsers = await prisma.user.findMany({
+    where: { id: { in: performedByIds } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const performedByMap = new Map(performedByUsers.map(u => [u.id, u]))
+
+  // Add performedByUser to each transaction
+  const transactionsWithPerformedBy = transactions.map(t => ({
+    ...t,
+    performedByUser: t.performedBy ? performedByMap.get(t.performedBy) || null : null,
+  }))
+
   return {
-    transactions,
+    transactions: transactionsWithPerformedBy,
     pagination: {
       page,
       limit,

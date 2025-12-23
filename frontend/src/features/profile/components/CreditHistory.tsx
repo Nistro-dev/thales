@@ -48,6 +48,10 @@ function TransactionItem({ transaction }: { transaction: CreditTransaction }) {
               hour: "2-digit",
               minute: "2-digit",
             })}
+            {" - Par "}
+            {transaction.performedByUser
+              ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
+              : "Automatique"}
           </p>
           {transaction.reason && (
             <p className="text-xs text-muted-foreground mt-1">

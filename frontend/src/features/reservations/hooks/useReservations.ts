@@ -151,6 +151,31 @@ export function useCheckAvailability() {
 }
 
 /**
+ * ADMIN: Create reservation for a user
+ */
+export function useAdminCreateReservation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      data: CreateReservationInput & {
+        userId: string;
+        adminNotes?: string;
+        status?: "CONFIRMED" | "CHECKED_OUT" | "RETURNED";
+      },
+    ) => {
+      const response = await reservationsAdminApi.createForUser(data);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["product-availability"] });
+      toast.success("Réservation créée avec succès");
+    },
+  });
+}
+
+/**
  * ADMIN: Get all reservations
  */
 export function useAdminReservations(
@@ -294,6 +319,35 @@ export function useRefundReservation() {
       // Rafraîchir les crédits utilisateur
       useAuthStore.getState().refreshUser();
       toast.success("Réservation remboursée");
+    },
+  });
+}
+
+/**
+ * ADMIN: Penalize reservation (mutation)
+ */
+export function usePenalizeReservation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      amount,
+      reason,
+    }: {
+      id: string;
+      amount: number;
+      reason: string;
+    }) => {
+      const response = await reservationsAdminApi.penalize(id, amount, reason);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-reservation"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["user-credit-transactions"] });
+      toast.success("Pénalité appliquée");
     },
   });
 }

@@ -1,24 +1,32 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { History, ArrowUpCircle, ArrowDownCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useMyCreditTransactions } from '../hooks/useProfile'
-import type { CreditTransaction } from '@/api/users.api'
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  History,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { useMyCreditTransactions } from "../hooks/useProfile";
+import type { CreditTransaction } from "@/api/users.api";
 
 const typeLabels: Record<string, string> = {
-  MANUAL_ADD: 'AJOUT MANUEL',
-  MANUAL_REMOVE: 'RETRAIT MANUEL',
-  RESERVATION_CHARGE: 'RÉSERVATION',
-  RESERVATION_REFUND: 'REMBOURSEMENT',
-  CANCELLATION_REFUND: 'ANNULATION',
-  INITIAL_BALANCE: 'SOLDE INITIAL',
-  REFUND: 'REMBOURSEMENT',
-  RESERVATION: 'RÉSERVATION',
-}
+  MANUAL_ADD: "AJOUT MANUEL",
+  MANUAL_REMOVE: "RETRAIT MANUEL",
+  RESERVATION_CHARGE: "RÉSERVATION",
+  RESERVATION_REFUND: "REMBOURSEMENT",
+  CANCELLATION_REFUND: "ANNULATION",
+  INITIAL_BALANCE: "SOLDE INITIAL",
+  REFUND: "REMBOURSEMENT",
+  RESERVATION: "RÉSERVATION",
+  PENALTY: "PÉNALITÉ",
+};
 
 function TransactionItem({ transaction }: { transaction: CreditTransaction }) {
-  const isPositive = transaction.amount > 0
+  const isPositive = transaction.amount > 0;
 
   return (
     <div className="flex items-center justify-between py-3 border-b last:border-b-0">
@@ -33,22 +41,34 @@ function TransactionItem({ transaction }: { transaction: CreditTransaction }) {
             {typeLabels[transaction.type] || transaction.type}
           </p>
           <p className="text-xs text-muted-foreground">
-            {new Date(transaction.createdAt).toLocaleDateString('fr-FR', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
+            {new Date(transaction.createdAt).toLocaleDateString("fr-FR", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
+            {" - Par "}
+            {transaction.type === "RESERVATION" ||
+            transaction.type === "EXTENSION"
+              ? "Automatique"
+              : transaction.performedByUser
+                ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
+                : "Automatique"}
           </p>
           {transaction.reason && (
-            <p className="text-xs text-muted-foreground mt-1">{transaction.reason}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {transaction.reason}
+            </p>
           )}
         </div>
       </div>
       <div className="text-right">
-        <Badge variant={isPositive ? 'default' : 'secondary'} className="font-mono">
-          {isPositive ? '+' : ''}
+        <Badge
+          variant={isPositive ? "default" : "secondary"}
+          className="font-mono"
+        >
+          {isPositive ? "+" : ""}
           {transaction.amount}
         </Badge>
         <p className="text-xs text-muted-foreground mt-1">
@@ -56,17 +76,20 @@ function TransactionItem({ transaction }: { transaction: CreditTransaction }) {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 10;
 
 export function CreditHistory() {
-  const [page, setPage] = useState(1)
-  const { data, isLoading, error } = useMyCreditTransactions(page, ITEMS_PER_PAGE)
+  const [page, setPage] = useState(1);
+  const { data, isLoading, error } = useMyCreditTransactions(
+    page,
+    ITEMS_PER_PAGE,
+  );
 
-  const transactions = data?.transactions || []
-  const totalPages = data?.pagination?.totalPages || 1
+  const transactions = data?.transactions || [];
+  const totalPages = data?.pagination?.totalPages || 1;
 
   return (
     <Card>
@@ -99,7 +122,10 @@ export function CreditHistory() {
           <>
             <div className="divide-y">
               {transactions.map((transaction) => (
-                <TransactionItem key={transaction.id} transaction={transaction} />
+                <TransactionItem
+                  key={transaction.id}
+                  transaction={transaction}
+                />
               ))}
             </div>
 
@@ -132,5 +158,5 @@ export function CreditHistory() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

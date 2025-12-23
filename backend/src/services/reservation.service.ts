@@ -398,6 +398,7 @@ interface CreateReservationParams {
   adminNotes?: string
   createdBy: string
   isAdmin?: boolean
+  status?: 'CONFIRMED' | 'CHECKED_OUT' | 'RETURNED'
   request?: FastifyRequest
 }
 
@@ -413,6 +414,7 @@ export const createReservation = async (params: CreateReservationParams) => {
     adminNotes,
     createdBy,
     isAdmin = false,
+    status: initialStatus,
     request: _request,
   } = params
 
@@ -517,6 +519,10 @@ export const createReservation = async (params: CreateReservationParams) => {
 
       const newBalance = user.creditBalance - totalCredits
 
+      // Determine the reservation status and timestamps based on initialStatus
+      const reservationStatus = initialStatus || 'CONFIRMED'
+      const now = new Date()
+
       // Create reservation
       const newReservation = await tx.reservation.create({
         data: {
@@ -526,11 +532,22 @@ export const createReservation = async (params: CreateReservationParams) => {
           endDate: end,
           startTime,
           endTime,
-          status: 'CONFIRMED',
+          status: reservationStatus,
           creditsCharged: totalCredits,
           notes,
           adminNotes,
           createdBy,
+          // Set timestamps based on status
+          ...(reservationStatus === 'CHECKED_OUT' && {
+            checkedOutAt: now,
+            checkedOutBy: createdBy,
+          }),
+          ...(reservationStatus === 'RETURNED' && {
+            checkedOutAt: now,
+            checkedOutBy: createdBy,
+            returnedAt: now,
+            returnedBy: createdBy,
+          }),
         },
         include: {
           user: { select: { id: true, email: true, firstName: true, lastName: true } },
@@ -575,6 +592,9 @@ export const createReservation = async (params: CreateReservationParams) => {
     },
   })
 
+  // Determine reservation status for metadata and movements
+  const reservationStatus = initialStatus || 'CONFIRMED'
+
   await logAudit({
     userId,
     performedBy: createdBy,
@@ -591,8 +611,33 @@ export const createReservation = async (params: CreateReservationParams) => {
       durationDays,
       pricePerDay: product.priceCredits,
       creditsCharged: totalCredits,
+      initialStatus: reservationStatus,
+      isAdminCreated: isAdmin,
     },
   })
+
+  // Create movements if status is CHECKED_OUT or RETURNED (admin created with initial status)
+  if (reservationStatus === 'CHECKED_OUT' || reservationStatus === 'RETURNED') {
+    await createMovement({
+      productId,
+      reservationId: reservation.id,
+      type: 'CHECKOUT',
+      condition: 'OK',
+      notes: 'Créé par admin avec statut initial',
+      performedBy: createdBy,
+    })
+  }
+
+  if (reservationStatus === 'RETURNED') {
+    await createMovement({
+      productId,
+      reservationId: reservation.id,
+      type: 'RETURN',
+      condition: 'OK',
+      notes: 'Créé par admin avec statut initial',
+      performedBy: createdBy,
+    })
+  }
 
   // Send notifications
   await notificationHelper.sendReservationConfirmedNotification(
@@ -711,7 +756,7 @@ export const getReservationById = async (id: string, userId?: string) => {
   const reservation = await prisma.reservation.findFirst({
     where,
     include: {
-      user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
+      user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true, creditBalance: true } },
       product: {
         include: {
           section: { select: { id: true, name: true, refundDeadlineHours: true } },
@@ -1033,6 +1078,111 @@ export const refundReservation = async (params: RefundReservationParams) => {
   )
 
   return updatedReservation
+}
+
+// ============================================
+// PENALIZE (Admin only - after return)
+// ============================================
+
+interface PenalizeReservationParams {
+  reservationId: string
+  adminId: string
+  amount: number
+  reason: string
+  request?: FastifyRequest
+}
+
+export const penalizeReservation = async (params: PenalizeReservationParams) => {
+  const { reservationId, adminId, amount, reason, request: _request } = params
+
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: { product: { select: { name: true } } },
+  })
+
+  if (!reservation) {
+    throw { statusCode: 404, message: 'Réservation introuvable', code: 'NOT_FOUND' }
+  }
+
+  if (reservation.penalizedAt) {
+    throw {
+      statusCode: 400,
+      message: 'Une pénalité a déjà été appliquée à cette réservation',
+      code: 'VALIDATION_ERROR',
+    }
+  }
+
+  if (reservation.status !== 'RETURNED' && reservation.status !== 'REFUNDED') {
+    throw {
+      statusCode: 400,
+      message: 'Une pénalité ne peut être appliquée qu\'après le retour du produit',
+      code: 'VALIDATION_ERROR',
+    }
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: reservation.userId },
+    select: { creditBalance: true },
+  })
+
+  const newBalance = user!.creditBalance - amount
+  const willBeNegative = newBalance < 0
+
+  const [updatedReservation] = await prisma.$transaction([
+    prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        penalizedAt: new Date(),
+        penalizedBy: adminId,
+        penaltyAmount: amount,
+        penaltyReason: reason,
+        adminNotes: reservation.adminNotes
+          ? `${reservation.adminNotes}\n[PÉNALITÉ] ${reason}`
+          : `[PÉNALITÉ] ${reason}`,
+      },
+    }),
+    prisma.user.update({
+      where: { id: reservation.userId },
+      data: { creditBalance: newBalance },
+    }),
+    prisma.creditTransaction.create({
+      data: {
+        userId: reservation.userId,
+        amount: -amount,
+        balanceAfter: newBalance,
+        type: 'PENALTY',
+        reason: reason || `Pénalité : ${reservation.product.name}`,
+        performedBy: adminId,
+        reservationId,
+      },
+    }),
+  ])
+
+  await logAudit({
+    userId: reservation.userId,
+    performedBy: adminId,
+    action: 'RESERVATION_PENALTY',
+    targetType: 'Reservation',
+    targetId: reservationId,
+    metadata: {
+      penaltyAmount: amount,
+      reason,
+      newBalance,
+      wasNegative: willBeNegative,
+    },
+  })
+
+  // Send notifications
+  await notificationHelper.sendReservationPenalizedNotification(
+    reservation.userId,
+    reservationId,
+    reservation.product.name,
+    amount,
+    newBalance,
+    reason
+  )
+
+  return { ...updatedReservation, willBeNegative, newBalance }
 }
 
 // ============================================

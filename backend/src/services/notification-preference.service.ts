@@ -9,6 +9,7 @@ export const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   'RESERVATION_CANCELLED',
   'RESERVATION_CANCELLED_MAINTENANCE',
   'RESERVATION_REFUNDED',
+  'RESERVATION_PENALIZED',
   'RESERVATION_CHECKOUT',
   'RESERVATION_RETURN',
   'RESERVATION_REMINDER',
@@ -38,6 +39,10 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, { label: string;
   RESERVATION_REFUNDED: {
     label: 'Remboursement',
     description: 'Lorsqu\'un remboursement est effectué',
+  },
+  RESERVATION_PENALIZED: {
+    label: 'Pénalité appliquée',
+    description: 'Lorsqu\'une pénalité est appliquée à une réservation',
   },
   RESERVATION_CHECKOUT: {
     label: 'Retrait effectué',

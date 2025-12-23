@@ -145,6 +145,62 @@ export const sendReservationCancelledNotification = async (
   }
 }
 
+export const sendReservationPenalizedNotification = async (
+  userId: string,
+  reservationId: string,
+  productName: string,
+  penaltyAmount: number,
+  newBalance: number,
+  reason: string
+): Promise<void> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      firstName: true,
+      lastName: true,
+    },
+  })
+
+  if (!user) return
+
+  const notificationType: PrismaNotificationType = 'RESERVATION_PENALIZED'
+
+  // Email
+  if (await shouldSendEmail(userId, notificationType)) {
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: {
+        product: true,
+      },
+    })
+
+    if (reservation) {
+      await emailService.sendReservationPenalizedEmail(user.email, {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        productName: reservation.product.name,
+        productReference: reservation.product.reference || undefined,
+        reservationId: reservation.id,
+        penaltyAmount,
+        newBalance,
+        reason,
+      })
+    }
+  }
+
+  // In-app notification
+  if (await shouldSendInApp(userId, notificationType)) {
+    await notificationService.createNotification({
+      userId,
+      type: NotificationType.RESERVATION_PENALIZED,
+      title: 'Pénalité appliquée',
+      message: `Une pénalité de ${penaltyAmount} crédits a été appliquée à votre réservation de ${productName}. Motif : ${reason}`,
+      metadata: { reservationId, penaltyAmount, newBalance, reason },
+    })
+  }
+}
+
 export const sendReservationRefundedNotification = async (
   userId: string,
   reservationId: string,

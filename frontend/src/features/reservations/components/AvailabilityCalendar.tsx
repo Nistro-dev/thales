@@ -25,6 +25,7 @@ interface AvailabilityCalendarProps {
   allowedDaysIn?: number[];
   minDate?: Date;
   onMonthChange?: (year: number, month: number) => void;
+  isAdmin?: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -39,6 +40,7 @@ export function AvailabilityCalendar({
   allowedDaysIn,
   minDate,
   onMonthChange,
+  isAdmin = false,
 }: AvailabilityCalendarProps) {
   const today = useMemo(() => {
     const d = new Date();
@@ -208,7 +210,7 @@ export function AvailabilityCalendar({
       if (isDateReserved(date)) return;
       if (isDateInMaintenance(date)) return;
       if (minDate && date < minDate) return;
-      if (date < today) return;
+      if (!isAdmin && date < today) return;
 
       onStartDateSelect(date);
       setSelectingStartDate(false);
@@ -245,8 +247,13 @@ export function AvailabilityCalendar({
     const inRange = isInRange(date);
 
     // Determine if date is selectable based on current selection mode
+    // In admin mode, past dates are allowed
     let isDisabled =
-      !isCurrentMonth || isPast || isReserved || isClosed || isMaintenance;
+      !isCurrentMonth ||
+      (!isAdmin && isPast) ||
+      isReserved ||
+      isClosed ||
+      isMaintenance;
 
     if (selectingStartDate) {
       // For start date selection, check allowed days out
@@ -271,12 +278,14 @@ export function AvailabilityCalendar({
 
   // Can go to previous month?
   const canGoPrevious = useMemo(() => {
+    // Admin can go to any previous month
+    if (isAdmin) return true;
     return (
       currentMonth.year > today.getFullYear() ||
       (currentMonth.year === today.getFullYear() &&
         currentMonth.month > today.getMonth())
     );
-  }, [currentMonth, today]);
+  }, [currentMonth, today, isAdmin]);
 
   const handleReset = () => {
     onStartDateSelect(undefined as unknown as Date);

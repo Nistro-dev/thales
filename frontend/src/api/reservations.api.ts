@@ -105,7 +105,11 @@ export const reservationsAdminApi = {
    * Create reservation for a user (admin)
    */
   createForUser: (
-    data: CreateReservationInput & { userId: string; adminNotes?: string },
+    data: CreateReservationInput & {
+      userId: string;
+      adminNotes?: string;
+      status?: "CONFIRMED" | "CHECKED_OUT" | "RETURNED";
+    },
   ) => {
     return apiClient.post<ApiResponse<Reservation>>(
       "/admin/reservations",
@@ -154,6 +158,18 @@ export const reservationsAdminApi = {
         reason,
       },
     );
+  },
+
+  /**
+   * Penalize reservation (admin)
+   */
+  penalize: (id: string, amount: number, reason: string) => {
+    return apiClient.post<
+      ApiResponse<Reservation & { willBeNegative: boolean; newBalance: number }>
+    >(`/admin/reservations/${id}/penalty`, {
+      amount,
+      reason,
+    });
   },
 
   /**

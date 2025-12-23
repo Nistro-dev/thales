@@ -18,6 +18,7 @@ export const createReservationSchema = z.object({
 export const createReservationAdminSchema = createReservationSchema.extend({
   userId: z.string().uuid(),
   adminNotes: z.string().max(1000).optional(),
+  status: z.enum(['CONFIRMED', 'CHECKED_OUT', 'RETURNED']).optional(),
 })
 
 export const updateReservationSchema = z.object({
@@ -63,6 +64,11 @@ export const refundReservationSchema = z.object({
   reason: z.string().max(500).optional(),
 })
 
+export const penaltyReservationSchema = z.object({
+  amount: z.number().int().min(1, 'Le montant doit être supérieur à 0'),
+  reason: z.string().min(1, 'Le motif est obligatoire').max(500),
+})
+
 export type CreateReservationInput = z.infer<typeof createReservationSchema>
 export type CreateReservationAdminInput = z.infer<typeof createReservationAdminSchema>
 export type UpdateReservationInput = z.infer<typeof updateReservationSchema>
@@ -70,3 +76,4 @@ export type CancelReservationInput = z.infer<typeof cancelReservationSchema>
 export type ListReservationsInput = z.infer<typeof listReservationsSchema>
 export type AvailabilityInput = z.infer<typeof availabilitySchema>
 export type RefundReservationInput = z.infer<typeof refundReservationSchema>
+export type PenaltyReservationInput = z.infer<typeof penaltyReservationSchema>

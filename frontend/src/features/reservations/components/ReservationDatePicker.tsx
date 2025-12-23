@@ -19,6 +19,7 @@ interface ReservationDatePickerProps {
   onStartTimeChange?: (time: string | undefined) => void;
   onEndTimeChange?: (time: string | undefined) => void;
   onValidationChange?: (isValid: boolean) => void;
+  isAdmin?: boolean;
 }
 
 export function ReservationDatePicker({
@@ -32,6 +33,7 @@ export function ReservationDatePicker({
   onStartTimeChange,
   onEndTimeChange,
   onValidationChange,
+  isAdmin = false,
 }: ReservationDatePickerProps) {
   // Current month for fetching availability
   const [currentMonth, setCurrentMonth] = useState(() => {
@@ -167,7 +169,7 @@ export function ReservationDatePicker({
 
     // Validate start date
     if (startDate) {
-      if (startDate < today) {
+      if (!isAdmin && startDate < today) {
         errors.push("La date de sortie ne peut pas être dans le passé");
       }
       if (!isAllowedDay(startDate, product.section.allowedDaysOut)) {
@@ -266,6 +268,7 @@ export function ReservationDatePicker({
     hasReturnTimeSlots,
     checkoutTimeSlots,
     returnTimeSlots,
+    isAdmin,
   ]);
 
   // Calculate duration and cost (inclusive: startDate to endDate)
@@ -395,6 +398,7 @@ export function ReservationDatePicker({
             allowedDaysOut={product.section.allowedDaysOut}
             allowedDaysIn={product.section.allowedDaysIn}
             onMonthChange={handleMonthChange}
+            isAdmin={isAdmin}
           />
         )}
       </Card>

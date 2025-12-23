@@ -15,6 +15,7 @@ import type {
   ListReservationsInput,
   AvailabilityInput,
   RefundReservationInput,
+  PenaltyReservationInput,
 } from '../schemas/reservation.js'
 import type { CheckoutInput } from '../schemas/movement.js'
 
@@ -159,6 +160,7 @@ export const createAdmin = async (
     adminNotes: request.body.adminNotes,
     createdBy: request.user.userId,
     isAdmin: true,
+    status: request.body.status,
     request,
   })
 
@@ -207,6 +209,21 @@ export const refund = async (
   })
 
   return reply.send(createSuccessResponse('Reservation refunded', reservation))
+}
+
+export const penalize = async (
+  request: FastifyRequest<{ Params: { id: string }; Body: PenaltyReservationInput }>,
+  reply: FastifyReply
+) => {
+  const result = await reservationService.penalizeReservation({
+    reservationId: request.params.id,
+    adminId: request.user.userId,
+    amount: request.body.amount,
+    reason: request.body.reason,
+    request,
+  })
+
+  return reply.send(createSuccessResponse('Pénalité appliquée', result))
 }
 
 export const checkout = async (

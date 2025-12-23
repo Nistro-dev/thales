@@ -91,7 +91,9 @@ export function AdminCreateReservationDialog({
     50,
   );
 
-  const users = usersData?.users || [];
+  const users = useMemo(() => {
+    return usersData?.users || [];
+  }, [usersData]);
   const products = useMemo(() => {
     return (productsData?.data || []) as Product[];
   }, [productsData]);

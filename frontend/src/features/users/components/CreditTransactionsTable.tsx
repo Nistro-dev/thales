@@ -132,9 +132,12 @@ export function CreditTransactionsTable({
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {transaction.performedByUser
-                        ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
-                        : "Automatique"}
+                      {transaction.type === "RESERVATION" ||
+                      transaction.type === "EXTENSION"
+                        ? "Automatique"
+                        : transaction.performedByUser
+                          ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
+                          : "Automatique"}
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-xs truncate">
                       {transaction.reason || "-"}

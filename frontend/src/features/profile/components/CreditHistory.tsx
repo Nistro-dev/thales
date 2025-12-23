@@ -49,9 +49,12 @@ function TransactionItem({ transaction }: { transaction: CreditTransaction }) {
               minute: "2-digit",
             })}
             {" - Par "}
-            {transaction.performedByUser
-              ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
-              : "Automatique"}
+            {transaction.type === "RESERVATION" ||
+            transaction.type === "EXTENSION"
+              ? "Automatique"
+              : transaction.performedByUser
+                ? `${transaction.performedByUser.firstName} ${transaction.performedByUser.lastName}`
+                : "Automatique"}
           </p>
           {transaction.reason && (
             <p className="text-xs text-muted-foreground mt-1">
